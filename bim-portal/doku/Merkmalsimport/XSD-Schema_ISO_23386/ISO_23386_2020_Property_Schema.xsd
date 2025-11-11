@@ -1,0 +1,1167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" xmlns:xml="http://www.w3.org/XML/1998/namespace" elementFormDefault="qualified" attributeFormDefault="unqualified" vc:minVersion="1.1">
+	<xs:simpleType name="language">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[a-z]{2}-[A-Z]{2}|IFC-IFC"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="country">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[A-Z]{2}|IFC"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="bimDeString">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+			<xs:maxLength value="1500"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="guid">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="subdivision">
+		<xs:restriction base="xs:token">
+			<xs:pattern value="[A-Z]{2}-[0-9A-Z]{1,4}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="url">
+		<xs:restriction base="xs:token">
+			<xs:pattern value="(https?|ftp|file)://[-a-zA-Z0-9+@#/%?=~_|!:,.;]*[-a-zA-Z0-9+@#/%=~_|]"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="status">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="active"/>
+			<xs:enumeration value="inactive"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:element name="Container">
+		<xs:annotation>
+			<xs:appinfo>
+				<dc:description xml:lang="en">
+					Container with groups of properties and properies
+					XML-Schemaversion 4.1
+				</dc:description>
+			</xs:appinfo>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="propertyGroup" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:appinfo>
+							<dc:description xml:lang="en">
+								A group of properties shall be defined using the set of attributes as listed.
+							</dc:description>
+						</xs:appinfo>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="guid" type="guid" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA001
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Globally unique identifier
+										</dc:description>
+										<dc:conformsTo>
+											Globally unique identifier generated using an algorithm in conformity with standard ISO/IEC 11578:1996. See 
+											RFC4122.
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="status" type="status" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA002
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Status of the group of properties during its life cycle
+											</dc:description>
+										<dc:conformsTo>
+											active
+											inactive
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="dateOfCreation" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA003
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date of validation of the group of properties creation request by experts
+										</dc:description>
+										<dc:conformsTo>
+											Date in accordance with ISO 8601 (all parts) Format = YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="dateOfActivation" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA004
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date after when the group of properties can be used
+										</dc:description>
+										<dc:conformsTo>
+											Date in accordance with ISO 8601 (all parts) Format = YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="dateOfLastChange" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA005
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date of validation of the last change request by experts
+										</dc:description>
+										<dc:conformsTo>
+											Date in accordance with ISO 8601 (all parts) Format = YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="dateOfRevision" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA006
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date of the revision
+										</dc:description>
+										<dc:conformsTo>
+											Date in accordance with ISO 8601 (all parts) Format = YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="dateOfVersion" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA007
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date of the revision
+										</dc:description>
+										<dc:conformsTo>
+											Date in accordance with ISO 8601 (all parts) Format = YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="dateOfDeactivation" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA008
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date as of which the group of properties becomes obsolete; the group of properties is maintained in the data dictionary
+										</dc:description>
+										<dc:conformsTo>
+											Date in accordance with ISO 8601 (all parts) Format = YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="versionNumber" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA009
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											This version number allows tracking of major changes. It is the experts who decide if the version number has to be changed or not
+											</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:nonNegativeInteger">
+										<xs:minInclusive value="1"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="revisionNumber" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA010	
+										</dc:identifier>
+										<dc:description xml:lang="en">
+										This revision number allows tracking of minor changes e.g. new translation, changes of typos; if the version number
+										changes, the revision number starts again at 1. It is the experts who decide about the revision number change
+											</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:nonNegativeInteger">
+										<xs:minInclusive value="1"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="replaces" type="guid" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA011
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of globally unique identifiers of the replaced groups of properties
+											</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="replacedBy" type="guid" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA012
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of globally unique identifiers of the replacing groups of properties
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="deprecationExplanation" type="bimDeString" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA013
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Sentence explaining the reason of the deprecation, which can explain how to convert values to conform to the
+											new group of properties.
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="relationOfThePropertyGroupIdentifiersInTheInterconnectedDictionaries" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA014
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of pairs (group of properties internal identifier, corresponding data dictionary identifier) This
+											attribute should be used for compatibility between already existing groups of properties
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="propGroupID" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="interConDictID" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="creatorsLanguage" type="language" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA015
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Language of the creator of the group of properties
+										</dc:description>
+										<dc:conformsTo>
+											The language shall consist of an ISO 639-1 letter code followed by a dash and then an ISO 3166-1 alpha-2 letter
+											code + “IFC-IFC”
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="namesInLanguage" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA016
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of pairs (name of the group of properties and language) This attribute can be used to add synonyms for
+											different domains
+										</dc:description>
+										<dc:conformsTo>
+											The language shall consist of an ISO 639-1 letter code followed by a dash and then an ISO 3166-1 alpha-2 letter
+											code 
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="name" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="language" type="language" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="definitionsInLanguage" minOccurs="1" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA017
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of pairs (definition of the group of properties, language)
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="definition" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="language" type="language" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="visualRepresentation" type="url" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA018
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Visual representation of the group of properties through sketches, photos, videos or other multimedia objects
+											</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="countryOfUse" type="country" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA019
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Country in which the group of properties is used
+										</dc:description>
+										<dc:conformsTo>
+											In accordance with ISO 3166-1
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="subdivisionOfUse" type="subdivision" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA020
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Documented geographical region of use of the group of properties
+											</dc:description>
+										<dc:conformsTo>
+											In accordance with ISO 3166-2, and other subdivisions (thermal regulation "RT 2012" zones, seismic zones fixed by decree etc.)
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="countryOfOrigin" type="country" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA021
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Country from where the requirement for this group of properties originated
+										</dc:description>
+										<dc:conformsTo>
+											In accordance with ISO 3166-1
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="categoryOfGroupOfProperties" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA022
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Indicates the category of the group of properties created
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="alternative use"/>
+										<xs:enumeration value="class"/>
+										<xs:enumeration value="composed property"/>
+										<xs:enumeration value="domain"/>
+										<xs:enumeration value="reference document"/>
+										<xs:enumeration value="name property set"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="parentGroupOfProperties" type="guid" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											GA023
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Enables a sub-group to be linked to a parent group via their globally unique identifiers (attribute GA001) Any property attached to a group is inherited by the sub-group(s)
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="property" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="guid" type="guid" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA001
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Globally unique identifier
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="status" type="status" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA002
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Status of the property during its life cycle
+										</dc:description>
+										<dc:conformsTo>
+											active
+											inactive
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="dateOfCreation" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA003
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date of validation of the property creation request by experts
+										</dc:description>
+										<dc:conformsTo>
+											Date in accordance with ISO 8601 (all parts) Format = YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="dateOfActivation" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA004
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date after when the property can be used
+										</dc:description>
+										<dc:conformsTo>
+											YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="dateOfLastChange" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA005
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date of validation of the last change request by experts
+										</dc:description>
+										<dc:conformsTo>
+											Date in accordance with ISO 8601 (all parts) Format = YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="dateOfRevision" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA006
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date of the revision	
+										</dc:description>
+										<dc:conformsTo>
+											Date in accordance with ISO 8601 (all parts) Format = YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="dateOfVersion" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA007
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date of the version
+										</dc:description>
+										<dc:conformsTo>
+											Date in accordance with ISO 8601 (all parts) Format = YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="dateOfDeactivation" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA008
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date as of which the property becomes obsolete; the property is maintained in the data dictionary
+										</dc:description>
+										<dc:conformsTo>
+											Date in accordance with ISO 8601 (all parts) Format = YYYY-MM-DDThh:mm:ssTZD
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:dateTime">
+										<xs:minInclusive value="1970-01-01T12:00:00"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="versionNumber" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA009
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											This version number allows tracking of major changes. Experts decide if a new version number must be applied
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:nonNegativeInteger">
+										<xs:minInclusive value="1"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="revisionNumber" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA010
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											This revision number allows tracking of minor changes e.g. new translation, changes of typos: if the version number changes, the revision number starts again at 1
+Experts decide if a new revision number can be applied or if a new revision is needed
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:nonNegativeInteger">
+										<xs:minInclusive value="1"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="replaces" type="guid" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA011
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Globally unique identifier (attribute PA001) of the replaced property (or properties)
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="replacedBy" type="guid" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA012
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Globally unique identifier (attribute PA001) of the replacing property (or properties)
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="deprecationExplanation" type="bimDeString" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA013
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Sentence explaining the reason of the deprecation, which can explain how to convert values to conform to the new property; this explanation has to be written in international English (EN)
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="relationOfThePropertyIdentifiersInTheInterconnectedDictionaries" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA014
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of pairs (property internal identifier, corresponding data dictionary identifier)
+This attribute should be used for compatibility between already existing properties
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="propertyID" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="interConDictID" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="creatorsLanguage" type="language" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA015
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Language of the creator of the property
+										</dc:description>
+										<dc:conformsTo>
+											The language shall consist of an ISO 639‑1 letter code followed by a dash
+											and then an ISO 3166-1 alpha-2 letter code + “IFC-IFC”
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="namesInLanguage" minOccurs="1" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA016
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of pairs (name of the property and language)
+											This attribute can be used to add synonyms for different domains
+										</dc:description>
+										<dc:conformsTo>
+											The second part of the pair shall consist of an ISO 639-1 letter code followed by a dash and then an ISO 3166-1 alpha-2 letter code + “IFC-IFC”										
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="name" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="language" type="language" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="definitionsInLanguage" minOccurs="1" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA017
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of pairs (definition of the property, language)
+										</dc:description>
+										<dc:conformsTo>
+											The second part of the pair shall consist of an ISO 639-1 letter code followed by a dash and then an ISO 3166-1 alpha-2 letter code + “IFC-IFC”
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="definition" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="language" type="language" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="descriptionsInLanguage" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA018
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of pairs (description of the property, language)
+This attribute is used to provide a plain language description of the property
+										</dc:description>
+										<dc:conformsTo>
+										The second part of the pair shall consist of an ISO 639-1 letter code followed by a dash and then an ISO 3166-1 alpha-2 letter code + “IFC-IFC”
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="description" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="language" type="language" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="examplesInLanguage" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA019
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of pairs (example values, language)
+This attribute can be used to illustrate the possible values of the property
+										</dc:description>
+										<dc:conformsTo>
+											The second part of the pair shall consist of an ISO 639-1 letter code followed by a dash and then an ISO 3166-1 alpha-2 letter code + “IFC-IFC”
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="example" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="language" type="language" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="connectedProperties" type="guid" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA020
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of the globally unique identifier of the connected properties (attribute PA001); the value of one property is related to the values of the other ones. For example, a sound absorption coefficient is given for a specific frequency, in this case sound absorption and 				
+											frequency are connected properties	
+										</dc:description>
+										<dc:conformsTo>
+											Date of the version
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="groupOfProperties" type="guid" minOccurs="1" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA021
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of globally unique identifiers of groups of properties (attribute PA001) to which the property is attached
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="symbolsOfThePropertyInAGivenPropertyGroup" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA022
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of pairs (symbol of the property, globally unique identifier of the group of properties (attribute GA001))
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="symbol" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="propGroupID" type="guid" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="visualRepresentation" type="url" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA023
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Visual representation of the property through sketches, photos, videos or other multimedia objects
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="countryOfUse" type="country" minOccurs="1" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA024
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Country (group of countries, continent) in which the property is relevant for the market the stakeholders operate in 
+											For example: ISOLE (The "ISOLE" usage profile is designed to make it easier to express of the suitability of insulation products relative to the needs of 
+											users, and as set out in a number of codified texts) has a country of use: Europe
+										</dc:description>
+										<dc:conformsTo>
+											In accordance with ISO 3166-1
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="subdivisionOfUse" type="subdivision" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA025
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Documented geographical region of use of the property
+										</dc:description>
+										<dc:conformsTo>
+											In accordance with ISO 3166-2, and other subdivisions (thermal regulation "RT 2012" zones, seismic zones fixed by decree etc.)
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="countryOfOrigin" type="country" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA026
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Country from where the requirement for this property originated
+										</dc:description>
+										<dc:conformsTo>
+											In accordance with ISO 3166-1
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="physicalQuantity" minOccurs="1" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA027
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of pairs (physical quantity | language) Physical quantities are expressed in International System (SI) units.
+											Non-physical quantities such as text are expressed with the value "without" This is equivalent to a measure in ISO 16739-1 and ISO 10303.
+											Only one physical quantity can be attached to a property. This attribute is used to provide the quantity in plain text with all the needed translations
+										</dc:description>
+										<dc:conformsTo>
+											First part of the pair in accordance with ISO 80000 (all parts) or "without"
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="siUnit" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="language" type="language" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="dimension" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA028
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											In case of a physical quantity, dimension according to ISO 80000 (all parts). 
+											This attribute allows the dimension to be machine readable; as all physical quantities are derived from 7 base quantities,
+											it is provided with the power (as a rational number) attached to a basic dimension in the 				 	 following order and with one space between each. The order is: L | M | T | I | Θ | N | J
+											Examples of dimensions are provided in Annex C
+									</dc:description>
+										<dc:conformsTo>
+											In accordance with ISO 80000 (all parts)
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:pattern value="([-]?(\d{1,3}|1000)(\.?\d{1,3})?\s){6}([-]?(\d{1,3}|1000)(\.?\d{1,3})?)|without"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="methodOfMeasurement" type="bimDeString" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA029
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Evaluation of construction products to ensure their fitness according to requirements in harmonised technical specifications
+										</dc:description>
+										<dc:conformsTo>
+											Date of the version
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="dataType" type="bimDeString" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA030
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Format for expressing the value of the property 
+											This can be understood as the storage type from a software perspective 
+											In case of a dynamic property the value of this attribute is the datatype of the result of the calculation by the formula
+										</dc:description>
+										<dc:conformsTo>
+											In accordance with ISO/IEC 11404	
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="dynamicProperty" minOccurs="1" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA031
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											If this is a dynamic property, the value is dependent on the parameters provided in the attribute PA032
+										</dc:description>
+										<dc:conformsTo>
+											yes
+											no
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="yes"/>
+										<xs:enumeration value="no"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="parametersOfTheDynamicProperty" type="guid" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA032
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of GUIDS of properties which are parameters of the function for a dynamic property
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="units" type="bimDeString" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA033
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											A unit to represent a scale that enables a value to be measured
+											It is possible to use this attribute to explain there is no unit attached to the property by using “unitless”
+										</dc:description>
+										<dc:conformsTo>
+											In accordance with ISO 80000 (all parts) or ISO 4217 or ISO 8601 (all parts)
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="namesOfTheDefiningValues" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA034
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											In case of an array, this attribute provides the names of the column headers defined as a list of pairs (name, language)
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="name" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="language" type="language" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="definingValues" type="bimDeString" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA035
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											In case of an array, this attribute provides the defining values when applicable, the datatype is given by the attribute PA030
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="tolerance" type="xs:decimal" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA036
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											For numerical values; the total amount that a specific unit is permitted to vary; it is the difference between the maximum and the minimum 				 	limits for the unit.
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="digitalFormat" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA037
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Pair for digital text type (precision, unit) 
+											Precision is the number of significant digits
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="precision" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="unitOfMeasure" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="textFormat" minOccurs="0" maxOccurs="1">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA038
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Pair for text type (encoding, number of characters)
+											The encoding is set according to “Name of encoding standard” of IANA, RFC 2978
+										</dc:description>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="encoding" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="numberOfCharacters" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="listOfPossibleValuesInLanguage" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA039
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											List of pairs (possible value for the property and language)
+											Values can be string or numbers
+										</dc:description>
+										<dc:conformsTo>
+											The second part of the pair shall consist of an ISO 639-1 letter code followed by a dash and then an ISO 3166-1 alpha-2 letter code + “IFC-IFC”
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="possibleValue" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+										<xs:element name="language" type="language" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="boundaryValues" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:appinfo>
+										<dc:identifier>
+											PA040
+										</dc:identifier>
+										<dc:description xml:lang="en">
+											Date of the revision
+										</dc:description>
+										<dc:conformsTo>
+											Date of the version
+										</dc:conformsTo>
+									</xs:appinfo>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="boundaryValuePairs" minOccurs="1" maxOccurs="unbounded">
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="[(]{1}[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?[,][-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?[)]{1}"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="unit" type="bimDeString" minOccurs="1" maxOccurs="1"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

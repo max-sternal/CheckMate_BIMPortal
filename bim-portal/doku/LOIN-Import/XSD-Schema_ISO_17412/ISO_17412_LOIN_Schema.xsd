@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" xmlns:xml="http://www.w3.org/XML/1998/namespace" elementFormDefault="qualified" attributeFormDefault="unqualified" vc:minVersion="1.1">
+	<xs:element name="Container">
+		<xs:annotation>
+			<xs:appinfo>
+				<dc:description xml:lang="en">
+					A group of properties shall be defined using the set of attributes as listed.
+				</dc:description>
+			</xs:appinfo>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="loinSpecification" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="description" type="xs:string" minOccurs="0"/>
+							<xs:element name="specificationObjectType" type="specificationObjectType" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+							<xs:element name="context" type="context" minOccurs="0"/>
+						</xs:sequence>
+						<xs:attribute name="globalId" type="xs:string" use="required"/>
+						<xs:attribute name="name" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:complexType name="specificationObjectType">
+		<xs:sequence>
+			<xs:element name="objectType" type="objectType" minOccurs="1" maxOccurs="1">
+				<xs:unique name="objectType_unique">
+					<xs:selector xpath="objectType"/>
+					<xs:field xpath="."/>
+				</xs:unique>
+			</xs:element>
+			<xs:element name="geometricalSpecification" type="geometricalSpecification" minOccurs="0"/>
+			<xs:element name="alphanumericalSpecification" type="alphanumericalSpecification" minOccurs="0"/>
+			<xs:element name="documentationSpecification" type="documentationSpecification" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="objectType">
+		<xs:sequence>
+			<xs:element name="mappingDataFormat" type="mappingDataFormat" minOccurs="1" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="globalId" type="guid" use="required"/>
+		<xs:attribute name="name" type="xs:string"/>
+		<xs:attribute name="dataCatalog" type="xs:string" use="optional"/>
+		<xs:attribute name="version" type="xs:long" use="required"/>
+		<xs:attribute name="revision" type="xs:long" use="required"/>
+	</xs:complexType>
+	<xs:complexType name="mappingDataFormat">
+		<xs:sequence>
+			<xs:element name="dataFormatName" type="xs:string" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="version" type="ifcVersion" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="view" type="xs:string" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="type" type="xs:string" minOccurs="0" maxOccurs="1"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="geometricalSpecification">
+		<xs:sequence>
+			<xs:element name="detail" type="xs:string" minOccurs="0"/>
+			<xs:element name="dimensionality" type="xs:string" minOccurs="0"/>
+			<xs:element name="location" type="xs:string" minOccurs="0"/>
+			<xs:element name="appearance" type="xs:string" minOccurs="0"/>
+			<xs:element name="parametricBehaviour" type="xs:string" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="alphanumericalSpecification">
+		<xs:sequence>
+			<xs:element name="description" type="xs:string" minOccurs="0"/>
+			<xs:element name="propertySets" minOccurs="0">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="propertySet" type="propertySet" minOccurs="0" maxOccurs="unbounded"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="propertySet">
+		<xs:sequence>
+			<xs:element name="properties" minOccurs="0">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="property" type="property" minOccurs="0" maxOccurs="unbounded"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="globalId" type="guid" use="required"/>
+		<xs:attribute name="name" type="xs:string"/>
+		<xs:attribute name="dataCatalog" type="xs:string" use="optional"/>
+		<xs:attribute name="version" type="xs:long" use="required"/>
+		<xs:attribute name="revision" type="xs:long" use="required"/>
+	</xs:complexType>
+	<xs:complexType name="property">
+		<xs:attribute name="globalId" type="guid" use="required"/>
+		<xs:attribute name="name" type="xs:string" use="required"/>
+		<xs:attribute name="dataCatalog" type="xs:string" use="optional"/>
+		<xs:attribute name="version" type="xs:long" use="required"/>
+		<xs:attribute name="revision" type="xs:long" use="required"/>
+	</xs:complexType>
+	<xs:complexType name="documentationSpecification">
+		<xs:sequence>
+			<xs:element name="documents" type="document" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="document">
+		<xs:attribute name="name" type="xs:string" use="required"/>
+		<xs:attribute name="type" type="xs:string" use="required"/>
+		<xs:attribute name="purpose" type="xs:string"/>
+		<xs:attribute name="url" type="xs:string"/>
+		<xs:attribute name="exportAsProperty" type="xs:boolean"/>
+	</xs:complexType>
+	<xs:complexType name="context">
+		<xs:sequence>
+			<xs:element name="milestone" type="milestone" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="purpose" type="purpose" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="actor" type="actor" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="assetType" type="assetType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="discipline" type="discipline" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="milestone">
+		<xs:complexContent>
+			<xs:extension base="optionalInformation"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="purpose">
+		<xs:complexContent>
+			<xs:extension base="optionalInformation"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="actor">
+		<xs:complexContent>
+			<xs:extension base="optionalInformation"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="assetType">
+		<xs:complexContent>
+			<xs:extension base="optionalInformation"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="discipline">
+		<xs:complexContent>
+			<xs:extension base="optionalInformation"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="optionalInformation" abstract="true">
+		<xs:sequence>
+			<xs:element name="description" type="xs:string" minOccurs="0"/>
+		</xs:sequence>
+		<xs:attribute name="globalId" type="xs:string" use="required"/>
+		<xs:attribute name="name" type="xs:string" use="required"/>
+	</xs:complexType>
+	<xs:simpleType name="guid">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ifcVersion">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="(\d+\.){3}\d+"/>
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>

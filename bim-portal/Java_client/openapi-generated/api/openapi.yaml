@@ -1,0 +1,5802 @@
+openapi: 3.0.3
+info:
+  description: "Dies ist die Dokumentation der REST-Endpunkte, die sowohl öffentliche\
+    \ als auch private Informationselemente abrufen können. Authentifizierung ist\
+    \ für den Zugriff auf private Ressourcen erforderlich. Die Endpunkte können auf\
+    \ dieser Seite getestet werden."
+  title: BIM-Portal REST-API
+  version: 1.0.0
+servers:
+- description: Main (production) server
+  url: https://via.bund.de/bim
+security:
+- bearerAuth: []
+paths:
+  /infrastruktur/api/v1/public/auth/refresh:
+    post:
+      operationId: refreshToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequestDTO'
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/JWTTokenPublicDto'
+          description: OK
+      security: []
+      summary: Aktualisierung des Autorisierungs-Token
+      tags:
+      - Infrastruktur
+      x-content-type: application/json
+      x-accepts:
+      - '*/*'
+  /infrastruktur/api/v1/public/auth/logout:
+    post:
+      description: "Diese API erfordert eine Authentifizierung mittels 'Bearer {accessToken}'\
+        \ über den Authorization-Header."
+      operationId: logout
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: OK
+      summary: Benutzer abmelden
+      tags:
+      - Infrastruktur
+      x-accepts:
+      - '*/*'
+  /infrastruktur/api/v1/public/auth/login:
+    post:
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginPublicDto'
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/JWTTokenPublicDto'
+          description: OK
+      security: []
+      summary: Anmeldung am System
+      tags:
+      - Infrastruktur
+      x-content-type: application/json
+      x-accepts:
+      - '*/*'
+  /infrastruktur/api/v1/public/organisation:
+    get:
+      operationId: getOrganisationsForPublic
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/OrganisationForPublicDTO'
+                type: array
+          description: Liste von Organisationen
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen.
+      security: []
+      summary: Liste aller über die Rest-API nutzbaren Organisationen
+      tags:
+      - Infrastruktur
+      x-accepts:
+      - application/json
+  /infrastruktur/api/v1/public/organisation/my:
+    get:
+      description: "Diese API erfordert eine Authentifizierung mittels 'Bearer {accessToken}'\
+        \ über den Authorization-Header."
+      operationId: getOrganisationsOfUser
+      parameters:
+      - explode: true
+        in: query
+        name: userId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/OrganisationForPublicDTO'
+                type: array
+          description: Liste von Organisationen
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen.
+      summary: "Liste aller über die Rest-API nutzbaren Organisationen, in denen der\
+        \ Nutzer Mitglied ist."
+      tags:
+      - Infrastruktur
+      x-accepts:
+      - application/json
+  /merkmale/api/v1/public/propertygroup:
+    post:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Merkmalsgruppen abrufen zu können."
+      operationId: getProperyGroupsForPublic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PropertyOrGroupForPublicRequest'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/PropertyOrGroupForPublicDto'
+                type: array
+          description: Eine Liste von Merkmalsgruppen
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert alle Merkmalsgruppen, die zu den Suchparametern passen"
+      tags:
+      - Merkmalsgruppen
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /merkmale/api/v1/public/property:
+    post:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Merkmale abrufen zu können."
+      operationId: getPropertiesForPublic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PropertyOrGroupForPublicRequest'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/PropertyOrGroupForPublicDto'
+                type: array
+          description: Eine Liste von Merkmalen.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert alle Merkmale, die zu den Suchparametern passen"
+      tags:
+      - Merkmale
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /merkmale/api/v1/public/propertygroup/{guid}:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Merkmalsgruppen abrufen zu können."
+      operationId: getPropertyGroupForPublic
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyGroupDto'
+          description: Eine Merkmalsgruppe
+        "403":
+          description: "Es besteht kein Recht, diese Merkmalsgruppe zu sehen."
+        "404":
+          description: Es existiert keine Merkmalsgruppe mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen.
+      summary: Liefert die Merkmalsgruppe mit der gesuchten GUID
+      tags:
+      - Merkmalsgruppen
+      x-accepts:
+      - application/json
+  /merkmale/api/v1/public/property/{guid}:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Merkmale abrufen zu können."
+      operationId: getPropertyForPublic
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyDto'
+          description: Ein Merkmal.
+        "403":
+          description: "Es besteht kein Recht, dieses Merkmal zu sehen."
+        "404":
+          description: Es existiert kein Merkmal mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen.
+      summary: Liefert das Merkmal mit der gesuchten GUID
+      tags:
+      - Merkmale
+      x-accepts:
+      - application/json
+  /merkmale/api/v1/public/filter:
+    get:
+      operationId: getGlobalFilters
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/TagGroupForPublicDto'
+                type: array
+          description: Liste von Filtern.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen.
+      security: []
+      summary: Liefert alle globalen Filter zurück
+      tags:
+      - Merkmale
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/loin:
+    post:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: getLoinsForPublic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoinForPublicRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/SimpleLoinPublicDto'
+                type: array
+          description: Eine Liste von LOINs.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert alle LOINs, die zu den Suchparametern passen"
+      tags:
+      - AIA-LOIN
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/domainSpecificModel:
+    post:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: getDomainSpecificModelsForPublic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiaDomainSpecificModelForPublicRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/SimpleDomainSpecificModelPublicDto'
+                type: array
+          description: Eine Liste von Fachmodellen.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert alle Fachmodelle, die zu den Suchparametern passen"
+      tags:
+      - Fachmodelle
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/contextInfo:
+    post:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: getContextInfosForPublic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiaContextInfoPublicRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/SimpleContextInfoPublicDto'
+                type: array
+          description: Eine Liste von Kontextinformationen.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert alle Kontextinformationen, die zu den Suchparametern passen"
+      tags:
+      - Kontextinformationen
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/aiaTemplate:
+    post:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: getTemplatesForPublic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiaTemplateForPublicRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/SimpleAiaTemplatePublicDto'
+                type: array
+          description: Eine Liste von Vorlagen.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert alle Vorlagen, die zu den Suchparametern passen"
+      tags:
+      - AIA-Vorlagen
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/aiaProject:
+    post:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: getProjectsForPublic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiaProjectForPublicRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/SimpleAiaProjectPublicDto'
+                type: array
+          description: Eine Liste von Projekten.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert alle Projekte, die zu den Suchparametern passen"
+      tags:
+      - AIA-Projekte
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/loin/{guid}:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: getLoinForPublic
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LOINPublicDto'
+          description: Eine LOIN.
+        "403":
+          description: "Es besteht kein Recht, diese LOIN zu sehen."
+        "404":
+          description: Es existiert keine LOIN mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen.
+      summary: Liefert die LOIN mit der gesuchten GUID
+      tags:
+      - AIA-LOIN
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/loin/{guid}/pdf:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportPdf
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: Eine LOIN im PDF-Format.
+        "403":
+          description: "Es besteht kein Recht, diese LOIN zu sehen."
+        "404":
+          description: Es existiert keine LOIN mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert die LOIN mit der übergebenen GUID im PDF-Format zurück
+      tags:
+      - AIA-LOIN
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/loin/{guid}/openOffice:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportOdt
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: Eine LOIN im ODT-Format.
+        "403":
+          description: "Es besteht kein Recht, diese LOIN zu sehen."
+        "404":
+          description: Es existiert keine LOIN mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert die LOIN mit der übergebenen GUID im OpenOffice-Format zurück
+      tags:
+      - AIA-LOIN
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/loin/{guid}/okstra:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportOkstra
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: "Okstra-Dateien, die mit der LOIN assoziiert sind."
+        "403":
+          description: "Es besteht kein Recht, diese LOIN zu sehen."
+        "404":
+          description: Es existiert keine LOIN mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert eine .zip-Datei mit allen Okstra-Dateien, die mit der LOIN\
+        \ assoziiert sind, zurück."
+      tags:
+      - AIA-LOIN
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/loin/{guid}/loinXML:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportXml
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: Eine LOIN im XML-Format.
+        "403":
+          description: "Es besteht kein Recht, diese LOIN zu sehen."
+        "404":
+          description: Es existiert keine LOIN mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert die LOIN als XML-Datei im LOIN-XML-Format zurück
+      tags:
+      - AIA-LOIN
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/loin/{guid}/IDS:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportIds
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: "IDS-Dateien, die mit der LOIN assoziiert sind."
+        "403":
+          description: "Es besteht kein Recht, diese LOIN zu sehen."
+        "404":
+          description: Es existiert keine LOIN mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert die LOIN als XML-Datei im IDS-XML-Format zurück
+      tags:
+      - AIA-LOIN
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/filter:
+    get:
+      operationId: getGlobalFilters1
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/FilterGroupForPublicDto'
+                type: array
+          description: Liste von Filtern.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen.
+      security: []
+      summary: Liefert alle globalen Filter zurück
+      tags:
+      - AIA-Filter
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/domainSpecificModel/{guid}:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: getDomainSpecificModelForPublic
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIADomainSpecificModelPublicDto'
+          description: Ein Fachmodell.
+        "403":
+          description: "Es besteht kein Recht, dieses Fachmodell zu sehen."
+        "404":
+          description: Es existiert kein Fachmodell mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen.
+      summary: Liefert das Fachmodell mit der gesuchten GUID
+      tags:
+      - Fachmodelle
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/domainSpecificModel/{guid}/pdf:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportPdf_1
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: Ein Fachmodell im PDF-Format.
+        "403":
+          description: "Es besteht kein Recht, dieses Fachmodell zu sehen."
+        "404":
+          description: Es existiert kein Fachmodell mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert das Fachmodell mit der übergebenen GUID im PDF-Format zurück
+      tags:
+      - Fachmodelle
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/domainSpecificModel/{guid}/openOffice:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportOdt_1
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: Ein Fachmodell im ODT-Format.
+        "403":
+          description: "Es besteht kein Recht, dieses Fachmodell zu sehen."
+        "404":
+          description: Es existiert kein Fachmodell mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert das Fachmodell mit der übergebenen GUID im OpenOffice-Format
+        zurück
+      tags:
+      - Fachmodelle
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/domainSpecificModel/{guid}/okstra:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportOkstra_1
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: "Okstra-Dateien, die mit dem Fachmodell assoziiert sind."
+        "403":
+          description: "Es besteht kein Recht, dieses Fachmodell zu sehen."
+        "404":
+          description: Es existiert kein Fachmodell mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert eine .zip-Datei mit allen Okstra-Dateien, die mit dem Fachmodell\
+        \ assoziiert sind, zurück."
+      tags:
+      - Fachmodelle
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/domainSpecificModel/{guid}/loinXML:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportXml_1
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: "LOIN-XML-Dateien, die mit dem Fachmodell assoziiert sind."
+        "403":
+          description: "Es besteht kein Recht, dieses Fachmodell zu sehen."
+        "404":
+          description: Es existiert kein Fachmodell mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert eine .zip-Datei mit allen LOIN-XML-Dateien, die mit dem Fachmodell\
+        \ assoziiert sind, zurück."
+      tags:
+      - Fachmodelle
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/domainSpecificModel/{guid}/IDS:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportIds_1
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: "IDS-Dateien, die mit dem Fachmodell assoziiert sind."
+        "403":
+          description: "Es besteht kein Recht, dieses Fachmodell zu sehen."
+        "404":
+          description: Es existiert kein Fachmodell mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert das Fachmodell als XML-Datei im IDS-Format zurück.
+      tags:
+      - Fachmodelle
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/contextInfo/{guid}:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: getContextInfoForPublic
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIAContextInfoPublicDto'
+          description: Eine Kontextinformation.
+        "403":
+          description: "Es besteht kein Recht, diese Kontextinformation zu sehen."
+        "404":
+          description: Es existiert keine Kontextinformation mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen.
+      summary: Liefert die Kontextinformation mit der gesuchten GUID
+      tags:
+      - Kontextinformationen
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/contextInfo/{guid}/pdf:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportPdf_2
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: Eine Kontextinformation im PDF-Format.
+        "403":
+          description: "Es besteht kein Recht, diese Kontextinformation zu sehen."
+        "404":
+          description: Es existiert keine Kontextinformation mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert die Kontextinformation mit der übergebenen GUID im PDF-Format
+        zurück
+      tags:
+      - Kontextinformationen
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/contextInfo/{guid}/openOffice:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportOdt_2
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: Eine Kontextinformation im ODT-Format.
+        "403":
+          description: "Es besteht kein Recht, diese Kontextinformation zu sehen."
+        "404":
+          description: Es existiert keine Kontextinformation mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert die Kontextinformation mit der übergebenen GUID im OpenOffice-Format
+        zurück
+      tags:
+      - Kontextinformationen
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/aiaTemplate/{guid}:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: getTemplateForPublic
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIATemplatePublicDto'
+          description: Eine Vorlage.
+        "403":
+          description: "Es besteht kein Recht, diese Vorlage zu sehen."
+        "404":
+          description: Es existiert keine Vorlage mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen.
+      summary: Liefert die Vorlage mit der gesuchten GUID
+      tags:
+      - AIA-Vorlagen
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/aiaTemplate/{guid}/pdf:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportPdf_3
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: Eine Vorlage im PDF-Format.
+        "403":
+          description: "Es besteht kein Recht, diese Vorlage zu sehen."
+        "404":
+          description: Es existiert keine Vorlage mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert die Vorlage mit der übergebenen GUID im PDF-Format zurück
+      tags:
+      - AIA-Vorlagen
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/aiaTemplate/{guid}/openOffice:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportOdt_3
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: Eine Vorlage im ODT-Format.
+        "403":
+          description: "Es besteht kein Recht, diese Vorlage zu sehen."
+        "404":
+          description: Es existiert keine Vorlage mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert die Vorlage mit der übergebenen GUID im OpenOffice-Format zurück
+      tags:
+      - AIA-Vorlagen
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/aiaProject/{guid}:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: getProjectForPublic
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIAProjectPublicDto'
+          description: Ein Projekt.
+        "403":
+          description: "Es besteht kein Recht, dieses Projekt zu sehen."
+        "404":
+          description: Es existiert kein Projekt mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen.
+      summary: Liefert das Projekt mit der gesuchten GUID
+      tags:
+      - AIA-Projekte
+      x-accepts:
+      - application/json
+  /aia/api/v1/public/aiaProject/{guid}/pdf:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportPdf_4
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: Ein Projekt im PDF-Format.
+        "403":
+          description: "Es besteht kein Recht, dieses Projekt zu sehen."
+        "404":
+          description: Es existiert kein Projekt mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert das Projekt mit der übergebenen GUID im PDF-Format zurück
+      tags:
+      - AIA-Projekte
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/aiaProject/{guid}/openOffice:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportOdt_4
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: Ein Projekt im ODT-Format.
+        "403":
+          description: "Es besteht kein Recht, dieses Projekt zu sehen."
+        "404":
+          description: Es existiert kein Projekt mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert das Projekt mit der übergebenen GUID im OpenOffice-Format zurück
+      tags:
+      - AIA-Projekte
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/aiaProject/{guid}/okstra:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportOkstra_2
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: "Okstra-Dateien, die mit dem Projekt assoziiert sind."
+        "403":
+          description: "Es besteht kein Recht, dieses Projekt zu sehen."
+        "404":
+          description: Es existiert kein Projekt mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert eine .zip-Datei mit allen Okstra-Dateien, die mit dem Projekt\
+        \ assoziiert sind, zurück."
+      tags:
+      - AIA-Projekte
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/aiaProject/{guid}/loinXML:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportXml_2
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: "LOIN-XML-Dateien, die mit dem Projekt assoziiert sind."
+        "403":
+          description: "Es besteht kein Recht, dieses Projekt zu sehen."
+        "404":
+          description: Es existiert kein Projekt mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: "Liefert eine .zip-Datei mit allen LOIN-XML-Dateien, die mit dem Projekt\
+        \ assoziiert sind, zurück."
+      tags:
+      - AIA-Projekte
+      x-accepts:
+      - '*/*'
+  /aia/api/v1/public/aiaProject/{guid}/IDS:
+    get:
+      description: "Diese API erlaubt optional eine Authentifizierung mittels 'Bearer\
+        \ {accessToken}' über den Authorization-Header, um nicht öffentlich sichtbare\
+        \ Informationselemente abrufen zu können."
+      operationId: exportIds_2
+      parameters:
+      - explode: false
+        in: path
+        name: guid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                format: byte
+                type: string
+          description: "IDS-Dateien, die mit dem Projekt assoziiert sind."
+        "403":
+          description: "Es besteht kein Recht, dieses Projekt zu sehen."
+        "404":
+          description: Es existiert kein Projekt mit der GUID.
+        "429":
+          description: Zu viele gleichzeitige Serveranfragen
+      summary: Liefert das AIA-P als XML-Datei im IDS-Format zurück.
+      tags:
+      - AIA-Projekte
+      x-accepts:
+      - '*/*'
+components:
+  schemas:
+    RefreshTokenRequestDTO:
+      example:
+        refreshToken: refreshToken
+      properties:
+        refreshToken:
+          type: string
+      type: object
+    JWTTokenPublicDto:
+      example:
+        validTill: 2000-01-23T04:56:07.000+00:00
+        token: token
+        refreshToken: refreshToken
+      properties:
+        token:
+          type: string
+        refreshToken:
+          type: string
+        validTill:
+          format: date-time
+          type: string
+      type: object
+    UserLoginPublicDto:
+      example:
+        password: password
+        mail: mail
+      properties:
+        mail:
+          minLength: 1
+          type: string
+        password:
+          minLength: 1
+          type: string
+      required:
+      - mail
+      - password
+      type: object
+    OrganisationForPublicDTO:
+      example:
+        bundOrganisationOrChild: true
+        parentGuid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        description: description
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        guid:
+          format: uuid
+          type: string
+        parentGuid:
+          format: uuid
+          type: string
+        bundOrganisationOrChild:
+          type: boolean
+      type: object
+    PropertyOrGroupForPublicRequest:
+      example:
+        filterGuids:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        includeDeprecated: true
+        searchString: searchString
+        pageNumber: 0
+        parentGuid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        organisationGuids:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        organisationGuids:
+          description: "GUIDs der Organisationen, denen die Merkmale oder Gruppen\
+            \ angehören müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+          uniqueItems: true
+        searchString:
+          description: "Teilstring, den die Namen der zu liefernden Merkmale und Gruppen\
+            \ beinhalten müssen"
+          type: string
+        filterGuids:
+          description: "GUIDs der Filter, die die zu liefernden Merkmale und Gruppen\
+            \ besitzen müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        parentGuid:
+          description: "GUID der Gruppe, in der die zu liefernden Merkmale und Gruppen\
+            \ enthalten sein müssen"
+          format: uuid
+          type: string
+        includeDeprecated:
+          description: "true, wenn auch veraltete Merkmale und Gruppen mitgeliefert\
+            \ werden sollen"
+          type: boolean
+        pageNumber:
+          description: Laufende Nummer der Ergebnisseite
+          format: int32
+          type: integer
+      type: object
+    PropertyOrGroupCatalogInformation:
+      example:
+        catalogName: catalogName
+        catalogProvider: catalogProvider
+        catalogUrl: catalogUrl
+        infoElementUrl: infoElementUrl
+      properties:
+        catalogName:
+          type: string
+        catalogUrl:
+          type: string
+        catalogProvider:
+          type: string
+        infoElementUrl:
+          type: string
+      type: object
+    PropertyOrGroupForPublicDto:
+      example:
+        revisionNumber: 6
+        dataType: dataType
+        deprecated: true
+        units:
+        - units
+        - units
+        versionNumber: 0
+        catalogInformation:
+          catalogName: catalogName
+          catalogProvider: catalogProvider
+          catalogUrl: catalogUrl
+          infoElementUrl: infoElementUrl
+        parentGuids:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        organisationName: organisationName
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        definition: definition
+        category: ALTERNATIVE_USE
+        currentPage: 1
+        maxPage: 5
+      properties:
+        name:
+          type: string
+        definition:
+          type: string
+        guid:
+          format: uuid
+          type: string
+        versionNumber:
+          format: int64
+          type: integer
+        revisionNumber:
+          format: int64
+          type: integer
+        parentGuids:
+          items:
+            format: uuid
+            type: string
+          type: array
+        organisationName:
+          type: string
+        dataType:
+          type: string
+        units:
+          items:
+            type: string
+          type: array
+        category:
+          enum:
+          - ALTERNATIVE_USE
+          - CLASS
+          - COMPOSED_PROPERTY
+          - DOMAIN
+          - REFERENCE_DOCUMENT
+          - NAME_PROPERTY_SET
+          type: string
+        deprecated:
+          type: boolean
+        currentPage:
+          format: int32
+          type: integer
+        maxPage:
+          format: int32
+          type: integer
+        catalogInformation:
+          $ref: '#/components/schemas/PropertyOrGroupCatalogInformation'
+      type: object
+    BimPortalMetadata:
+      example:
+        external: true
+        transferred: true
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        visibility: PUBLIC
+        nextState: PROPOSE
+        status: INITIAL
+      properties:
+        status:
+          deprecated: true
+          enum:
+          - INITIAL
+          - PROPOSED
+          - CREATION
+          - REVIEW
+          - VALIDATION
+          - ACCEPTED
+          - PUBLISHED
+          - DEPRECATED
+          - SORTED_OUT
+          - REJECTED
+          type: string
+        visibility:
+          enum:
+          - PUBLIC
+          - SECURED
+          - CHILD
+          - PRIVATE
+          type: string
+        external:
+          type: boolean
+        organisationId:
+          format: uuid
+          type: string
+        transferred:
+          type: boolean
+        nextState:
+          enum:
+          - PROPOSE
+          - ACCEPT
+          - SUBMIT_FOR_REVIEW
+          - SUBMIT_FOR_VALIDATION
+          - VALIDATED
+          - PUBLISH
+          - DEPRECATE
+          - SORT_OUT
+          - REJECT
+          - RESTORE
+          - EXTEND
+          - CREATE
+          - IMPORT
+          type: string
+          writeOnly: true
+      required:
+      - organisationId
+      type: object
+    BookmarkStatus:
+      example:
+        bookmarkId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        bookmarkId:
+          format: uuid
+          type: string
+      type: object
+    BoundaryValues:
+      example:
+        unit: unit
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        boundaryValuePairs:
+        - boundaryValuePairs
+        - boundaryValuePairs
+        version: 1
+      properties:
+        id:
+          format: uuid
+          type: string
+        version:
+          format: int64
+          type: integer
+        createdDate:
+          format: date-time
+          type: string
+        boundaryValuePairs:
+          items:
+            type: string
+          minItems: 1
+          type: array
+        unit:
+          minLength: 1
+          type: string
+      required:
+      - boundaryValuePairs
+      - unit
+      type: object
+    CountryLanguageCode:
+      example:
+        country: country
+        code: code
+        language: language
+      properties:
+        code:
+          type: string
+        language:
+          type: string
+        country:
+          type: string
+      type: object
+    DefinitionsInLanguageDto:
+      example:
+        definition: definition
+        language: language
+        value: value
+      properties:
+        definition:
+          type: string
+        language:
+          type: string
+        value:
+          type: string
+      type: object
+    DescriptionsInLanguageDto:
+      example:
+        description: description
+        language: language
+        countryName: countryName
+        languageName: languageName
+      properties:
+        description:
+          type: string
+        language:
+          type: string
+        languageName:
+          type: string
+        countryName:
+          type: string
+      type: object
+    DigitalFormat:
+      example:
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        unitOfMeasure: unitOfMeasure
+        precision: precision
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        version: 1
+      properties:
+        id:
+          format: uuid
+          type: string
+        version:
+          format: int64
+          type: integer
+        createdDate:
+          format: date-time
+          type: string
+        precision:
+          type: string
+        unitOfMeasure:
+          minLength: 1
+          type: string
+      required:
+      - precision
+      - unitOfMeasure
+      type: object
+    ExamplesInLanguageDto:
+      example:
+        language: language
+        countryName: countryName
+        languageName: languageName
+        example: example
+      properties:
+        example:
+          type: string
+        language:
+          type: string
+        languageName:
+          type: string
+        countryName:
+          type: string
+      type: object
+    ListOfPossibleValuesInLanguageDto:
+      example:
+        language: language
+        possibleValue: possibleValue
+        value: value
+      properties:
+        possibleValue:
+          type: string
+        language:
+          type: string
+        value:
+          type: string
+      type: object
+    NamesInLanguage:
+      example:
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        name: name
+        language: language
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        version: 7
+        value: value
+      properties:
+        id:
+          format: uuid
+          type: string
+        version:
+          format: int64
+          type: integer
+        createdDate:
+          format: date-time
+          type: string
+        name:
+          minLength: 1
+          type: string
+        language:
+          minLength: 1
+          type: string
+        value:
+          type: string
+      required:
+      - language
+      - name
+      type: object
+    NamesInLanguageDto:
+      example:
+        name: name
+        language: language
+        countryName: countryName
+        languageName: languageName
+        value: value
+      properties:
+        name:
+          type: string
+        language:
+          type: string
+        languageName:
+          type: string
+        countryName:
+          type: string
+        value:
+          type: string
+      type: object
+    ObservationStatus:
+      example:
+        observationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        observationId:
+          format: uuid
+          type: string
+      type: object
+    PhysicalQuantity:
+      example:
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        siUnit: siUnit
+        language: language
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        version: 4
+      properties:
+        id:
+          format: uuid
+          type: string
+        version:
+          format: int64
+          type: integer
+        createdDate:
+          format: date-time
+          type: string
+        siUnit:
+          minLength: 1
+          type: string
+        language:
+          minLength: 1
+          type: string
+      required:
+      - language
+      - siUnit
+      type: object
+    PropertyDto:
+      example:
+        metadata:
+          external: true
+          transferred: true
+          organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          visibility: PUBLIC
+          nextState: PROPOSE
+          status: INITIAL
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        revisionNumber: 7
+        canCreateNewVersion: true
+        observed:
+          observationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        parametersOfTheDynamicProperty:
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        connectedProperties:
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        dateOfRevision: 2000-01-23T04:56:07.000+00:00
+        tolerance:
+        - 1.2315135367772556
+        - 1.2315135367772556
+        descriptionsInLanguage:
+        - description: description
+          language: language
+          countryName: countryName
+          languageName: languageName
+        - description: description
+          language: language
+          countryName: countryName
+          languageName: languageName
+        dateOfDeactivation: 2000-01-23T04:56:07.000+00:00
+        replacedBy:
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        dateOfActivation: 2000-01-23T04:56:07.000+00:00
+        dataType: dataType
+        methodOfMeasurement: methodOfMeasurement
+        tags:
+        - organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          tag:
+            guidReference: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            global: true
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            assignmentCount: 6
+        - organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          tag:
+            guidReference: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            global: true
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            assignmentCount: 6
+        creatorsLanguage:
+          country: country
+          code: code
+          language: language
+        subdivisionOfUse:
+        - subdivisionOfUse
+        - subdivisionOfUse
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        groupOfProperties:
+        - definitionsInLanguage:
+          - definition: definition
+            language: language
+            value: value
+          - definition: definition
+            language: language
+            value: value
+          categoryOfGroupOfProperties: categoryOfGroupOfProperties
+          revisionNumber: 2
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          userCanViewDetails: true
+          containsProperty: true
+          versionNumber: 3
+          versionRevisionString: versionRevisionString
+        - definitionsInLanguage:
+          - definition: definition
+            language: language
+            value: value
+          - definition: definition
+            language: language
+            value: value
+          categoryOfGroupOfProperties: categoryOfGroupOfProperties
+          revisionNumber: 2
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          userCanViewDetails: true
+          containsProperty: true
+          versionNumber: 3
+          versionRevisionString: versionRevisionString
+        status: INITIAL
+        examplesInLanguage:
+        - language: language
+          countryName: countryName
+          languageName: languageName
+          example: example
+        - language: language
+          countryName: countryName
+          languageName: languageName
+          example: example
+        boundaryValues:
+        - unit: unit
+          createdDate: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          boundaryValuePairs:
+          - boundaryValuePairs
+          - boundaryValuePairs
+          version: 1
+        - unit: unit
+          createdDate: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          boundaryValuePairs:
+          - boundaryValuePairs
+          - boundaryValuePairs
+          version: 1
+        digitalFormat:
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          unitOfMeasure: unitOfMeasure
+          precision: precision
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: 1
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          unitOfMeasure: unitOfMeasure
+          precision: precision
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: 1
+        deprecationExplanation: deprecationExplanation
+        listOfPossibleValuesInLanguage:
+        - language: language
+          possibleValue: possibleValue
+          value: value
+        - language: language
+          possibleValue: possibleValue
+          value: value
+        units:
+        - units
+        - units
+        definingValues:
+        - definingValues
+        - definingValues
+        catalogInformation:
+          catalogName: catalogName
+          catalogProvider: catalogProvider
+          catalogUrl: catalogUrl
+          infoElementUrl: infoElementUrl
+        organisationType: SIGNED_IN
+        relationOfThePropertyIdentifiersInTheInterconnectedDictionaries:
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          interConDictID: interConDictID
+          version: 9
+          propertyID: propertyID
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          interConDictID: interConDictID
+          version: 9
+          propertyID: propertyID
+        definitionsInLanguage:
+        - definition: definition
+          language: language
+          value: value
+        - definition: definition
+          language: language
+          value: value
+        symbolsOfThePropertyInAGivenPropertyGroup:
+        - groupNames:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          symbol: symbol
+          propGroupID: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - groupNames:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          symbol: symbol
+          propGroupID: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        dateOfLastChange: 2000-01-23T04:56:07.000+00:00
+        countryOfUse:
+        - countryOfUse
+        - countryOfUse
+        dimension: dimension
+        physicalQuantity:
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          siUnit: siUnit
+          language: language
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: 4
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          siUnit: siUnit
+          language: language
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: 4
+        replaces:
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        bookmarked:
+          bookmarkId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        versionNumber: 2
+        dateOfCreation: 2000-01-23T04:56:07.000+00:00
+        dateOfVersion: 2000-01-23T04:56:07.000+00:00
+        visualRepresentation:
+        - visualRepresentation
+        - visualRepresentation
+        textFormat:
+          numberOfCharacters: numberOfCharacters
+          encoding: encoding
+        dynamicProperty: dynamicProperty
+        organisationName: organisationName
+        namesInLanguage:
+        - name: name
+          language: language
+          countryName: countryName
+          languageName: languageName
+          value: value
+        - name: name
+          language: language
+          countryName: countryName
+          languageName: languageName
+          value: value
+        namesOfTheDefiningValues:
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          name: name
+          language: language
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: 7
+          value: value
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          name: name
+          language: language
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: 7
+          value: value
+        countryOfOrigin: countryOfOrigin
+      properties:
+        id:
+          format: uuid
+          type: string
+        guid:
+          format: uuid
+          type: string
+        status:
+          enum:
+          - INITIAL
+          - PROPOSED
+          - CREATION
+          - REVIEW
+          - VALIDATION
+          - ACCEPTED
+          - PUBLISHED
+          - DEPRECATED
+          - SORTED_OUT
+          - REJECTED
+          type: string
+        dateOfCreation:
+          format: date-time
+          type: string
+        dateOfActivation:
+          format: date-time
+          type: string
+        dateOfLastChange:
+          format: date-time
+          type: string
+        dateOfRevision:
+          format: date-time
+          type: string
+        dateOfVersion:
+          format: date-time
+          type: string
+        dateOfDeactivation:
+          format: date-time
+          type: string
+        versionNumber:
+          format: int64
+          type: integer
+        revisionNumber:
+          format: int64
+          type: integer
+        replaces:
+          items:
+            $ref: '#/components/schemas/PropertyOrGroupWithNamesInLanguage'
+          type: array
+        replacedBy:
+          items:
+            $ref: '#/components/schemas/PropertyOrGroupWithNamesInLanguage'
+          type: array
+        deprecationExplanation:
+          type: string
+        relationOfThePropertyIdentifiersInTheInterconnectedDictionaries:
+          items:
+            $ref: '#/components/schemas/RelationOfThePropertyIdentifiersInTheInterconnectedDictionaries'
+          type: array
+        catalogInformation:
+          $ref: '#/components/schemas/PropertyOrGroupCatalogInformation'
+        creatorsLanguage:
+          $ref: '#/components/schemas/CountryLanguageCode'
+        namesInLanguage:
+          items:
+            $ref: '#/components/schemas/NamesInLanguageDto'
+          type: array
+        definitionsInLanguage:
+          items:
+            $ref: '#/components/schemas/DefinitionsInLanguageDto'
+          type: array
+        descriptionsInLanguage:
+          items:
+            $ref: '#/components/schemas/DescriptionsInLanguageDto'
+          type: array
+        examplesInLanguage:
+          items:
+            $ref: '#/components/schemas/ExamplesInLanguageDto'
+          type: array
+        connectedProperties:
+          items:
+            $ref: '#/components/schemas/PropertyOrGroupWithNamesInLanguage'
+          type: array
+        groupOfProperties:
+          items:
+            $ref: '#/components/schemas/SimpleParentGroup'
+          type: array
+        symbolsOfThePropertyInAGivenPropertyGroup:
+          items:
+            $ref: '#/components/schemas/SymbolsOfTheGivenPropertyGroupDto'
+          type: array
+        visualRepresentation:
+          items:
+            type: string
+          type: array
+        countryOfUse:
+          items:
+            type: string
+          type: array
+        subdivisionOfUse:
+          items:
+            type: string
+          type: array
+        countryOfOrigin:
+          type: string
+        physicalQuantity:
+          items:
+            $ref: '#/components/schemas/PhysicalQuantity'
+          type: array
+        dimension:
+          description: "Enthält die Dimension der Einheiten in der folgenden Reihenfolge:\
+            \ Länge, Masse, Zeit, Stoffmenge, Lichtstärke, Stromstärke, Temperatur"
+          type: string
+        methodOfMeasurement:
+          type: string
+        dataType:
+          type: string
+        dynamicProperty:
+          type: string
+        parametersOfTheDynamicProperty:
+          items:
+            $ref: '#/components/schemas/PropertyOrGroupWithNamesInLanguage'
+          type: array
+        units:
+          items:
+            type: string
+          type: array
+        namesOfTheDefiningValues:
+          items:
+            $ref: '#/components/schemas/NamesInLanguage'
+          type: array
+        definingValues:
+          items:
+            type: string
+          type: array
+        tolerance:
+          items:
+            type: number
+          type: array
+        digitalFormat:
+          items:
+            $ref: '#/components/schemas/DigitalFormat'
+          type: array
+        textFormat:
+          $ref: '#/components/schemas/TextFormat'
+        listOfPossibleValuesInLanguage:
+          items:
+            $ref: '#/components/schemas/ListOfPossibleValuesInLanguageDto'
+          type: array
+        boundaryValues:
+          items:
+            $ref: '#/components/schemas/BoundaryValues'
+          type: array
+        metadata:
+          $ref: '#/components/schemas/BimPortalMetadata'
+        bookmarked:
+          $ref: '#/components/schemas/BookmarkStatus'
+        observed:
+          $ref: '#/components/schemas/ObservationStatus'
+        organisationId:
+          format: uuid
+          type: string
+        organisationName:
+          type: string
+        tags:
+          items:
+            $ref: '#/components/schemas/TagAssignmentDto'
+          type: array
+        organisationType:
+          enum:
+          - SIGNED_IN
+          - DEFINED
+          - BIM_PORTAL
+          - BUND
+          type: string
+        canCreateNewVersion:
+          type: boolean
+      type: object
+    PropertyGroupDto:
+      example:
+        relationOfThePropertyGroupIdentifiersInTheInterconnectedDictionaries:
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          interConDictID: interConDictID
+          version: 5
+          propGroupID: propGroupID
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          interConDictID: interConDictID
+          version: 5
+          propGroupID: propGroupID
+        metadata:
+          external: true
+          transferred: true
+          organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          visibility: PUBLIC
+          nextState: PROPOSE
+          status: INITIAL
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        revisionNumber: 6
+        canCreateNewVersion: true
+        deprecationExplanation: deprecationExplanation
+        catalogInformation:
+          catalogName: catalogName
+          catalogProvider: catalogProvider
+          catalogUrl: catalogUrl
+          infoElementUrl: infoElementUrl
+        observed:
+          observationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        organisationType: SIGNED_IN
+        definitionsInLanguage:
+        - definition: definition
+          language: language
+          value: value
+        - definition: definition
+          language: language
+          value: value
+        childrenPropertyGroups:
+        - null
+        - null
+        simpleInheritedProperties:
+        - names:
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            name: name
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 7
+            value: value
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            name: name
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 7
+            value: value
+          revisionNumber: 1
+          informationElementStatus: INITIAL
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 7
+        - names:
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            name: name
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 7
+            value: value
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            name: name
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 7
+            value: value
+          revisionNumber: 1
+          informationElementStatus: INITIAL
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 7
+        dateOfLastChange: 2000-01-23T04:56:07.000+00:00
+        parentGroup:
+          definitionsInLanguage:
+          - definition: definition
+            language: language
+            value: value
+          - definition: definition
+            language: language
+            value: value
+          categoryOfGroupOfProperties: categoryOfGroupOfProperties
+          revisionNumber: 2
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          userCanViewDetails: true
+          containsProperty: true
+          versionNumber: 3
+          versionRevisionString: versionRevisionString
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        countryOfUse:
+        - countryOfUse
+        - countryOfUse
+        dateOfRevision: 2000-01-23T04:56:07.000+00:00
+        dateOfDeactivation: 2000-01-23T04:56:07.000+00:00
+        replaces:
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        replacedBy:
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        - revisionNumber: 5
+          informationElementStatus: INITIAL
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 1
+        bookmarked:
+          bookmarkId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        dateOfActivation: 2000-01-23T04:56:07.000+00:00
+        versionNumber: 0
+        dateOfCreation: 2000-01-23T04:56:07.000+00:00
+        dateOfVersion: 2000-01-23T04:56:07.000+00:00
+        visualRepresentation:
+        - visualRepresentation
+        - visualRepresentation
+        tags:
+        - organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          tag:
+            guidReference: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            global: true
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            assignmentCount: 6
+        - organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          tag:
+            guidReference: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            global: true
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            assignmentCount: 6
+        organisationName: organisationName
+        categoryOfGroupOfProperties: categoryOfGroupOfProperties
+        creatorsLanguage:
+          country: country
+          code: code
+          language: language
+        informationElementStatus: INITIAL
+        namesInLanguage:
+        - name: name
+          language: language
+          countryName: countryName
+          languageName: languageName
+          value: value
+        - name: name
+          language: language
+          countryName: countryName
+          languageName: languageName
+          value: value
+        subdivisionOfUse:
+        - subdivisionOfUse
+        - subdivisionOfUse
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        countryOfOrigin: countryOfOrigin
+        properties:
+        - metadata:
+            external: true
+            transferred: true
+            organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            visibility: PUBLIC
+            nextState: PROPOSE
+            status: INITIAL
+          organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          revisionNumber: 7
+          canCreateNewVersion: true
+          observed:
+            observationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          parametersOfTheDynamicProperty:
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          connectedProperties:
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          dateOfRevision: 2000-01-23T04:56:07.000+00:00
+          tolerance:
+          - 1.2315135367772556
+          - 1.2315135367772556
+          descriptionsInLanguage:
+          - description: description
+            language: language
+            countryName: countryName
+            languageName: languageName
+          - description: description
+            language: language
+            countryName: countryName
+            languageName: languageName
+          dateOfDeactivation: 2000-01-23T04:56:07.000+00:00
+          replacedBy:
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          dateOfActivation: 2000-01-23T04:56:07.000+00:00
+          dataType: dataType
+          methodOfMeasurement: methodOfMeasurement
+          tags:
+          - organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            tag:
+              guidReference: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              name: name
+              global: true
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              assignmentCount: 6
+          - organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            tag:
+              guidReference: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              name: name
+              global: true
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              assignmentCount: 6
+          creatorsLanguage:
+            country: country
+            code: code
+            language: language
+          subdivisionOfUse:
+          - subdivisionOfUse
+          - subdivisionOfUse
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          groupOfProperties:
+          - definitionsInLanguage:
+            - definition: definition
+              language: language
+              value: value
+            - definition: definition
+              language: language
+              value: value
+            categoryOfGroupOfProperties: categoryOfGroupOfProperties
+            revisionNumber: 2
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            userCanViewDetails: true
+            containsProperty: true
+            versionNumber: 3
+            versionRevisionString: versionRevisionString
+          - definitionsInLanguage:
+            - definition: definition
+              language: language
+              value: value
+            - definition: definition
+              language: language
+              value: value
+            categoryOfGroupOfProperties: categoryOfGroupOfProperties
+            revisionNumber: 2
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            userCanViewDetails: true
+            containsProperty: true
+            versionNumber: 3
+            versionRevisionString: versionRevisionString
+          status: INITIAL
+          examplesInLanguage:
+          - language: language
+            countryName: countryName
+            languageName: languageName
+            example: example
+          - language: language
+            countryName: countryName
+            languageName: languageName
+            example: example
+          boundaryValues:
+          - unit: unit
+            createdDate: 2000-01-23T04:56:07.000+00:00
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            boundaryValuePairs:
+            - boundaryValuePairs
+            - boundaryValuePairs
+            version: 1
+          - unit: unit
+            createdDate: 2000-01-23T04:56:07.000+00:00
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            boundaryValuePairs:
+            - boundaryValuePairs
+            - boundaryValuePairs
+            version: 1
+          digitalFormat:
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            unitOfMeasure: unitOfMeasure
+            precision: precision
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 1
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            unitOfMeasure: unitOfMeasure
+            precision: precision
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 1
+          deprecationExplanation: deprecationExplanation
+          listOfPossibleValuesInLanguage:
+          - language: language
+            possibleValue: possibleValue
+            value: value
+          - language: language
+            possibleValue: possibleValue
+            value: value
+          units:
+          - units
+          - units
+          definingValues:
+          - definingValues
+          - definingValues
+          catalogInformation:
+            catalogName: catalogName
+            catalogProvider: catalogProvider
+            catalogUrl: catalogUrl
+            infoElementUrl: infoElementUrl
+          organisationType: SIGNED_IN
+          relationOfThePropertyIdentifiersInTheInterconnectedDictionaries:
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            interConDictID: interConDictID
+            version: 9
+            propertyID: propertyID
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            interConDictID: interConDictID
+            version: 9
+            propertyID: propertyID
+          definitionsInLanguage:
+          - definition: definition
+            language: language
+            value: value
+          - definition: definition
+            language: language
+            value: value
+          symbolsOfThePropertyInAGivenPropertyGroup:
+          - groupNames:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            symbol: symbol
+            propGroupID: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          - groupNames:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            symbol: symbol
+            propGroupID: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          dateOfLastChange: 2000-01-23T04:56:07.000+00:00
+          countryOfUse:
+          - countryOfUse
+          - countryOfUse
+          dimension: dimension
+          physicalQuantity:
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            siUnit: siUnit
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 4
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            siUnit: siUnit
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 4
+          replaces:
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          bookmarked:
+            bookmarkId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 2
+          dateOfCreation: 2000-01-23T04:56:07.000+00:00
+          dateOfVersion: 2000-01-23T04:56:07.000+00:00
+          visualRepresentation:
+          - visualRepresentation
+          - visualRepresentation
+          textFormat:
+            numberOfCharacters: numberOfCharacters
+            encoding: encoding
+          dynamicProperty: dynamicProperty
+          organisationName: organisationName
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          namesOfTheDefiningValues:
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            name: name
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 7
+            value: value
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            name: name
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 7
+            value: value
+          countryOfOrigin: countryOfOrigin
+        - metadata:
+            external: true
+            transferred: true
+            organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            visibility: PUBLIC
+            nextState: PROPOSE
+            status: INITIAL
+          organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          revisionNumber: 7
+          canCreateNewVersion: true
+          observed:
+            observationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          parametersOfTheDynamicProperty:
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          connectedProperties:
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          dateOfRevision: 2000-01-23T04:56:07.000+00:00
+          tolerance:
+          - 1.2315135367772556
+          - 1.2315135367772556
+          descriptionsInLanguage:
+          - description: description
+            language: language
+            countryName: countryName
+            languageName: languageName
+          - description: description
+            language: language
+            countryName: countryName
+            languageName: languageName
+          dateOfDeactivation: 2000-01-23T04:56:07.000+00:00
+          replacedBy:
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          dateOfActivation: 2000-01-23T04:56:07.000+00:00
+          dataType: dataType
+          methodOfMeasurement: methodOfMeasurement
+          tags:
+          - organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            tag:
+              guidReference: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              name: name
+              global: true
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              assignmentCount: 6
+          - organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            tag:
+              guidReference: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              name: name
+              global: true
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              assignmentCount: 6
+          creatorsLanguage:
+            country: country
+            code: code
+            language: language
+          subdivisionOfUse:
+          - subdivisionOfUse
+          - subdivisionOfUse
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          groupOfProperties:
+          - definitionsInLanguage:
+            - definition: definition
+              language: language
+              value: value
+            - definition: definition
+              language: language
+              value: value
+            categoryOfGroupOfProperties: categoryOfGroupOfProperties
+            revisionNumber: 2
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            userCanViewDetails: true
+            containsProperty: true
+            versionNumber: 3
+            versionRevisionString: versionRevisionString
+          - definitionsInLanguage:
+            - definition: definition
+              language: language
+              value: value
+            - definition: definition
+              language: language
+              value: value
+            categoryOfGroupOfProperties: categoryOfGroupOfProperties
+            revisionNumber: 2
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            userCanViewDetails: true
+            containsProperty: true
+            versionNumber: 3
+            versionRevisionString: versionRevisionString
+          status: INITIAL
+          examplesInLanguage:
+          - language: language
+            countryName: countryName
+            languageName: languageName
+            example: example
+          - language: language
+            countryName: countryName
+            languageName: languageName
+            example: example
+          boundaryValues:
+          - unit: unit
+            createdDate: 2000-01-23T04:56:07.000+00:00
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            boundaryValuePairs:
+            - boundaryValuePairs
+            - boundaryValuePairs
+            version: 1
+          - unit: unit
+            createdDate: 2000-01-23T04:56:07.000+00:00
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            boundaryValuePairs:
+            - boundaryValuePairs
+            - boundaryValuePairs
+            version: 1
+          digitalFormat:
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            unitOfMeasure: unitOfMeasure
+            precision: precision
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 1
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            unitOfMeasure: unitOfMeasure
+            precision: precision
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 1
+          deprecationExplanation: deprecationExplanation
+          listOfPossibleValuesInLanguage:
+          - language: language
+            possibleValue: possibleValue
+            value: value
+          - language: language
+            possibleValue: possibleValue
+            value: value
+          units:
+          - units
+          - units
+          definingValues:
+          - definingValues
+          - definingValues
+          catalogInformation:
+            catalogName: catalogName
+            catalogProvider: catalogProvider
+            catalogUrl: catalogUrl
+            infoElementUrl: infoElementUrl
+          organisationType: SIGNED_IN
+          relationOfThePropertyIdentifiersInTheInterconnectedDictionaries:
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            interConDictID: interConDictID
+            version: 9
+            propertyID: propertyID
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            interConDictID: interConDictID
+            version: 9
+            propertyID: propertyID
+          definitionsInLanguage:
+          - definition: definition
+            language: language
+            value: value
+          - definition: definition
+            language: language
+            value: value
+          symbolsOfThePropertyInAGivenPropertyGroup:
+          - groupNames:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            symbol: symbol
+            propGroupID: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          - groupNames:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            symbol: symbol
+            propGroupID: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          dateOfLastChange: 2000-01-23T04:56:07.000+00:00
+          countryOfUse:
+          - countryOfUse
+          - countryOfUse
+          dimension: dimension
+          physicalQuantity:
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            siUnit: siUnit
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 4
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            siUnit: siUnit
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 4
+          replaces:
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          - revisionNumber: 5
+            informationElementStatus: INITIAL
+            namesInLanguage:
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            - name: name
+              language: language
+              countryName: countryName
+              languageName: languageName
+              value: value
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            versionNumber: 1
+          bookmarked:
+            bookmarkId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          versionNumber: 2
+          dateOfCreation: 2000-01-23T04:56:07.000+00:00
+          dateOfVersion: 2000-01-23T04:56:07.000+00:00
+          visualRepresentation:
+          - visualRepresentation
+          - visualRepresentation
+          textFormat:
+            numberOfCharacters: numberOfCharacters
+            encoding: encoding
+          dynamicProperty: dynamicProperty
+          organisationName: organisationName
+          namesInLanguage:
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          - name: name
+            language: language
+            countryName: countryName
+            languageName: languageName
+            value: value
+          namesOfTheDefiningValues:
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            name: name
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 7
+            value: value
+          - createdDate: 2000-01-23T04:56:07.000+00:00
+            name: name
+            language: language
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 7
+            value: value
+          countryOfOrigin: countryOfOrigin
+      properties:
+        id:
+          format: uuid
+          type: string
+        guid:
+          format: uuid
+          type: string
+        informationElementStatus:
+          enum:
+          - INITIAL
+          - PROPOSED
+          - CREATION
+          - REVIEW
+          - VALIDATION
+          - ACCEPTED
+          - PUBLISHED
+          - DEPRECATED
+          - SORTED_OUT
+          - REJECTED
+          type: string
+        dateOfCreation:
+          format: date-time
+          type: string
+        dateOfActivation:
+          format: date-time
+          type: string
+        dateOfLastChange:
+          format: date-time
+          type: string
+        dateOfRevision:
+          format: date-time
+          type: string
+        dateOfVersion:
+          format: date-time
+          type: string
+        dateOfDeactivation:
+          format: date-time
+          type: string
+        versionNumber:
+          format: int64
+          type: integer
+        revisionNumber:
+          format: int64
+          type: integer
+        replaces:
+          items:
+            $ref: '#/components/schemas/PropertyOrGroupWithNamesInLanguage'
+          type: array
+        replacedBy:
+          items:
+            $ref: '#/components/schemas/PropertyOrGroupWithNamesInLanguage'
+          type: array
+        deprecationExplanation:
+          type: string
+        relationOfThePropertyGroupIdentifiersInTheInterconnectedDictionaries:
+          items:
+            $ref: '#/components/schemas/RelationOfThePropertyGroupIdentifiersInTheInterconnectedDictionaries'
+          type: array
+        creatorsLanguage:
+          $ref: '#/components/schemas/CountryLanguageCode'
+        namesInLanguage:
+          items:
+            $ref: '#/components/schemas/NamesInLanguageDto'
+          type: array
+        definitionsInLanguage:
+          items:
+            $ref: '#/components/schemas/DefinitionsInLanguageDto'
+          type: array
+        visualRepresentation:
+          items:
+            type: string
+          type: array
+        countryOfUse:
+          items:
+            type: string
+          type: array
+        subdivisionOfUse:
+          items:
+            type: string
+          type: array
+        countryOfOrigin:
+          type: string
+        categoryOfGroupOfProperties:
+          type: string
+        properties:
+          items:
+            $ref: '#/components/schemas/PropertyDto'
+          type: array
+        childrenPropertyGroups:
+          items:
+            $ref: '#/components/schemas/PropertyGroupDto'
+          type: array
+        parentGroup:
+          $ref: '#/components/schemas/SimpleParentGroup'
+        metadata:
+          $ref: '#/components/schemas/BimPortalMetadata'
+        bookmarked:
+          $ref: '#/components/schemas/BookmarkStatus'
+        observed:
+          $ref: '#/components/schemas/ObservationStatus'
+        simpleInheritedProperties:
+          items:
+            $ref: '#/components/schemas/SimpleInheritedPropertyDto'
+          type: array
+        organisationId:
+          format: uuid
+          type: string
+        organisationName:
+          type: string
+        tags:
+          items:
+            $ref: '#/components/schemas/PropertyGroupTagDto'
+          type: array
+        organisationType:
+          enum:
+          - SIGNED_IN
+          - DEFINED
+          - BIM_PORTAL
+          - BUND
+          type: string
+        canCreateNewVersion:
+          type: boolean
+        catalogInformation:
+          $ref: '#/components/schemas/PropertyOrGroupCatalogInformation'
+      type: object
+    PropertyGroupTagDto:
+      example:
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        tag:
+          guidReference: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          global: true
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          assignmentCount: 6
+      properties:
+        tag:
+          $ref: '#/components/schemas/TagDto'
+        organisationId:
+          format: uuid
+          type: string
+      type: object
+    PropertyOrGroupWithNamesInLanguage:
+      example:
+        revisionNumber: 5
+        informationElementStatus: INITIAL
+        namesInLanguage:
+        - name: name
+          language: language
+          countryName: countryName
+          languageName: languageName
+          value: value
+        - name: name
+          language: language
+          countryName: countryName
+          languageName: languageName
+          value: value
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        versionNumber: 1
+      properties:
+        id:
+          format: uuid
+          type: string
+        namesInLanguage:
+          items:
+            $ref: '#/components/schemas/NamesInLanguageDto'
+          type: array
+        versionNumber:
+          format: int64
+          type: integer
+        revisionNumber:
+          format: int64
+          type: integer
+        informationElementStatus:
+          enum:
+          - INITIAL
+          - PROPOSED
+          - CREATION
+          - REVIEW
+          - VALIDATION
+          - ACCEPTED
+          - PUBLISHED
+          - DEPRECATED
+          - SORTED_OUT
+          - REJECTED
+          type: string
+      type: object
+    RelationOfThePropertyGroupIdentifiersInTheInterconnectedDictionaries:
+      example:
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        interConDictID: interConDictID
+        version: 5
+        propGroupID: propGroupID
+      properties:
+        id:
+          format: uuid
+          type: string
+        version:
+          format: int64
+          type: integer
+        createdDate:
+          format: date-time
+          type: string
+        propGroupID:
+          type: string
+        interConDictID:
+          type: string
+      required:
+      - interConDictID
+      - propGroupID
+      type: object
+    RelationOfThePropertyIdentifiersInTheInterconnectedDictionaries:
+      example:
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        interConDictID: interConDictID
+        version: 9
+        propertyID: propertyID
+      properties:
+        id:
+          format: uuid
+          type: string
+        version:
+          format: int64
+          type: integer
+        createdDate:
+          format: date-time
+          type: string
+        propertyID:
+          type: string
+        interConDictID:
+          type: string
+      required:
+      - interConDictID
+      - propertyID
+      type: object
+    SimpleInheritedPropertyDto:
+      example:
+        names:
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          name: name
+          language: language
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: 7
+          value: value
+        - createdDate: 2000-01-23T04:56:07.000+00:00
+          name: name
+          language: language
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: 7
+          value: value
+        revisionNumber: 1
+        informationElementStatus: INITIAL
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        versionNumber: 7
+      properties:
+        id:
+          format: uuid
+          type: string
+        names:
+          items:
+            $ref: '#/components/schemas/NamesInLanguage'
+          type: array
+          uniqueItems: true
+        versionNumber:
+          format: int64
+          type: integer
+        revisionNumber:
+          format: int64
+          type: integer
+        informationElementStatus:
+          enum:
+          - INITIAL
+          - PROPOSED
+          - CREATION
+          - REVIEW
+          - VALIDATION
+          - ACCEPTED
+          - PUBLISHED
+          - DEPRECATED
+          - SORTED_OUT
+          - REJECTED
+          type: string
+      type: object
+    SimpleParentGroup:
+      example:
+        definitionsInLanguage:
+        - definition: definition
+          language: language
+          value: value
+        - definition: definition
+          language: language
+          value: value
+        categoryOfGroupOfProperties: categoryOfGroupOfProperties
+        revisionNumber: 2
+        informationElementStatus: INITIAL
+        namesInLanguage:
+        - name: name
+          language: language
+          countryName: countryName
+          languageName: languageName
+          value: value
+        - name: name
+          language: language
+          countryName: countryName
+          languageName: languageName
+          value: value
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        userCanViewDetails: true
+        containsProperty: true
+        versionNumber: 3
+        versionRevisionString: versionRevisionString
+      properties:
+        id:
+          format: uuid
+          type: string
+        namesInLanguage:
+          items:
+            $ref: '#/components/schemas/NamesInLanguageDto'
+          type: array
+        definitionsInLanguage:
+          items:
+            $ref: '#/components/schemas/DefinitionsInLanguageDto'
+          type: array
+        versionNumber:
+          format: int64
+          type: integer
+        revisionNumber:
+          format: int64
+          type: integer
+        informationElementStatus:
+          enum:
+          - INITIAL
+          - PROPOSED
+          - CREATION
+          - REVIEW
+          - VALIDATION
+          - ACCEPTED
+          - PUBLISHED
+          - DEPRECATED
+          - SORTED_OUT
+          - REJECTED
+          type: string
+        containsProperty:
+          type: boolean
+        guid:
+          format: uuid
+          type: string
+        categoryOfGroupOfProperties:
+          type: string
+        userCanViewDetails:
+          type: boolean
+        versionRevisionString:
+          type: string
+      type: object
+    SymbolsOfTheGivenPropertyGroupDto:
+      example:
+        groupNames:
+        - name: name
+          language: language
+          countryName: countryName
+          languageName: languageName
+          value: value
+        - name: name
+          language: language
+          countryName: countryName
+          languageName: languageName
+          value: value
+        symbol: symbol
+        propGroupID: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        symbol:
+          type: string
+        propGroupID:
+          format: uuid
+          type: string
+        groupNames:
+          items:
+            $ref: '#/components/schemas/NamesInLanguageDto'
+          type: array
+      type: object
+    TagAssignmentDto:
+      example:
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        tag:
+          guidReference: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          global: true
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          assignmentCount: 6
+      properties:
+        tag:
+          $ref: '#/components/schemas/TagDto'
+        organisationId:
+          format: uuid
+          type: string
+      type: object
+    TagDto:
+      example:
+        guidReference: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        global: true
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        assignmentCount: 6
+      properties:
+        id:
+          format: uuid
+          type: string
+        name:
+          minLength: 1
+          type: string
+        organisationId:
+          format: uuid
+          type: string
+        global:
+          type: boolean
+        assignmentCount:
+          format: int32
+          type: integer
+        guidReference:
+          format: uuid
+          type: string
+      required:
+      - id
+      - name
+      - organisationId
+      type: object
+    TextFormat:
+      example:
+        numberOfCharacters: numberOfCharacters
+        encoding: encoding
+      properties:
+        encoding:
+          type: string
+        numberOfCharacters:
+          type: string
+      type: object
+    TagForPublicDto:
+      example:
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        name:
+          minLength: 1
+          type: string
+        guid:
+          format: uuid
+          type: string
+      required:
+      - guid
+      - name
+      type: object
+    TagGroupForPublicDto:
+      example:
+        filter:
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        name:
+          minLength: 1
+          type: string
+        guid:
+          format: uuid
+          type: string
+        filter:
+          items:
+            $ref: '#/components/schemas/TagForPublicDto'
+          type: array
+      required:
+      - guid
+      - name
+      type: object
+    LoinForPublicRequest:
+      example:
+        filterGuids:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        includeDeprecated: true
+        searchString: searchString
+        pageNumber: 0
+        contextIds:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        referencedIds:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        organisationGuids:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        filterGuids:
+          description: "GUIDs der Filter, die die zu liefernden LOINs besitzen mü\
+            ssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        referencedIds:
+          description: "GUIDs der Merkmale, die die zu liefernden LOINs referenzieren\
+            \ müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        organisationGuids:
+          description: "GUIDs der Organisationen, denen die LOINs angehören müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+          uniqueItems: true
+        searchString:
+          description: "Teilstring, den die Namen der zu liefernden LOINs beinhalten\
+            \ müssen"
+          type: string
+        contextIds:
+          description: "GUIDs der Kontextinformationen, die die zu liefernden LOINs\
+            \ referenzieren müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        includeDeprecated:
+          description: "true, wenn auch veraltete LOINs mitgeliefert werden sollen"
+          type: boolean
+        pageNumber:
+          description: Laufende Nummer der Ergebnisseite
+          format: int32
+          type: integer
+      type: object
+    SimpleLoinPublicDto:
+      example:
+        projectPhases:
+        - projectPhases
+        - projectPhases
+        visibility: PUBLIC
+        description: description
+        organisation: organisation
+        filters:
+        - filters
+        - filters
+        version: version
+        domainSpecificModelTypes:
+        - domainSpecificModelTypes
+        - domainSpecificModelTypes
+        actors:
+        - actors
+        - actors
+        purposes:
+        - purposes
+        - purposes
+        constructionTypes:
+        - constructionTypes
+        - constructionTypes
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        objectTypes:
+        - objectTypes
+        - objectTypes
+      properties:
+        name:
+          type: string
+        objectTypes:
+          items:
+            type: string
+          type: array
+        description:
+          type: string
+        id:
+          format: uuid
+          type: string
+        guid:
+          format: uuid
+          type: string
+        version:
+          type: string
+        organisation:
+          type: string
+        visibility:
+          enum:
+          - PUBLIC
+          - SECURED
+          - CHILD
+          - PRIVATE
+          type: string
+        constructionTypes:
+          items:
+            type: string
+          type: array
+        projectPhases:
+          items:
+            type: string
+          type: array
+        purposes:
+          items:
+            type: string
+          type: array
+        actors:
+          items:
+            type: string
+          type: array
+        domainSpecificModelTypes:
+          items:
+            type: string
+          type: array
+        filters:
+          items:
+            type: string
+          type: array
+      type: object
+    AiaDomainSpecificModelForPublicRequest:
+      example:
+        filterGuids:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        includeDeprecated: true
+        searchString: searchString
+        pageNumber: 0
+        contextIds:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        referencedIds:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        organisationGuids:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        filterGuids:
+          description: "GUIDs der Filter, die die zu liefernden Fachmodelle besitzen\
+            \ müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        referencedIds:
+          description: "GUIDs der LOINs, die die zu liefernden Fachmodelle referenzieren\
+            \ müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        organisationGuids:
+          description: "GUIDs der Organisationen, denen die Fachmodelle angehören\
+            \ müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+          uniqueItems: true
+        searchString:
+          description: "Teilstring, den die Namen der zu liefernden Fachmodelle beinhalten\
+            \ müssen"
+          type: string
+        contextIds:
+          description: "GUIDs der Kontextinformationen, die die zu liefernden Fachmodelle\
+            \ referenzieren müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        includeDeprecated:
+          description: "true, wenn auch veraltete Fachmodelle mitgeliefert werden\
+            \ sollen"
+          type: boolean
+        pageNumber:
+          description: Laufende Nummer der Ergebnisseite
+          format: int32
+          type: integer
+      type: object
+    SimpleDomainSpecificModelPublicDto:
+      example:
+        projectPhases:
+        - projectPhases
+        - projectPhases
+        visibility: PUBLIC
+        dataFormats:
+        - dataFormats
+        - dataFormats
+        description: description
+        organisation: organisation
+        filters:
+        - filters
+        - filters
+        version: version
+        domainSpecificModelTypes:
+        - domainSpecificModelTypes
+        - domainSpecificModelTypes
+        actors:
+        - actors
+        - actors
+        purposes:
+        - purposes
+        - purposes
+        constructionTypes:
+        - constructionTypes
+        - constructionTypes
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        name:
+          type: string
+        dataFormats:
+          items:
+            type: string
+          type: array
+        description:
+          type: string
+        id:
+          format: uuid
+          type: string
+        guid:
+          format: uuid
+          type: string
+        version:
+          type: string
+        organisation:
+          type: string
+        visibility:
+          enum:
+          - PUBLIC
+          - SECURED
+          - CHILD
+          - PRIVATE
+          type: string
+        constructionTypes:
+          items:
+            type: string
+          type: array
+        projectPhases:
+          items:
+            type: string
+          type: array
+        purposes:
+          items:
+            type: string
+          type: array
+        actors:
+          items:
+            type: string
+          type: array
+        domainSpecificModelTypes:
+          items:
+            type: string
+          type: array
+        filters:
+          items:
+            type: string
+          type: array
+      type: object
+    AiaContextInfoPublicRequest:
+      example:
+        filterGuids:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        includeDeprecated: true
+        searchString: searchString
+        pageNumber: 0
+        contextType: contextType
+        contextIds:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        organisationGuids:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        filterGuids:
+          description: "GUIDs der Filter, die die zu liefernden Kontextinformationen\
+            \ besitzen müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        contextType:
+          description: Spezifischer Kontextinformationstyp
+          type: string
+        organisationGuids:
+          description: "GUIDs der Organisationen, denen die Kontextinformationen angehö\
+            ren müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+          uniqueItems: true
+        searchString:
+          description: "Teilstring, den die Namen der zu liefernden Kontextinformationen\
+            \ beinhalten müssen"
+          type: string
+        contextIds:
+          description: "GUIDs der Kontextinformationen, die die zu liefernden Kontextinformationen\
+            \ referenzieren müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        includeDeprecated:
+          description: "true, wenn auch veraltete Kontextinformationen mitgeliefert\
+            \ werden sollen"
+          type: boolean
+        pageNumber:
+          description: Laufende Nummer der Ergebnisseite
+          format: int32
+          type: integer
+      type: object
+    SimpleContextInfoPublicDto:
+      example:
+        projectPhases:
+        - projectPhases
+        - projectPhases
+        visibility: PUBLIC
+        description: description
+        organisation: organisation
+        version: version
+        alternativeIdentifier: alternativeIdentifier
+        actors:
+        - actors
+        - actors
+        purposes:
+        - purposes
+        - purposes
+        contextType: CONSTRUCTION_TYPE
+        constructionTypes:
+        - constructionTypes
+        - constructionTypes
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        name:
+          type: string
+        contextType:
+          enum:
+          - CONSTRUCTION_TYPE
+          - PURPOSE
+          - PROJECT_PHASE
+          - ACTOR
+          - DOMAIN_SPECIFIC_MODEL_TYPE
+          type: string
+        alternativeIdentifier:
+          type: string
+        description:
+          type: string
+        id:
+          format: uuid
+          type: string
+        guid:
+          format: uuid
+          type: string
+        version:
+          type: string
+        organisation:
+          type: string
+        visibility:
+          enum:
+          - PUBLIC
+          - SECURED
+          - CHILD
+          - PRIVATE
+          type: string
+        constructionTypes:
+          items:
+            type: string
+          type: array
+        projectPhases:
+          items:
+            type: string
+          type: array
+        purposes:
+          items:
+            type: string
+          type: array
+        actors:
+          items:
+            type: string
+          type: array
+      type: object
+    AiaTemplateForPublicRequest:
+      example:
+        template: true
+        includeDeprecated: true
+        searchString: searchString
+        pageNumber: 0
+        contextIds:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        projectTemplate: true
+        organisationGuids:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        organisationGuids:
+          description: "GUIDs der Organisationen, denen die LOINs angehören müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+          uniqueItems: true
+        searchString:
+          description: "Teilstring, den die Namen der zu liefernden LOINs beinhalten\
+            \ müssen"
+          type: string
+        contextIds:
+          description: "GUIDs der Kontextinformationen, die die zu liefernden LOINs\
+            \ referenzieren müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        projectTemplate:
+          description: "true, wenn die Vorlage eine Projektvorlage ist"
+          type: boolean
+        template:
+          description: "true, wenn die Vorlage eine Teilvorlage ist"
+          type: boolean
+        includeDeprecated:
+          description: "true, wenn auch veraltete LOINs mitgeliefert werden sollen"
+          type: boolean
+        pageNumber:
+          description: Laufende Nummer der Ergebnisseite
+          format: int32
+          type: integer
+      type: object
+    SimpleAiaTemplatePublicDto:
+      example:
+        templateType: COMPLETED_TEMPLATE
+        projectPhases:
+        - projectPhases
+        - projectPhases
+        visibility: PUBLIC
+        description: description
+        organisation: organisation
+        filters:
+        - filters
+        - filters
+        version: version
+        domainSpecificModelTypes:
+        - domainSpecificModelTypes
+        - domainSpecificModelTypes
+        actors:
+        - actors
+        - actors
+        purposes:
+        - purposes
+        - purposes
+        constructionTypes:
+        - constructionTypes
+        - constructionTypes
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        name:
+          type: string
+        templateType:
+          enum:
+          - COMPLETED_TEMPLATE
+          - UNCOMPLETED_TEMPLATE
+          - PROJECT_TEMPLATE
+          type: string
+        description:
+          type: string
+        id:
+          format: uuid
+          type: string
+        guid:
+          format: uuid
+          type: string
+        version:
+          type: string
+        organisation:
+          type: string
+        visibility:
+          enum:
+          - PUBLIC
+          - SECURED
+          - CHILD
+          - PRIVATE
+          type: string
+        constructionTypes:
+          items:
+            type: string
+          type: array
+        projectPhases:
+          items:
+            type: string
+          type: array
+        purposes:
+          items:
+            type: string
+          type: array
+        actors:
+          items:
+            type: string
+          type: array
+        domainSpecificModelTypes:
+          items:
+            type: string
+          type: array
+        filters:
+          items:
+            type: string
+          type: array
+      type: object
+    AiaProjectForPublicRequest:
+      example:
+        includeDeprecated: true
+        searchString: searchString
+        pageNumber: 0
+        contextIds:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        referencedIds:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        organisationGuids:
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        referencedIds:
+          description: "GUIDs der Fachmodelle/Projektvorlagen, die die zu liefernden\
+            \ Projekte referenzieren müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        organisationGuids:
+          description: "GUIDs der Organisationen, denen die Projekte angehören mü\
+            ssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+          uniqueItems: true
+        searchString:
+          description: "Teilstring, den die Namen der zu liefernden Projekte beinhalten\
+            \ müssen"
+          type: string
+        contextIds:
+          description: "GUIDs der Kontextinformationen, die die zu liefernden Projekte\
+            \ referenzieren müssen"
+          items:
+            format: uuid
+            type: string
+          type: array
+        includeDeprecated:
+          description: "true, wenn auch veraltete Projekte mitgeliefert werden sollen"
+          type: boolean
+        pageNumber:
+          description: Laufende Nummer der Ergebnisseite
+          format: int32
+          type: integer
+      type: object
+    SimpleAiaProjectPublicDto:
+      example:
+        actors:
+        - actors
+        - actors
+        projectPhases:
+        - projectPhases
+        - projectPhases
+        visibility: PUBLIC
+        purposes:
+        - purposes
+        - purposes
+        constructionTypes:
+        - constructionTypes
+        - constructionTypes
+        name: name
+        description: description
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        organisation: organisation
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        version: version
+        domainSpecificModelTypes:
+        - domainSpecificModelTypes
+        - domainSpecificModelTypes
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        id:
+          format: uuid
+          type: string
+        guid:
+          format: uuid
+          type: string
+        version:
+          type: string
+        organisation:
+          type: string
+        visibility:
+          enum:
+          - PUBLIC
+          - SECURED
+          - CHILD
+          - PRIVATE
+          type: string
+        constructionTypes:
+          items:
+            type: string
+          type: array
+        projectPhases:
+          items:
+            type: string
+          type: array
+        purposes:
+          items:
+            type: string
+          type: array
+        actors:
+          items:
+            type: string
+          type: array
+        domainSpecificModelTypes:
+          items:
+            type: string
+          type: array
+      type: object
+    ClassificationPublicDto:
+      example:
+        propertyGroup:
+          name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        property:
+          name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          type: string
+        property:
+          $ref: '#/components/schemas/PropertyOrGroupPublicReference'
+        propertyGroup:
+          $ref: '#/components/schemas/PropertyOrGroupPublicReference'
+      type: object
+    ContextInfoPublicReference:
+      example:
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        version: version
+      properties:
+        id:
+          format: uuid
+          type: string
+        guid:
+          format: uuid
+          type: string
+        version:
+          type: string
+        name:
+          type: string
+      type: object
+    DataFormatDto:
+      discriminator:
+        propertyName: '@class'
+      properties:
+        id:
+          format: uuid
+          type: string
+        type:
+          $ref: '#/components/schemas/DataFormatTypeDto'
+        '@class':
+          type: string
+      required:
+      - '@class'
+      type: object
+    DataFormatType:
+      example:
+        majorRelease: 2
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        corrigendum: 1
+        ifc: true
+        name: name
+        variant: IFC
+        minorRelease: 4
+        addendum: 7
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        version: 3
+      properties:
+        id:
+          format: uuid
+          type: string
+        version:
+          format: int64
+          type: integer
+        createdDate:
+          format: date-time
+          type: string
+        name:
+          type: string
+        majorRelease:
+          format: int32
+          type: integer
+        minorRelease:
+          format: int32
+          type: integer
+        addendum:
+          format: int32
+          type: integer
+        corrigendum:
+          format: int32
+          type: integer
+        variant:
+          enum:
+          - IFC
+          - OKSTRA
+          - OTHER
+          type: string
+        ifc:
+          type: boolean
+      type: object
+    DataFormatTypeDto:
+      example:
+        majorRelease: 5
+        corrigendum: 9
+        ifc: true
+        name: name
+        variant: IFC
+        minorRelease: 2
+        addendum: 7
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        majorRelease:
+          format: int32
+          type: integer
+        minorRelease:
+          format: int32
+          type: integer
+        addendum:
+          format: int32
+          type: integer
+        corrigendum:
+          format: int32
+          type: integer
+        variant:
+          enum:
+          - IFC
+          - OKSTRA
+          - OTHER
+          type: string
+        ifc:
+          type: boolean
+      type: object
+    DocumentationDto:
+      example:
+        purpose: purpose
+        name: name
+        format: format
+        link: link
+        exportAsAttribute: true
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        purpose:
+          type: string
+        format:
+          type: string
+        link:
+          type: string
+        exportAsAttribute:
+          type: boolean
+      type: object
+    FilterAssignmentDto:
+      example:
+        filter:
+          filterGroupName: filterGroupName
+          organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          filterGroup: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          global: true
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          assignmentCount: 5
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        filter:
+          $ref: '#/components/schemas/FilterDto'
+        organisationId:
+          format: uuid
+          type: string
+      type: object
+    FilterDto:
+      example:
+        filterGroupName: filterGroupName
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        filterGroup: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        global: true
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        assignmentCount: 5
+      properties:
+        id:
+          format: uuid
+          type: string
+        name:
+          minLength: 1
+          type: string
+        organisationId:
+          format: uuid
+          type: string
+        filterGroupName:
+          type: string
+        filterGroup:
+          format: uuid
+          type: string
+        global:
+          type: boolean
+        assignmentCount:
+          format: int32
+          type: integer
+      required:
+      - id
+      - name
+      - organisationId
+      type: object
+    IFCClassDto:
+      example:
+        ifcView: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        ifcView:
+          format: uuid
+          type: string
+      type: object
+    IFCDto:
+      allOf:
+      - $ref: '#/components/schemas/DataFormatDto'
+      - properties:
+          ifcView:
+            $ref: '#/components/schemas/IFCViewDto'
+          ifcClass:
+            $ref: '#/components/schemas/IFCClassDto'
+          ifcType:
+            $ref: '#/components/schemas/IFCTypeDto'
+          groupAsIFCePset:
+            type: boolean
+          saveObjectTypeAsProperty:
+            type: boolean
+        type: object
+      example:
+        '@class': '@class'
+        ifcView:
+          ifcVersion:
+            majorRelease: 2
+            createdDate: 2000-01-23T04:56:07.000+00:00
+            corrigendum: 1
+            ifc: true
+            name: name
+            variant: IFC
+            minorRelease: 4
+            addendum: 7
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: 3
+          name: name
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        groupAsIFCePset: true
+        saveObjectTypeAsProperty: true
+        ifcType:
+          name: name
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          ifcClass: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        ifcClass:
+          ifcView: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        type:
+          majorRelease: 5
+          corrigendum: 9
+          ifc: true
+          name: name
+          variant: IFC
+          minorRelease: 2
+          addendum: 7
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+    IFCTypeDto:
+      example:
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        ifcClass: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        ifcClass:
+          format: uuid
+          type: string
+      type: object
+    IFCViewDto:
+      example:
+        ifcVersion:
+          majorRelease: 2
+          createdDate: 2000-01-23T04:56:07.000+00:00
+          corrigendum: 1
+          ifc: true
+          name: name
+          variant: IFC
+          minorRelease: 4
+          addendum: 7
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: 3
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          type: string
+        name:
+          type: string
+        ifcVersion:
+          $ref: '#/components/schemas/DataFormatType'
+      type: object
+    LOINPublicDto:
+      example:
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        revisionNumber: 6
+        dimensionality: dimensionality
+        dataFormats:
+        - '@class': '@class'
+          ifcView:
+            ifcVersion:
+              majorRelease: 2
+              createdDate: 2000-01-23T04:56:07.000+00:00
+              corrigendum: 1
+              ifc: true
+              name: name
+              variant: IFC
+              minorRelease: 4
+              addendum: 7
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              version: 3
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          groupAsIFCePset: true
+          saveObjectTypeAsProperty: true
+          ifcType:
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            ifcClass: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          ifcClass:
+            ifcView: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          type:
+            majorRelease: 5
+            corrigendum: 9
+            ifc: true
+            name: name
+            variant: IFC
+            minorRelease: 2
+            addendum: 7
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - '@class': '@class'
+          ifcView:
+            ifcVersion:
+              majorRelease: 2
+              createdDate: 2000-01-23T04:56:07.000+00:00
+              corrigendum: 1
+              ifc: true
+              name: name
+              variant: IFC
+              minorRelease: 4
+              addendum: 7
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              version: 3
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          groupAsIFCePset: true
+          saveObjectTypeAsProperty: true
+          ifcType:
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            ifcClass: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          ifcClass:
+            ifcView: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          type:
+            majorRelease: 5
+            corrigendum: 9
+            ifc: true
+            name: name
+            variant: IFC
+            minorRelease: 2
+            addendum: 7
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        description: description
+        levelOfDetail: levelOfDetail
+        contexts:
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        buildNumber: 1
+        dateOfLastChange: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        fallbackPropertyGroupName: fallbackPropertyGroupName
+        dateOfRevision: 2000-01-23T04:56:07.000+00:00
+        dateOfDeactivation: 2000-01-23T04:56:07.000+00:00
+        dateOfActivation: 2000-01-23T04:56:07.000+00:00
+        documentations:
+        - purpose: purpose
+          name: name
+          format: format
+          link: link
+          exportAsAttribute: true
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - purpose: purpose
+          name: name
+          format: format
+          link: link
+          exportAsAttribute: true
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        filters:
+        - filter:
+            filterGroupName: filterGroupName
+            organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            filterGroup: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            global: true
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            assignmentCount: 5
+          organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - filter:
+            filterGroupName: filterGroupName
+            organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            filterGroup: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            global: true
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            assignmentCount: 5
+          organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        versionNumber: 0
+        dateOfVersion: 2000-01-23T04:56:07.000+00:00
+        classifications:
+        - propertyGroup:
+            name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+          property:
+            name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - propertyGroup:
+            name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+          property:
+            name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        organisationName: organisationName
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        appearance: appearance
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        location: location
+        behaviour: behaviour
+        geometricComment: geometricComment
+        objectTypes:
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        exportFormats:
+        - exportFormats
+        - exportFormats
+        properties:
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+      properties:
+        id:
+          format: uuid
+          type: string
+        createdDate:
+          format: date-time
+          type: string
+        dateOfActivation:
+          format: date-time
+          type: string
+        dateOfLastChange:
+          format: date-time
+          type: string
+        dateOfRevision:
+          format: date-time
+          type: string
+        dateOfVersion:
+          format: date-time
+          type: string
+        dateOfDeactivation:
+          format: date-time
+          type: string
+        guid:
+          format: uuid
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        organisationId:
+          format: uuid
+          type: string
+        organisationName:
+          type: string
+        versionNumber:
+          format: int64
+          type: integer
+        revisionNumber:
+          format: int64
+          type: integer
+        buildNumber:
+          format: int64
+          type: integer
+        exportFormats:
+          items:
+            type: string
+          type: array
+          uniqueItems: true
+        filters:
+          items:
+            $ref: '#/components/schemas/FilterAssignmentDto'
+          type: array
+          uniqueItems: true
+        objectTypes:
+          items:
+            $ref: '#/components/schemas/PropertyOrGroupPublicReference'
+          type: array
+          uniqueItems: true
+        dataFormats:
+          items:
+            $ref: '#/components/schemas/LOINPublicDto_dataFormats_inner'
+          type: array
+          uniqueItems: true
+        properties:
+          items:
+            $ref: '#/components/schemas/PropertyOrGroupPublicReference'
+          type: array
+          uniqueItems: true
+        levelOfDetail:
+          type: string
+        dimensionality:
+          type: string
+        location:
+          type: string
+        appearance:
+          type: string
+        behaviour:
+          type: string
+        geometricComment:
+          type: string
+        documentations:
+          items:
+            $ref: '#/components/schemas/DocumentationDto'
+          type: array
+        fallbackPropertyGroupName:
+          type: string
+        classifications:
+          items:
+            $ref: '#/components/schemas/ClassificationPublicDto'
+          type: array
+        contexts:
+          items:
+            $ref: '#/components/schemas/ContextInfoPublicReference'
+          type: array
+          uniqueItems: true
+      type: object
+    OKSTRADto:
+      allOf:
+      - $ref: '#/components/schemas/DataFormatDto'
+      - properties:
+          fileId:
+            format: uuid
+            type: string
+          fileName:
+            type: string
+          name:
+            type: string
+        type: object
+    OtherDto:
+      allOf:
+      - $ref: '#/components/schemas/DataFormatDto'
+      - properties:
+          dataFormatVersion:
+            type: string
+          viewType:
+            type: string
+          name:
+            type: string
+        type: object
+    PropertyOrGroupPublicReference:
+      example:
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        version: version
+      properties:
+        id:
+          format: uuid
+          type: string
+        guid:
+          format: uuid
+          type: string
+        version:
+          type: string
+        name:
+          type: string
+      type: object
+    FilterForPublicDto:
+      example:
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        name:
+          minLength: 1
+          type: string
+        guid:
+          format: uuid
+          type: string
+      required:
+      - guid
+      - name
+      type: object
+    FilterGroupForPublicDto:
+      example:
+        filter:
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        name:
+          minLength: 1
+          type: string
+        guid:
+          format: uuid
+          type: string
+        filter:
+          items:
+            $ref: '#/components/schemas/FilterForPublicDto'
+          type: array
+      required:
+      - guid
+      - name
+      type: object
+    AIADomainSpecificModelPublicDto:
+      example:
+        templateType: COMPLETED_TEMPLATE
+        dateOfDeactivation: 2000-01-23T04:56:07.000+00:00
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        revisionNumber: 6
+        chapters:
+        - pleaseChange: true
+          chapterNumber: chapterNumber
+          title: title
+          content: content
+        - pleaseChange: true
+          chapterNumber: chapterNumber
+          title: title
+          content: content
+        dateOfActivation: 2000-01-23T04:56:07.000+00:00
+        dataFormats:
+        - '@class': '@class'
+          ifcView:
+            ifcVersion:
+              majorRelease: 2
+              createdDate: 2000-01-23T04:56:07.000+00:00
+              corrigendum: 1
+              ifc: true
+              name: name
+              variant: IFC
+              minorRelease: 4
+              addendum: 7
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              version: 3
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          groupAsIFCePset: true
+          saveObjectTypeAsProperty: true
+          ifcType:
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            ifcClass: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          ifcClass:
+            ifcView: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          type:
+            majorRelease: 5
+            corrigendum: 9
+            ifc: true
+            name: name
+            variant: IFC
+            minorRelease: 2
+            addendum: 7
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - '@class': '@class'
+          ifcView:
+            ifcVersion:
+              majorRelease: 2
+              createdDate: 2000-01-23T04:56:07.000+00:00
+              corrigendum: 1
+              ifc: true
+              name: name
+              variant: IFC
+              minorRelease: 4
+              addendum: 7
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              version: 3
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          groupAsIFCePset: true
+          saveObjectTypeAsProperty: true
+          ifcType:
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            ifcClass: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          ifcClass:
+            ifcView: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          type:
+            majorRelease: 5
+            corrigendum: 9
+            ifc: true
+            name: name
+            variant: IFC
+            minorRelease: 2
+            addendum: 7
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        description: description
+        buildNumber: 1
+        versionNumber: 0
+        loins:
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        dateOfVersion: 2000-01-23T04:56:07.000+00:00
+        organisationName: organisationName
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        dateOfLastChange: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        dateOfRevision: 2000-01-23T04:56:07.000+00:00
+        exportFormats:
+        - exportFormats
+        - exportFormats
+      properties:
+        id:
+          format: uuid
+          type: string
+        createdDate:
+          format: date-time
+          type: string
+        dateOfActivation:
+          format: date-time
+          type: string
+        dateOfLastChange:
+          format: date-time
+          type: string
+        dateOfRevision:
+          format: date-time
+          type: string
+        dateOfVersion:
+          format: date-time
+          type: string
+        dateOfDeactivation:
+          format: date-time
+          type: string
+        guid:
+          format: uuid
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        organisationId:
+          format: uuid
+          type: string
+        organisationName:
+          type: string
+        versionNumber:
+          format: int64
+          type: integer
+        revisionNumber:
+          format: int64
+          type: integer
+        buildNumber:
+          format: int64
+          type: integer
+        exportFormats:
+          items:
+            type: string
+          type: array
+          uniqueItems: true
+        templateType:
+          enum:
+          - COMPLETED_TEMPLATE
+          - UNCOMPLETED_TEMPLATE
+          - PROJECT_TEMPLATE
+          type: string
+        chapters:
+          items:
+            $ref: '#/components/schemas/ChapterPublicReference'
+          type: array
+        loins:
+          items:
+            $ref: '#/components/schemas/LoinPublicReference'
+          type: array
+        dataFormats:
+          items:
+            $ref: '#/components/schemas/LOINPublicDto_dataFormats_inner'
+          type: array
+          uniqueItems: true
+      type: object
+    ChapterPublicReference:
+      example:
+        pleaseChange: true
+        chapterNumber: chapterNumber
+        title: title
+        content: content
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        chapterNumber:
+          type: string
+        pleaseChange:
+          type: boolean
+      type: object
+    LoinPublicReference:
+      example:
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        version: version
+      properties:
+        id:
+          format: uuid
+          type: string
+        guid:
+          format: uuid
+          type: string
+        version:
+          type: string
+        name:
+          type: string
+      type: object
+    AIAContextInfoPublicDto:
+      example:
+        templateType: COMPLETED_TEMPLATE
+        dateOfDeactivation: 2000-01-23T04:56:07.000+00:00
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        revisionNumber: 6
+        chapters:
+        - pleaseChange: true
+          chapterNumber: chapterNumber
+          title: title
+          content: content
+        - pleaseChange: true
+          chapterNumber: chapterNumber
+          title: title
+          content: content
+        dateOfActivation: 2000-01-23T04:56:07.000+00:00
+        description: description
+        buildNumber: 1
+        versionNumber: 0
+        dateOfVersion: 2000-01-23T04:56:07.000+00:00
+        alternativeIdentifier: alternativeIdentifier
+        organisationName: organisationName
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        contextType: CONSTRUCTION_TYPE
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        dateOfLastChange: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        dateOfRevision: 2000-01-23T04:56:07.000+00:00
+        exportFormats:
+        - exportFormats
+        - exportFormats
+      properties:
+        id:
+          format: uuid
+          type: string
+        createdDate:
+          format: date-time
+          type: string
+        dateOfActivation:
+          format: date-time
+          type: string
+        dateOfLastChange:
+          format: date-time
+          type: string
+        dateOfRevision:
+          format: date-time
+          type: string
+        dateOfVersion:
+          format: date-time
+          type: string
+        dateOfDeactivation:
+          format: date-time
+          type: string
+        guid:
+          format: uuid
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        organisationId:
+          format: uuid
+          type: string
+        organisationName:
+          type: string
+        versionNumber:
+          format: int64
+          type: integer
+        revisionNumber:
+          format: int64
+          type: integer
+        buildNumber:
+          format: int64
+          type: integer
+        exportFormats:
+          items:
+            type: string
+          type: array
+          uniqueItems: true
+        templateType:
+          enum:
+          - COMPLETED_TEMPLATE
+          - UNCOMPLETED_TEMPLATE
+          - PROJECT_TEMPLATE
+          type: string
+        chapters:
+          items:
+            $ref: '#/components/schemas/ChapterPublicReference'
+          type: array
+        contextType:
+          enum:
+          - CONSTRUCTION_TYPE
+          - PURPOSE
+          - PROJECT_PHASE
+          - ACTOR
+          - DOMAIN_SPECIFIC_MODEL_TYPE
+          type: string
+        alternativeIdentifier:
+          type: string
+      type: object
+    AIATemplatePublicDto:
+      example:
+        templateType: COMPLETED_TEMPLATE
+        dateOfDeactivation: 2000-01-23T04:56:07.000+00:00
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        revisionNumber: 6
+        chapters:
+        - pleaseChange: true
+          chapterNumber: chapterNumber
+          title: title
+          content: content
+        - pleaseChange: true
+          chapterNumber: chapterNumber
+          title: title
+          content: content
+        dateOfActivation: 2000-01-23T04:56:07.000+00:00
+        description: description
+        buildNumber: 1
+        versionNumber: 0
+        dateOfVersion: 2000-01-23T04:56:07.000+00:00
+        organisationName: organisationName
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        dateOfLastChange: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        dateOfRevision: 2000-01-23T04:56:07.000+00:00
+        exportFormats:
+        - exportFormats
+        - exportFormats
+      properties:
+        id:
+          format: uuid
+          type: string
+        createdDate:
+          format: date-time
+          type: string
+        dateOfActivation:
+          format: date-time
+          type: string
+        dateOfLastChange:
+          format: date-time
+          type: string
+        dateOfRevision:
+          format: date-time
+          type: string
+        dateOfVersion:
+          format: date-time
+          type: string
+        dateOfDeactivation:
+          format: date-time
+          type: string
+        guid:
+          format: uuid
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        organisationId:
+          format: uuid
+          type: string
+        organisationName:
+          type: string
+        versionNumber:
+          format: int64
+          type: integer
+        revisionNumber:
+          format: int64
+          type: integer
+        buildNumber:
+          format: int64
+          type: integer
+        exportFormats:
+          items:
+            type: string
+          type: array
+          uniqueItems: true
+        templateType:
+          enum:
+          - COMPLETED_TEMPLATE
+          - UNCOMPLETED_TEMPLATE
+          - PROJECT_TEMPLATE
+          type: string
+        chapters:
+          items:
+            $ref: '#/components/schemas/ChapterPublicReference'
+          type: array
+      type: object
+    AIADomainSpecificModelPublicReference:
+      example:
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        version: version
+      properties:
+        id:
+          format: uuid
+          type: string
+        guid:
+          format: uuid
+          type: string
+        version:
+          type: string
+        name:
+          type: string
+      type: object
+    AIAProjectPublicDto:
+      example:
+        templateType: COMPLETED_TEMPLATE
+        dateOfDeactivation: 2000-01-23T04:56:07.000+00:00
+        models:
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        organisationId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        revisionNumber: 6
+        chapters:
+        - pleaseChange: true
+          chapterNumber: chapterNumber
+          title: title
+          content: content
+        - pleaseChange: true
+          chapterNumber: chapterNumber
+          title: title
+          content: content
+        dateOfActivation: 2000-01-23T04:56:07.000+00:00
+        dataFormats:
+        - '@class': '@class'
+          ifcView:
+            ifcVersion:
+              majorRelease: 2
+              createdDate: 2000-01-23T04:56:07.000+00:00
+              corrigendum: 1
+              ifc: true
+              name: name
+              variant: IFC
+              minorRelease: 4
+              addendum: 7
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              version: 3
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          groupAsIFCePset: true
+          saveObjectTypeAsProperty: true
+          ifcType:
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            ifcClass: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          ifcClass:
+            ifcView: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          type:
+            majorRelease: 5
+            corrigendum: 9
+            ifc: true
+            name: name
+            variant: IFC
+            minorRelease: 2
+            addendum: 7
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - '@class': '@class'
+          ifcView:
+            ifcVersion:
+              majorRelease: 2
+              createdDate: 2000-01-23T04:56:07.000+00:00
+              corrigendum: 1
+              ifc: true
+              name: name
+              variant: IFC
+              minorRelease: 4
+              addendum: 7
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              version: 3
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          groupAsIFCePset: true
+          saveObjectTypeAsProperty: true
+          ifcType:
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            ifcClass: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          ifcClass:
+            ifcView: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            name: name
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          type:
+            majorRelease: 5
+            corrigendum: 9
+            ifc: true
+            name: name
+            variant: IFC
+            minorRelease: 2
+            addendum: 7
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        description: description
+        buildNumber: 1
+        versionNumber: 0
+        dateOfVersion: 2000-01-23T04:56:07.000+00:00
+        organisationName: organisationName
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        name: name
+        guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        dateOfLastChange: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        coordinateSystem:
+          east: 5.962133916683182
+          zone: zone
+          north: 5.637376656633329
+          name: name
+          height: 2.3021358869347655
+        dateOfRevision: 2000-01-23T04:56:07.000+00:00
+        exportFormats:
+        - exportFormats
+        - exportFormats
+        automaticDomainSpecificModels:
+        - contexts:
+          - name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+          - name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+          loins:
+          - name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+          - name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+        - contexts:
+          - name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+          - name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+          loins:
+          - name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+          - name: name
+            guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            version: version
+      properties:
+        id:
+          format: uuid
+          type: string
+        createdDate:
+          format: date-time
+          type: string
+        dateOfActivation:
+          format: date-time
+          type: string
+        dateOfLastChange:
+          format: date-time
+          type: string
+        dateOfRevision:
+          format: date-time
+          type: string
+        dateOfVersion:
+          format: date-time
+          type: string
+        dateOfDeactivation:
+          format: date-time
+          type: string
+        guid:
+          format: uuid
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        organisationId:
+          format: uuid
+          type: string
+        organisationName:
+          type: string
+        versionNumber:
+          format: int64
+          type: integer
+        revisionNumber:
+          format: int64
+          type: integer
+        buildNumber:
+          format: int64
+          type: integer
+        exportFormats:
+          items:
+            type: string
+          type: array
+          uniqueItems: true
+        templateType:
+          enum:
+          - COMPLETED_TEMPLATE
+          - UNCOMPLETED_TEMPLATE
+          - PROJECT_TEMPLATE
+          type: string
+        chapters:
+          items:
+            $ref: '#/components/schemas/ChapterPublicReference'
+          type: array
+        coordinateSystem:
+          $ref: '#/components/schemas/CoordinateSystem'
+        models:
+          items:
+            $ref: '#/components/schemas/AIADomainSpecificModelPublicReference'
+          type: array
+          uniqueItems: true
+        automaticDomainSpecificModels:
+          items:
+            $ref: '#/components/schemas/AutomaticDomainSpecificModelEntryPublicReference'
+          type: array
+          uniqueItems: true
+        dataFormats:
+          items:
+            $ref: '#/components/schemas/LOINPublicDto_dataFormats_inner'
+          type: array
+          uniqueItems: true
+      type: object
+    AutomaticDomainSpecificModelEntryPublicReference:
+      example:
+        contexts:
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        loins:
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+        - name: name
+          guid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          version: version
+      properties:
+        contexts:
+          items:
+            $ref: '#/components/schemas/ContextInfoPublicReference'
+          type: array
+        loins:
+          items:
+            $ref: '#/components/schemas/LoinPublicReference'
+          type: array
+      type: object
+    CoordinateSystem:
+      example:
+        east: 5.962133916683182
+        zone: zone
+        north: 5.637376656633329
+        name: name
+        height: 2.3021358869347655
+      properties:
+        name:
+          type: string
+        zone:
+          type: string
+        east:
+          type: number
+        north:
+          type: number
+        height:
+          type: number
+      type: object
+    LOINPublicDto_dataFormats_inner:
+      oneOf:
+      - $ref: '#/components/schemas/IFCDto'
+      - $ref: '#/components/schemas/OKSTRADto'
+      - $ref: '#/components/schemas/OtherDto'
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http

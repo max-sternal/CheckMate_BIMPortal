@@ -1,0 +1,50 @@
+/Java_client/bim-portal-enhanced/.env
+*.env
+/Java_client/openapi-generated/.env
+
+# Ignore generated export files
+/Java_client/bim-portal-enhanced/exports/*
+!/Java_client/bim-portal-enhanced/exports/.gitkeep
+*.pdf
+*.pyc
+*.odt
+*.ids
+*.xml
+# Project exclude paths
+/Java_client/.gradle/
+/Java_client/exports/
+/Java_client/bim-portal-enhanced/.gradle/
+/Java_client/bim-portal-enhanced/build/
+/Java_client/bim-portal-enhanced/build/classes/java/main/
+# Gradle build output
+/build/
+/**/build/
+/**/out/
+/**/classes/
+/**/tmp/
+
+*.log
+
+/Java_client/openapi-generated/build/
+/Java_client/openapi-generated/.gradle/
+/Java_client/openapi-generated/.idea/
+
+# IDE exclude paths
+/**/.idea/
+/**/.vscode/
+/**/*.iml
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+
+## Python:
+
+/**/__pycache__/
+*.py[cod]
+
+# Ignore generated export files
+/Python_client/exports/*
+!/Python_client/exports/.gitkeep
+/Python_client/.venv/
