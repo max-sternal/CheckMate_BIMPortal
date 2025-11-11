@@ -5,7 +5,6 @@
 # Ignore generated export files
 /Java_client/bim-portal-enhanced/exports/*
 !/Java_client/bim-portal-enhanced/exports/.gitkeep
-*.pdf
 *.pyc
 *.odt
 *.ids
