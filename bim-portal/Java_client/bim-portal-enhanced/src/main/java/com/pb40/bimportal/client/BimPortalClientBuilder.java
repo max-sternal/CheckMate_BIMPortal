@@ -21,6 +21,7 @@ public class BimPortalClientBuilder {
   private String password;
   private AuthService authService;
   private boolean useDefaultCredentials = true;
+  private boolean publicAccessOnly = false;
 
   /** Create a new builder instance. */
   public BimPortalClientBuilder() {
@@ -66,6 +67,20 @@ public class BimPortalClientBuilder {
   }
 
   /**
+   * Use anonymous public access only - no login, no Authorization header.
+   *
+   * <p>The BIM Portal serves every {@code /public/} endpoint without authentication, so searching
+   * and exporting published LOINs, projects and domain models works without an account. Private,
+   * organisation-internal content is not visible this way.
+   *
+   * @return This builder instance
+   */
+  public BimPortalClientBuilder withPublicAccess() {
+    this.publicAccessOnly = true;
+    return this;
+  }
+
+  /**
    * Set custom authentication service.
    *
    * @param authService Custom authentication service
@@ -100,7 +115,7 @@ public class BimPortalClientBuilder {
       }
     }
 
-    return new EnhancedBimPortalClient(authService);
+    return new EnhancedBimPortalClient(authService, publicAccessOnly);
   }
 
   /**
@@ -138,10 +153,57 @@ public class BimPortalClientBuilder {
   /**
    * Quick build for public access only (no authentication).
    *
+   * <p>Works without any account: no login is attempted and no Authorization header is sent. Only
+   * published content is visible.
+   *
    * @return Client configured for public access
    */
   public static EnhancedBimPortalClient buildPublicAccess() {
-    return new BimPortalClientBuilder().build();
+    return new BimPortalClientBuilder().withPublicAccess().build();
+  }
+
+  /**
+   * Build an authenticated client if credentials are configured, otherwise fall back to anonymous
+   * public access.
+   *
+   * <p>This is the convenient entry point for getting started without an account: published LOINs,
+   * projects and domain models are reachable either way, and adding credentials to {@code .env}
+   * later unlocks the private content without any code change.
+   *
+   * @return Authenticated client, or a public-access client if no credentials are set
+   */
+  public static EnhancedBimPortalClient buildAuthenticatedOrPublic() {
+    if (hasUsableCredentials()) {
+      return buildDefault();
+    }
+
+    System.out.println("ℹ No usable credentials configured - using public (anonymous) access.");
+    System.out.println("  Published content is available; private content stays hidden.");
+    return buildPublicAccess();
+  }
+
+  /**
+   * Check for credentials that are actually worth a login attempt.
+   *
+   * <p>The API expects the username to be an e-mail address and answers anything else with HTTP
+   * 400. A leftover placeholder from {@code .env_example} is therefore worse than no credentials at
+   * all: it produces failed login attempts, and the portal locks an account after three of them.
+   *
+   * @return true if username and password are set and the username looks like an e-mail address
+   */
+  private static boolean hasUsableCredentials() {
+    if (!BimPortalConfig.hasCredentials()) {
+      return false;
+    }
+
+    String username = BimPortalConfig.getUsername();
+    if (!username.contains("@") || username.contains("your_username")) {
+      System.out.println(
+          "⚠ BIM_PORTAL_USERNAME is not an e-mail address ('" + username + "') - ignoring it.");
+      return false;
+    }
+
+    return true;
   }
 
   /**

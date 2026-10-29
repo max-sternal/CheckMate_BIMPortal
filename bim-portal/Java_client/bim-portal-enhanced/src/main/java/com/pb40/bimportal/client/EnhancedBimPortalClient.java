@@ -29,6 +29,13 @@ public class EnhancedBimPortalClient {
   private final AuthService authService;
   private final ApiClient apiClient;
 
+  /**
+   * When true, no Authorization header is ever sent. The BIM Portal serves all {@code /public/}
+   * endpoints anonymously, so searches and exports of published content work without an account.
+   * Private, organisation-internal content stays invisible in this mode.
+   */
+  private final boolean publicAccessOnly;
+
   // Generated API clients
   private final AiaProjekteApi projectsApi;
   private final AiaLoinApi loinApi;
@@ -40,10 +47,25 @@ public class EnhancedBimPortalClient {
   private final AiaFilterApi aiaFilterApi;
   private final InfrastrukturApi infraApi;
 
-  /** Constructor with explicit auth service. */
+  /** Constructor with explicit auth service. Authenticates as configured. */
   public EnhancedBimPortalClient(AuthService authService) {
+    this(authService, false);
+  }
+
+  /**
+   * Constructor with explicit auth service and access mode.
+   *
+   * @param authService Authentication service
+   * @param publicAccessOnly true to never authenticate and use anonymous public access only
+   */
+  public EnhancedBimPortalClient(AuthService authService, boolean publicAccessOnly) {
     this.authService = authService;
+    this.publicAccessOnly = publicAccessOnly;
     this.apiClient = createConfiguredApiClient();
+
+    if (publicAccessOnly) {
+      logger.info("Client running in public access mode - no authentication will be attempted");
+    }
 
     // Initialize all API clients using ApiClient's buildClient method
     this.projectsApi = apiClient.buildClient(AiaProjekteApi.class);
@@ -59,6 +81,7 @@ public class EnhancedBimPortalClient {
 
   /** Constructor using default authentication from configuration. */
   public EnhancedBimPortalClient() {
+    this.publicAccessOnly = false;
     this.apiClient = createConfiguredApiClient();
     this.infraApi = apiClient.buildClient(InfrastrukturApi.class);
     this.authService = new AuthServiceImpl(infraApi);
@@ -90,9 +113,14 @@ public class EnhancedBimPortalClient {
     ApiClient apiClient = new ApiClient("bearerAuth");
     apiClient.setBasePath(BimPortalConfig.getBaseUrl());
 
-    // Configure the bearer token supplier to get fresh tokens
+    // Configure the bearer token supplier to get fresh tokens.
+    // Returning null is meaningful: HttpBearerAuth then omits the Authorization
+    // header entirely, which is exactly what the public endpoints expect.
     apiClient.setBearerToken(
         () -> {
+          if (publicAccessOnly) {
+            return null;
+          }
           try {
             return authService.getValidToken();
           } catch (Exception e) {
@@ -113,6 +141,24 @@ public class EnhancedBimPortalClient {
     String statusMessage;
     String errorDetails = null;
     long responseTime = 0;
+
+    if (publicAccessOnly) {
+      // Nothing to authenticate against - verify the API answers anonymously instead.
+      long startTime = System.currentTimeMillis();
+      try {
+        aiaFilterApi.getGlobalFilters1();
+        responseTime = System.currentTimeMillis() - startTime;
+        apiAccessible = true;
+        statusMessage = "API accessible via public (anonymous) access";
+      } catch (Exception e) {
+        responseTime = System.currentTimeMillis() - startTime;
+        apiAccessible = false;
+        errorDetails = e.getMessage();
+        statusMessage = "Public API not accessible: " + e.getMessage();
+        logger.error("Public health check failed: {}", e.getMessage());
+      }
+      return new HealthCheckResult(apiAccessible, false, statusMessage, errorDetails, responseTime);
+    }
 
     try {
       long startTime = System.currentTimeMillis();
@@ -164,21 +210,32 @@ public class EnhancedBimPortalClient {
 
   // === AUTHENTICATION METHODS ===
 
-  /** Check if client is authenticated. */
+  /** Check if client is authenticated. Always false in public access mode. */
   public boolean isAuthenticated() {
-    return authService.isAuthenticated();
+    return !publicAccessOnly && authService.isAuthenticated();
+  }
+
+  /** Whether this client only uses anonymous public access. */
+  public boolean isPublicAccessOnly() {
+    return publicAccessOnly;
   }
 
   /** Get authentication status. */
   public String getAuthenticationStatus() {
+    if (publicAccessOnly) {
+      return "Public access (not authenticated)";
+    }
     if (authService instanceof AuthServiceImpl) {
       return ((AuthServiceImpl) authService).getTokenStatus();
     }
     return authService.isAuthenticated() ? "Authenticated" : "Not authenticated";
   }
 
-  /** Force logout and clear tokens. */
+  /** Force logout and clear tokens. No-op in public access mode - there is no session. */
   public void logout() {
+    if (publicAccessOnly) {
+      return;
+    }
     authService.logout();
   }
 

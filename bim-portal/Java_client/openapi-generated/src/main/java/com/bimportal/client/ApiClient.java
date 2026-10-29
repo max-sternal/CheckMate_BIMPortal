@@ -5,10 +5,12 @@ import com.bimportal.client.auth.HttpBasicAuth;
 import com.bimportal.client.auth.HttpBearerAuth;
 import com.bimportal.client.decoder.BinaryResponseDecoder;
 import com.bimportal.client.decoder.BinaryResponseErrorDecoder;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import feign.Feign;
@@ -115,6 +117,11 @@ public class ApiClient {
     JsonNullableModule jsonNullableModule = new JsonNullableModule();
     builder.addModule(jsonNullableModule);
 
+    // Tolerate objects where the spec promises strings (see LenientStringDeserializer)
+    SimpleModule lenientStrings = new SimpleModule("bim-portal-lenient-strings");
+    lenientStrings.addDeserializer(String.class, new LenientStringDeserializer());
+    builder.addModule(lenientStrings);
+
     ObjectMapper mapper = builder.build();
 
     // Configure features
@@ -128,6 +135,11 @@ public class ApiClient {
     mapper.configure(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS, false);
 
     mapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
+
+    // Never serialize null fields: the BIM Portal rejects request bodies that carry
+    // explicit nulls (e.g. "includeDeprecated":null -> HTTP 400, "contextIds":null -> 500),
+    // and the generated request DTOs leave every unset field null.
+    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     log.info("ObjectMapper configured with modules: " + mapper.getRegisteredModuleIds());
 

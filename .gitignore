@@ -12,6 +12,8 @@
 
 # Package Files #
 *.jar
+# ...aber der Gradle-Wrapper muss ins Repo, sonst laeuft ./gradlew nach dem Clone nicht
+!**/gradle/wrapper/gradle-wrapper.jar
 *.war
 *.nar
 *.ear

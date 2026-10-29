@@ -1,0 +1,4 @@
+# IFC/STEP models are data, not source. core.autocrlf would rewrite their line
+# endings per platform, so the bytes a Windows checkout and a Linux container see
+# would differ. Keep them exactly as committed.
+*.ifc -text

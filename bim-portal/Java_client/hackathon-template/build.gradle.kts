@@ -17,9 +17,18 @@ repositories {
     mavenCentral()
 }
 
+// Local JARs for the CheckMate GUI (test.fx): Apstex IFC Toolbox + STEP parser.
+// They are not redistributable, so they are not in the repo - drop them into lib/
+// and the GUI compiles again automatically. JavaFX itself needs no dependency here:
+// the Zulu JDK-FX build ships javafx.* as platform modules.
+val localLibs = fileTree("lib") { include("*.jar") }
+
 dependencies {
     // Dependency on the BIM Portal enhanced client
     implementation(project(":bim-portal-enhanced"))
+
+    // Apstex IFC Toolbox etc., if present
+    implementation(localLibs)
 
     // Spring Boot starters
     implementation("org.springframework.boot:spring-boot-starter")
@@ -48,6 +57,17 @@ dependencies {
 
 application {
     mainClass.set("com.bimportal.hackathon.HackathonApplication")
+}
+
+// Without the Apstex JARs the test.fx package cannot compile, and its errors would
+// take the whole module down with it - including the API examples, which do not need
+// IFC at all. So skip that package exactly while the JARs are missing.
+if (localLibs.isEmpty) {
+    sourceSets.main.get().java.exclude("test/fx/**")
+    logger.lifecycle(
+        "⚠ hackathon-template: lib/*.jar not found - excluding test/fx (CheckMate GUI). " +
+            "Add com.apstex.ifctoolbox*.jar and com.apstex.stepparser*.jar to lib/ to build it."
+    )
 }
 
 // --- Helper to load .env ---
@@ -112,6 +132,30 @@ tasks.register<JavaExec>("runBasicExample") {
     description = "Run basic BIM Portal API example"
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("com.bimportal.hackathon.examples.BasicExample")
+}
+
+// The GUI needs javafx.* on the runtime image - a Zulu/Liberica "JDK FX" build has them,
+// a plain JDK does not. Checked here because the failure is otherwise a bare NoClassDefFoundError.
+tasks.register<JavaExec>("runGui") {
+    group = "hackathon"
+    description = "Run the CheckMate JavaFX GUI"
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("test.fx.App")
+
+    doFirst {
+        if (localLibs.isEmpty) {
+            throw GradleException(
+                "The CheckMate GUI needs com.apstex.ifctoolbox*.jar and com.apstex.stepparser*.jar " +
+                    "in ${project.projectDir}/lib - without them test/fx is not compiled."
+            )
+        }
+        if (!javaLauncher.get().metadata.installationPath.dir("lib/javafx.properties").asFile.exists()) {
+            throw GradleException(
+                "This JDK does not bundle JavaFX. Use a JDK-FX build (e.g. Zulu 21 FX), " +
+                    "or add the org.openjfx dependencies."
+            )
+        }
+    }
 }
 
 tasks.test {

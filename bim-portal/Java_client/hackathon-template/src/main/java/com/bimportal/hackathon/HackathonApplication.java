@@ -21,19 +21,19 @@ public class HackathonApplication {
     System.out.println("🚀 BIM Portal Hackathon Template");
     System.out.println("==================================");
 
-    // Check if credentials are configured
+    // Credentials are optional: without them the client uses anonymous public access,
+    // which is enough for all published LOINs, projects and domain models.
     if (!BimPortalConfig.hasCredentials()) {
-      System.err.println("❌ Credentials not found!");
-      System.err.println("Please create .env file with:");
-      System.err.println("BIM_PORTAL_USERNAME=your_username");
-      System.err.println("BIM_PORTAL_PASSWORD=your_password");
-      return;
+      System.out.println("ℹ No credentials found in .env - continuing with public access.");
+      System.out.println("  To reach private content, set in .env:");
+      System.out.println("  BIM_PORTAL_USERNAME=your_username");
+      System.out.println("  BIM_PORTAL_PASSWORD=your_password");
     }
 
     try {
       // Create the enhanced BIM Portal client
       System.out.println("🔧 Initializing BIM Portal client...");
-      EnhancedBimPortalClient client = BimPortalClientBuilder.buildDefault();
+      EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
 
       // Perform health check
       EnhancedBimPortalClient.HealthCheckResult healthCheck = client.performHealthCheck();
