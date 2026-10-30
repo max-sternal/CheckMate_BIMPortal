@@ -6,12 +6,26 @@ import com.apstex.ifctoolbox.ifc.IfcPropertySetDefinition;
 import com.apstex.ifctoolbox.ifc.IfcRelDefines;
 import com.apstex.ifctoolbox.ifcmodel.IfcModel;
 import com.apstex.step.core.ClassInterface;
-import com.bimportal.hackathon.examples.BasicExample;
+import com.bimportal.client.model.LoinForPublicRequest;
+import com.bimportal.client.model.SimpleLoinPublicDto;
+import com.bimportal.hackathon.ids.CheckResult;
+import com.bimportal.hackathon.ids.CheckResult.Finding;
+import com.bimportal.hackathon.ids.CheckResult.NearMiss;
+import com.bimportal.hackathon.ids.CheckResult.Status;
+import com.bimportal.hackathon.ids.LoinIdsCheck;
+import com.bimportal.hackathon.ids.ModelElement;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
+import javafx.concurrent.Task;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -27,8 +41,38 @@ import javafx.scene.layout.VBox;
 
 public class ElementUI extends VBox {
 
+  /** Elements the portal puts on one page of LOIN search results; a shorter page is the last. */
+  private static final int PORTAL_PAGE_SIZE = 1000;
+
+  /** Bound on paging, so a portal always answering a full page cannot spin forever. */
+  private static final int MAX_PAGES = 20;
+
+  /** Bound on element tabs, so a specification applying to the whole model stays navigable. */
+  private static final int MAX_ELEMENT_TABS = 20;
+
+  /** The model as the LOIN check sees it - read once, it does not change while the GUI is open. */
+  private final List<ModelElement> modelElements;
+
+  /** The same elements by id, to get from a finding back to the element it is about. */
+  private final Map<String, ModelElement> elementsById;
+
+  private final String modelSchema;
+
+  private final ListView<SimpleLoinPublicDto> loinView = new ListView<>();
+
+  private final TabPane tabPane = new TabPane();
+
+  private final TextArea reportArea = new TextArea();
+
   public ElementUI(IfcModel apModel) {
     super();
+    this.modelElements = IfcModelElements.from(apModel);
+    this.modelSchema = IfcModelElements.schemaOf(apModel);
+    this.elementsById =
+        modelElements.stream()
+            .collect(
+                Collectors.toMap(
+                    ModelElement::id, element -> element, (first, duplicate) -> first));
     this.setSpacing(10);
     this.setFillWidth(true);
     this.buildGUI(apModel);
@@ -61,11 +105,7 @@ public class ElementUI extends VBox {
     loadIfcButton.setStyle(
         "-fx-font-size: 16px; -fx-background-color: #388e3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20;");
     Button validateLoinButton = new Button("Validate LOIN");
-    validateLoinButton.setOnAction(
-        e -> {
-          // Action to open BIM Portal URL
-          validateIFCandLOIN();
-        });
+    validateLoinButton.setOnAction(e -> validateSelectedLoin());
 
     validateLoinButton.setStyle(
         "-fx-font-size: 16px; -fx-background-color: #fbc02d; -fx-text-fill: black; -fx-font-weight: bold; -fx-padding: 10 20;");
@@ -87,47 +127,38 @@ public class ElementUI extends VBox {
 
     VBox topBox = new VBox(10, filterBox, buttonsBox);
 
-    TabPane tabPane = new TabPane();
-
     HBox.setHgrow(tabPane, Priority.ALWAYS);
 
     /*--------------------------------------------------------------------*/
-    // Initialize client - works with or without credentials
-    EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
+    // LOIN list: the search term is editable, because which LOINs exist for a term is
+    // exactly what one wants to try out against a model.
+    TextField loinSearchField = new TextField();
+    loinSearchField.setPromptText("LOIN-Suchbegriff - leer für alle");
+    loinSearchField.setOnAction(e -> searchLoins(loinSearchField.getText().trim()));
 
-    client.searchProjects();
-
-    ListView<String> loinView =
-        new ListView<>(
-            FXCollections.observableArrayList(
-                BasicExample.loinSearch(client, "Schaft").split("\n")));
-
-    /*--------------------------------------------------------------------*/
-    // Initialize client
-
+    // Only the name is shown; the GUID the check needs travels with the item itself.
     loinView.setCellFactory(
         lv ->
             new javafx.scene.control.ListCell<>() {
               @Override
-              protected void updateItem(String item, boolean empty) {
+              protected void updateItem(SimpleLoinPublicDto item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) {
-                  setText(null);
-                  setStyle("");
-                } else {
-                  setText(item);
-                  if (item.contains("Pset")) {
-                    setStyle("-fx-background-color: red;");
-                  } else {
-                    setStyle("");
-                  }
-                }
+                setText(empty || item == null ? null : item.getName());
               }
             });
-    HBox.setHgrow(loinView, Priority.ALWAYS);
+    loinView.setOnMouseClicked(
+        e -> {
+          if (e.getClickCount() == 2) {
+            validateSelectedLoin();
+          }
+        });
+    VBox.setVgrow(loinView, Priority.ALWAYS);
 
-    client.logout();
-    System.out.println("✅ Basic example completed successfully!");
+    VBox loinBox = new VBox(10, new Label("LOINs"), loinSearchField, loinView);
+    loinBox.setPrefWidth(320);
+    HBox.setHgrow(loinBox, Priority.ALWAYS);
+
+    /*--------------------------------------------------------------------*/
 
     // Create right VBox with two text areas and logo
     TextArea talkToCheckMateField = new TextArea();
@@ -137,11 +168,6 @@ public class ElementUI extends VBox {
     talkToCheckMateField.setPrefRowCount(8);
     talkToCheckMateField.setMinHeight(120);
     talkToCheckMateField.setMaxHeight(Double.MAX_VALUE);
-    TextArea responseField = new TextArea();
-    responseField.setPromptText("Talk To CheckMate");
-    responseField.setPrefRowCount(4);
-    responseField.setMinHeight(60);
-    responseField.setMaxHeight(Double.MAX_VALUE);
 
     ImageView logoView = null;
     try {
@@ -160,19 +186,30 @@ public class ElementUI extends VBox {
       logoView = new ImageView(); // fallback empty
     }
 
-    VBox rightBox =
-        new VBox(10, new Label("CHAT HISTORY"), talkToCheckMateField, responseField, logoView);
+    VBox rightBox = new VBox(10, new Label("CHAT HISTORY"), talkToCheckMateField, logoView);
     rightBox.setPrefWidth(220);
     rightBox.setStyle("-fx-padding: 10; -fx-background-color: #f5f5f5;");
     VBox.setVgrow(talkToCheckMateField, Priority.ALWAYS);
-    VBox.setVgrow(responseField, Priority.ALWAYS);
     VBox.setVgrow(logoView, Priority.NEVER);
     rightBox.setFillWidth(true);
 
-    HBox tabPaneHBox = new HBox(loinView, tabPane, rightBox);
+    // The report is read, not written, and lines are pre-aligned - hence read-only and monospaced.
+    reportArea.setEditable(false);
+    reportArea.setStyle("-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px;");
+    reportArea.setPrefRowCount(10);
+    reportArea.setMinHeight(140);
+    reportArea.setText(
+        modelLine()
+            + "\nLOIN links auswählen und 'Validate LOIN' drücken (oder doppelklicken):"
+            + "\nin der Mitte stehen dann die Elemente, um die es geht, hier das Ergebnis.");
+
+    VBox reportBox = new VBox(5, new Label("LOIN-PRÜFUNG"), reportArea);
+    VBox.setVgrow(reportArea, Priority.ALWAYS);
+
+    HBox tabPaneHBox = new HBox(loinBox, tabPane, rightBox);
     tabPaneHBox.setSpacing(10);
     VBox.setVgrow(tabPaneHBox, Priority.ALWAYS);
-    this.getChildren().addAll(topBox, tabPaneHBox);
+    this.getChildren().addAll(topBox, tabPaneHBox, reportBox);
     this.setSpacing(10);
     this.setFillWidth(true);
 
@@ -204,11 +241,238 @@ public class ElementUI extends VBox {
             updateTabs.accept(filter);
           }
         });
+
+    searchLoins("");
   }
 
-  private void validateIFCandLOIN() {
-    // TODO Auto-generated method stub
+  /**
+   * Look LOINs up in the BIM Portal and offer them for checking.
+   *
+   * <p>An empty term lists the whole published catalogue, which is the overview to start from. A
+   * term is passed to the server rather than filtered here, because the matches for something like
+   * "Schaft" sit outside the first page.
+   */
+  private void searchLoins(String term) {
+    boolean all = term.isEmpty();
+    reportArea.setText(all ? "Lade alle LOINs ..." : "Suche LOINs zu '" + term + "' ...");
 
+    inBackground(
+        () -> {
+          EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
+          try {
+            return fetchLoins(client, term);
+          } finally {
+            client.logout();
+          }
+        },
+        loins -> {
+          loinView.setItems(FXCollections.observableArrayList(loins));
+          reportArea.setText(
+              modelLine()
+                  + "\n"
+                  + loins.size()
+                  + (all ? " LOIN(s) im Portal" : " LOIN(s) zu '" + term + "'")
+                  + " - eine auswählen und prüfen.");
+        });
+  }
+
+  /**
+   * Every LOIN the portal answers with, paged.
+   *
+   * <p>A single request stops at {@value #PORTAL_PAGE_SIZE} results, filtered or not - a term like
+   * "LPH" hits that limit just as an empty one does, and the list would silently end mid-catalogue.
+   * So pages are read until one comes back short.
+   */
+  private static List<SimpleLoinPublicDto> fetchLoins(
+      EnhancedBimPortalClient client, String term) {
+
+    List<SimpleLoinPublicDto> all = new ArrayList<>();
+    for (int page = 0; page < MAX_PAGES; page++) {
+      LoinForPublicRequest request = new LoinForPublicRequest().pageNumber(page);
+      if (!term.isEmpty()) {
+        request.searchString(term);
+      }
+
+      List<SimpleLoinPublicDto> found = client.searchLoins(request);
+      all.addAll(found);
+      if (found.size() < PORTAL_PAGE_SIZE) {
+        break;
+      }
+    }
+    return all;
+  }
+
+  /** What the check is run against, for the top of the report panel. */
+  private String modelLine() {
+    return "Modell: Schema " + modelSchema + ", " + modelElements.size() + " Objekte";
+  }
+
+  /** Check the model against the selected LOIN, then show the report and the elements it is about. */
+  private void validateSelectedLoin() {
+    SimpleLoinPublicDto selected = loinView.getSelectionModel().getSelectedItem();
+    if (selected == null) {
+      reportArea.setText("Keine LOIN ausgewählt.");
+      return;
+    }
+    reportArea.setText("Prüfe Modell gegen '" + selected.getName() + "' ...");
+
+    inBackground(
+        () -> check(selected),
+        checked -> {
+          reportArea.setText(checked.report());
+          if (checked.result() != null) {
+            showCheckedElements(checked.result());
+          }
+        });
+  }
+
+  /**
+   * A check that ran, or the reason it could not.
+   *
+   * @param result null when the check did not get as far as a verdict
+   */
+  private record Checked(String report, CheckResult result) {}
+
+  /**
+   * Run one LOIN against the model.
+   *
+   * <p>Called off the FX thread: this exports an IDS from the portal and walks every element.
+   */
+  private Checked check(SimpleLoinPublicDto loin) {
+    EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
+    try {
+      CheckResult result = LoinIdsCheck.check(client, loin.getGuid(), modelSchema, modelElements);
+      return new Checked(String.join("\n", result.report()), result);
+    } catch (Exception e) {
+      // The portal not holding an IDS for a LOIN, or none for this schema, is an ordinary
+      // outcome here - it belongs in the report rather than in a stack trace.
+      return new Checked(loin.getName() + ": " + e.getMessage(), null);
+    } finally {
+      client.logout();
+    }
+  }
+
+  /**
+   * Show the elements the report is about in the middle pane.
+   *
+   * <p>The checked elements when the specification applied, otherwise the ones that came closest -
+   * so the pane always answers "which elements is the verdict below about", instead of standing on
+   * an unrelated class filter.
+   */
+  private void showCheckedElements(CheckResult result) {
+    tabPane.getTabs().clear();
+
+    if (result.notApplicable()) {
+      for (NearMiss nearMiss : result.diagnosis().nearMisses()) {
+        List<String> lines = new ArrayList<>();
+        lines.add(
+            "[" + nearMiss.matchedFacets() + " von " + nearMiss.totalFacets() + " Facetten] "
+                + "nicht ausgewählt");
+        nearMiss.divergences().forEach(divergence -> lines.add("[Abweichung] " + divergence));
+        tabPane.getTabs().add(elementTab(nearMiss.elementId(), lines));
+      }
+    } else {
+      Map<String, List<Finding>> byElement =
+          result.findings().stream()
+              .collect(
+                  Collectors.groupingBy(
+                      Finding::elementId, LinkedHashMap::new, Collectors.toList()));
+
+      for (Map.Entry<String, List<Finding>> entry : byElement.entrySet()) {
+        if (tabPane.getTabs().size() >= MAX_ELEMENT_TABS) {
+          break;
+        }
+        tabPane
+            .getTabs()
+            .add(
+                elementTab(
+                    entry.getKey(),
+                    entry.getValue().stream().map(Finding::requirementLine).toList()));
+      }
+    }
+
+    if (tabPane.getTabs().isEmpty()) {
+      // Neither checked nor near: the facet counts are the only thing left to show.
+      tabPane
+          .getTabs()
+          .add(
+              new Tab(
+                  "kein Treffer",
+                  new ListView<>(FXCollections.observableArrayList(result.diagnosis().lines()))));
+    }
+  }
+
+  /** One tab per element: what the check said about it, then the merkmale it carries. */
+  private Tab elementTab(String elementId, List<String> verdict) {
+    ModelElement element = elementsById.get(elementId);
+
+    List<String> lines = new ArrayList<>(verdict);
+    if (element != null) {
+      lines.add("");
+      lines.add("Merkmale im Modell (" + element.entityName() + "):");
+      element.properties().forEach(property -> lines.add("   " + property));
+    }
+
+    ListView<String> view = new ListView<>(FXCollections.observableArrayList(lines));
+    view.setCellFactory(
+        lv ->
+            new javafx.scene.control.ListCell<>() {
+              @Override
+              protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item);
+                setStyle(empty || item == null ? "" : styleFor(item));
+              }
+            });
+
+    VBox box = new VBox(view);
+    VBox.setVgrow(view, Priority.ALWAYS);
+    return new Tab(tabTitle(element, elementId), box);
+  }
+
+  /** Met requirements green, anything the check held against the element red, the rest plain. */
+  private static String styleFor(String line) {
+    if (line.startsWith("[" + Status.FULFILLED.label() + "]")) {
+      return "-fx-background-color: #c8e6c9;";
+    }
+    return line.startsWith("[") ? "-fx-background-color: #ffcdd2;" : "";
+  }
+
+  /**
+   * A tab title short enough to read.
+   *
+   * <p>Authoring tools repeat the family name and append an id, so only the first segment of
+   * {@code Kappe_Mitte_Fluegel:Kappe_Mitte_Fluegel:701260} carries information.
+   */
+  private static String tabTitle(ModelElement element, String elementId) {
+    if (element == null) {
+      return elementId;
+    }
+    String label = element.label();
+    int separator = label.indexOf(':');
+    return separator > 0 ? label.substring(0, separator) : label;
+  }
+
+  /**
+   * Run work off the FX thread and hand the result back on it.
+   *
+   * <p>Both the LOIN search and the check talk to the portal, which would otherwise freeze the
+   * window for as long as the request takes.
+   */
+  private <T> void inBackground(Callable<T> work, Consumer<T> onSuccess) {
+    Task<T> task =
+        new Task<>() {
+          @Override
+          protected T call() throws Exception {
+            return work.call();
+          }
+        };
+    task.setOnSucceeded(e -> onSuccess.accept(task.getValue()));
+    task.setOnFailed(e -> reportArea.setText("Fehlgeschlagen: " + task.getException()));
+
+    Thread worker = new Thread(task, "checkmate-worker");
+    worker.setDaemon(true);
+    worker.start();
   }
 
   /** Create a Tab for a given IFC object, displaying its properties and quantities. */

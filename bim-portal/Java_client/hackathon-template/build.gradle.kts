@@ -134,6 +134,24 @@ tasks.register<JavaExec>("runBasicExample") {
     mainClass.set("com.bimportal.hackathon.examples.BasicExample")
 }
 
+// Headless LOIN check: same validation as the GUI button, usable in a container or a pipeline.
+// Needs the Apstex JARs (it reads an IFC), but no JavaFX.
+tasks.register<JavaExec>("runLoinCheck") {
+    group = "hackathon"
+    description = "Check the configured IFC model against the LOINs matching a search term"
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("test.fx.LoinCheckCli")
+
+    doFirst {
+        if (localLibs.isEmpty) {
+            throw GradleException(
+                "The LOIN check reads an IFC and needs com.apstex.ifctoolbox*.jar and " +
+                    "com.apstex.stepparser*.jar in ${project.projectDir}/lib."
+            )
+        }
+    }
+}
+
 // The GUI needs javafx.* on the runtime image - a Zulu/Liberica "JDK FX" build has them,
 // a plain JDK does not. Checked here because the failure is otherwise a bare NoClassDefFoundError.
 tasks.register<JavaExec>("runGui") {

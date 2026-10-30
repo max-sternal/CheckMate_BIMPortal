@@ -17,8 +17,14 @@ import org.slf4j.LoggerFactory;
  */
 public final class IfcResources {
 
-  /** Model bundled as a resource; see {@code src/main/resources/ifc}. */
-  public static final String DEFAULT_RESOURCE = "/ifc/bruecke-tbw1-ohne-merkmale.ifc";
+  /**
+   * Model bundled as a resource; see {@code src/main/resources/ifc}.
+   *
+   * <p>The BIM.Hamburg bridge TBW1, in the variant that carries the Merkmale: without
+   * {@code Pset_Objektinformation} a LOIN check has nothing to select on and every specification
+   * comes out "nicht prüfbar".
+   */
+  public static final String DEFAULT_RESOURCE = "/ifc/bruecke-tbw1-mit-merkmalen.ifc";
 
   public static final String PROPERTY = "checkmate.ifc";
   public static final String ENV_VARIABLE = "CHECKMATE_IFC";
