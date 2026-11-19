@@ -1,0 +1,24 @@
+// Gradle init script for the CheckMate driver (see SKILL.md). Not part of the build.
+//
+// Registers :hackathon-template:writeDriverArgs, which compiles the module and writes a java
+// @argfile holding its runtime classpath. drive.sh then starts CheckMateDriver.java with it,
+// in the same JVM as the real test.fx.App - no edit to build.gradle.kts needed.
+allprojects {
+  if (name == 'hackathon-template') {
+    afterEvaluate {
+      tasks.register('writeDriverArgs') {
+        def cp = sourceSets.main.runtimeClasspath
+        def argFile = layout.buildDirectory.file('checkmate-driver.args').get().asFile
+        // Depending on the classpath pulls in compileJava/processResources and the sibling jars.
+        inputs.files(cp)
+        doLast {
+          argFile.parentFile.mkdirs()
+          // Forward slashes: inside an @argfile a backslash is an escape character.
+          def path = cp.files.collect { it.absolutePath.replace('\\', '/') }.join(File.pathSeparator)
+          argFile.text = "-cp \"${path}\"\n"
+          println "driver args: ${argFile}"
+        }
+      }
+    }
+  }
+}

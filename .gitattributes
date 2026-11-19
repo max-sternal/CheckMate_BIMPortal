@@ -2,3 +2,6 @@
 # endings per platform, so the bytes a Windows checkout and a Linux container see
 # would differ. Keep them exactly as committed.
 *.ifc -text
+
+# Shell scripts must keep LF: with CRLF, bash line continuations break (Git Bash too).
+*.sh text eol=lf
