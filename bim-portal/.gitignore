@@ -34,6 +34,11 @@
 /**/.idea/
 /**/.vscode/
 /**/*.iml
+# Eclipse/Buildship metadata, regenerated from Gradle by the VS Code Java extension and
+# containing machine-specific paths
+/**/.settings/
+/**/.classpath
+/**/.project
 
 # OS-specific
 .DS_Store
