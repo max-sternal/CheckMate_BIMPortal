@@ -1,3 +1,6 @@
+import java.net.URI
+import java.util.Properties
+
 plugins {
     java
     application
@@ -64,9 +67,11 @@ application {
 // IFC at all. So skip that package exactly while the JARs are missing.
 if (localLibs.isEmpty) {
     sourceSets.main.get().java.exclude("test/fx/**")
+    sourceSets.test.get().java.exclude("test/fx/**")
     logger.lifecycle(
-        "⚠ hackathon-template: lib/*.jar not found - excluding test/fx (CheckMate GUI). " +
-            "Add com.apstex.ifctoolbox*.jar and com.apstex.stepparser*.jar to lib/ to build it."
+        "⚠ hackathon-template: lib/*.jar not found - excluding test/fx (CheckMate GUI, CLI and " +
+            "the IFC reading tests). Add com.apstex.ifctoolbox*.jar and " +
+            "com.apstex.stepparser*.jar to lib/ to build them."
     )
 }
 
@@ -176,8 +181,71 @@ tasks.register<JavaExec>("runGui") {
     }
 }
 
+// --- Sample IFC models for the IFC reading tests ---
+// Third-party files, not all of them licensed for redistribution, so they are not in git:
+// downloadTestModels fetches the ones listed in samples.properties into test-models/, and the
+// tests that need a missing one are skipped and say which.
+val testModelDir = layout.projectDirectory.dir("test-models")
+val testModelList = file("src/test/resources/ifc/samples.properties")
+
+fun testModels(): Map<String, String> {
+    val list = Properties()
+    testModelList.reader(Charsets.UTF_8).use { list.load(it) }
+    return list.entries.associate { it.key.toString() to it.value.toString() }.toSortedMap()
+}
+
+fun missingTestModels(): Map<String, String> =
+    testModels().filterKeys { !testModelDir.file(it).asFile.isFile }
+
+tasks.register("downloadTestModels") {
+    group = "hackathon"
+    description = "Download the sample IFC models the IFC reading tests use into test-models/"
+
+    doLast {
+        val missing = missingTestModels()
+        if (missing.isEmpty()) {
+            logger.lifecycle("All ${testModels().size} test models are present in test-models/.")
+            return@doLast
+        }
+        missing.forEach { (name, url) ->
+            val target = testModelDir.file(name).asFile
+            val partial = File(target.path + ".part")
+            target.parentFile.mkdirs()
+            logger.lifecycle("Downloading $name")
+            URI(url).toURL().openStream().use { input ->
+                partial.outputStream().use { input.copyTo(it) }
+            }
+            // A Git LFS pointer or an HTML error page would otherwise pass as a model.
+            val header = partial.inputStream().use { String(it.readNBytes(12), Charsets.US_ASCII) }
+            if (header != "ISO-10303-21") {
+                partial.delete()
+                throw GradleException("$url did not return an IFC (STEP) file")
+            }
+            if (!partial.renameTo(target)) {
+                throw GradleException("Could not move $partial to $target")
+            }
+        }
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
+    systemProperty("checkmate.testModels", testModelDir.asFile.absolutePath)
+    inputs.files(fileTree(testModelDir)).withPropertyName("testModels")
+
+    // A skipped test says what is missing to run it (see PrerequisitesTest); list them.
+    testLogging { events("skipped", "failed") }
+
+    doFirst {
+        val missing = missingTestModels()
+        if (!localLibs.isEmpty && missing.isNotEmpty()) {
+            logger.lifecycle(
+                "⚠ ${missing.size} of ${testModels().size} test models are missing in " +
+                    "test-models/ - the tests reading them are skipped. " +
+                    "Run ./gradlew :hackathon-template:downloadTestModels to fetch them."
+            )
+        }
+    }
 }
 
 // --- Fat JAR for deployment ---

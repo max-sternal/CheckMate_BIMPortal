@@ -18,7 +18,8 @@ import java.util.Optional;
  *     unknown.
  * @param userDefinedType whether that PredefinedType is user-defined, which an IDS facet asking for
  *     USERDEFINED checks
- * @param properties every single-value property found on the element and on its type
+ * @param properties every single, enumerated and list property found on the element and on its
+ *     type
  */
 public record ModelElement(
     String id,
@@ -28,12 +29,7 @@ public record ModelElement(
     boolean userDefinedType,
     List<ModelProperty> properties) {
 
-  /**
-   * An element whose PredefinedType is not known.
-   *
-   * <p>That is every element read from an IFC file for now: {@code IfcModelElements} does not read
-   * the PredefinedType yet (docs/WORKFLOW.md, "Read PredefinedType").
-   */
+  /** An element whose PredefinedType is not known, e.g. one built by hand in a test. */
   public ModelElement(String id, String name, String entityName, List<ModelProperty> properties) {
     this(id, name, entityName, null, false, properties);
   }
@@ -41,13 +37,29 @@ public record ModelElement(
   /**
    * A property as the model carries it.
    *
-   * @param dataType the IFC value type, e.g. {@code IfcText}
+   * @param values the value of a single-value property, or every value of an enumerated or list
+   *     property; empty when the property is there but holds no value
+   * @param dataType the IFC value type, e.g. {@code IfcText}; for several values the first one's
    */
-  public record ModelProperty(PropertyKey key, String value, String dataType) {
+  public record ModelProperty(PropertyKey key, List<String> values, String dataType) {
+
+    public ModelProperty {
+      values = List.copyOf(values);
+    }
+
+    /** A single-value property; a null value is a property without a value. */
+    public ModelProperty(PropertyKey key, String value, String dataType) {
+      this(key, value == null ? List.of() : List.of(value), dataType);
+    }
+
+    /** The value for a report: the single value, several joined by commas, null when none. */
+    public String value() {
+      return values.isEmpty() ? null : String.join(", ", values);
+    }
 
     @Override
     public String toString() {
-      return key + " = '" + value + "' (" + dataType + ")";
+      return key + " = '" + value() + "' (" + dataType + ")";
     }
   }
 

@@ -124,10 +124,13 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [ ] Load from a local file in the GUI (STATUS #2).
 - [ ] Load from a link, including GitHub file links and `.ifczip`.
 - [ ] All IFC files of a GitHub folder or repository (CLI, later).
-- [ ] IFC4 and IFC4X3: currently read as 0 objects ([`IfcModelElements.java:59`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/IfcModelElements.java#L59)). The Apstex JAR in `lib/` supports both.
-- [ ] Enumerated and list properties: currently skipped and then reported as "Merkmal fehlt" ([`IfcModelElements.java:137`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/IfcModelElements.java#L137)).
-- [ ] Read PredefinedType and ObjectType from the IFC file, together with the IFC4 reading. The check already uses them; until then every element counts as having none.
-- [ ] Report load errors: currently the model is silently empty ([`IfcResources.java:60`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/IfcResources.java#L60)).
+- [x] IFC2X3, IFC4 and IFC4X3; checked against IfcOpenShell on the bundled model and five downloaded samples.
+- [x] Every property is read. The toolbox's inverse relations (`IsDefinedBy`) lose entries at random while parsing, so the reader goes by the relations' `RelatedObjects` instead. Before, a different few percent of the properties went missing on each start.
+- [x] Single, enumerated and list values, from the element and its type; quantity sets are skipped.
+- [x] PredefinedType and "user-defined" the way IfcOpenShell reads them.
+- [x] Load errors are reported with the file name (`ModelLoadException`): the GUI shows a dialog, the CLI exits with code 1.
+- [ ] A property relation pointing at a set of property sets (IFC4): read, but untested, because IfcOpenShell cannot write such a file.
+- [ ] Bounded, table and complex properties, and properties in quantity sets: not read. IDS 1.0 property facets can address both; the portal's LOINs don't.
 
 ### Get the requirements
 
@@ -162,6 +165,7 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [x] An entity's `predefinedType` is checked; a mismatch is "PredefinedType weicht ab".
 - [ ] Decimal numbers compared with IDS's relative tolerance of 1e-6; currently they are compared exactly.
 - [ ] IFC2X3: accept an entity through the element's type (an `IfcBeamType` makes the element an `IfcBeam`), as ifctester does.
+- [ ] Text values compared case-sensitively, as ifctester does; currently case is ignored.
 
 ### Results
 
@@ -175,9 +179,11 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 ### Front ends and quality
 
 - [x] Headless CLI: `runLoinCheck`.
-- [ ] GUI cleanup: window size (STATUS #5), "BIM Portal" button (STATUS #4), chat placeholder (STATUS #3), the leftover class filter.
+- [ ] GUI cleanup: window size (STATUS #5), "BIM Portal" button (STATUS #4), chat placeholder (STATUS #3), the leftover class filter. The class filter's tabs still read IFC2X3 only and through the unreliable inverse relations (`ElementUI.createObjectTab`).
 - [ ] MCP server (later).
 - [x] Tests for the `ids` package ([`src/test/java/com/bimportal/hackathon/ids/`](../bim-portal/Java_client/hackathon-template/src/test/java/com/bimportal/hackathon/ids)), with real portal exports as test files ([`src/test/resources/ids/portal/`](../bim-portal/Java_client/hackathon-template/src/test/resources/ids/portal/README.md)).
+- [x] Tests for reading IFC ([`src/test/java/test/fx/`](../bim-portal/Java_client/hackathon-template/src/test/java/test/fx)): small case files of our own per schema ([`make_ifc_fixtures.py`](../bim-portal/Java_client/hackathon-template/src/test/python/make_ifc_fixtures.py)), the bundled model, and sample models that `gradlew :hackathon-template:downloadTestModels` fetches into the ignored `test-models/` (about 5 MB, list in [`samples.properties`](../bim-portal/Java_client/hackathon-template/src/test/resources/ifc/samples.properties)).
+- [x] Missing prerequisites are reported, not failed: without the Apstex JARs the IFC tests are not built, without the sample models they are skipped, and `PrerequisitesTest` says in each case what to add and where.
 
 ## 5. Decisions
 

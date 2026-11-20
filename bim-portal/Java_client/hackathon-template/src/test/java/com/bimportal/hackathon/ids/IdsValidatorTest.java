@@ -189,6 +189,23 @@ class IdsValidatorTest {
   }
 
   @Test
+  void aValueIsMetByAnyOfSeveralValues() {
+    // Enumerated and list properties carry several values; one matching is enough (ifctester).
+    PropertyRequirement b = requirement("Auswahl", null, "B", Cardinality.REQUIRED);
+    PropertyKey auswahl = new PropertyKey("Pset_Test", "Auswahl");
+    ModelElement with =
+        element("mit", "IfcWall", List.of(new ModelProperty(auswahl, List.of("A", "B"), LABEL)));
+    ModelElement without =
+        element("ohne", "IfcWall", List.of(new ModelProperty(auswahl, List.of("A", "C"), LABEL)));
+
+    assertThat(IdsValidator.check(selectAll(List.of(b)), List.of(with, without)).findings())
+        .extracting(Finding::elementId, Finding::status, Finding::detail)
+        .containsExactly(
+            tuple("mit", Status.FULFILLED, "gefunden: Pset_Test/Auswahl = 'A, B' (IfcLabel)"),
+            tuple("ohne", Status.WRONG_VALUE, "gefunden: 'A, C'"));
+  }
+
+  @Test
   void anEntityInTheApplicabilitySelectsByEntity() {
     IdsSpecification walls =
         new IdsSpecification(

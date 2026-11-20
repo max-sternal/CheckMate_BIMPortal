@@ -265,9 +265,13 @@ public final class IdsValidator {
     return divergences;
   }
 
-  /** The facet's value, or no value asked for. */
+  /**
+   * The facet's value, or no value asked for. An enumerated or list property meets it when one of
+   * its values does, as in ifctester.
+   */
   private static boolean valueMatches(PropertyRequirement facet, ModelProperty property) {
-    return !facet.hasExpectedValue() || sameValue(facet.expectedValue(), property.value());
+    return !facet.hasExpectedValue()
+        || property.values().stream().anyMatch(value -> sameValue(facet.expectedValue(), value));
   }
 
   /** The facet's data type exactly, or no data type asked for. */

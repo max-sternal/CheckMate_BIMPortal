@@ -1,5 +1,6 @@
 package test.fx;
 
+import com.apstex.ifctoolbox.ifcmodel.IfcModel;
 import com.bimportal.client.model.LoinForPublicRequest;
 import com.bimportal.client.model.SimpleLoinPublicDto;
 import com.bimportal.hackathon.ids.CheckResult;
@@ -31,7 +32,14 @@ public final class LoinCheckCli {
   public static void main(String[] args) {
     String search = args.length > 0 ? args[0] : "Kappe";
 
-    var model = IfcResources.loadDefaultModel();
+    IfcModel model;
+    try {
+      model = IfcResources.loadDefaultModel();
+    } catch (ModelLoadException e) {
+      System.err.println(e.getMessage());
+      System.exit(1);
+      return;
+    }
     String schema = IfcModelElements.schemaOf(model);
     List<ModelElement> elements = IfcModelElements.from(model);
     System.out.println("Modell: Schema " + schema + ", " + elements.size() + " Objekte");
