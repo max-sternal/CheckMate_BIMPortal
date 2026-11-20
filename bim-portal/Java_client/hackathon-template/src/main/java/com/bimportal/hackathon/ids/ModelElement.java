@@ -13,10 +13,30 @@ import java.util.Optional;
  * @param id the element's GlobalId, or its STEP line number when it has none
  * @param name the element's name as authored, for reports
  * @param entityName the IFC entity, e.g. {@code IfcBuildingElementProxy}
+ * @param predefinedType the PredefinedType as IDS reads it: the type object's first, then the
+ *     element's own; where that is USERDEFINED, the ObjectType or ElementType instead. Null when
+ *     unknown.
+ * @param userDefinedType whether that PredefinedType is user-defined, which an IDS facet asking for
+ *     USERDEFINED checks
  * @param properties every single-value property found on the element and on its type
  */
 public record ModelElement(
-    String id, String name, String entityName, List<ModelProperty> properties) {
+    String id,
+    String name,
+    String entityName,
+    String predefinedType,
+    boolean userDefinedType,
+    List<ModelProperty> properties) {
+
+  /**
+   * An element whose PredefinedType is not known.
+   *
+   * <p>That is every element read from an IFC file for now: {@code IfcModelElements} does not read
+   * the PredefinedType yet (docs/WORKFLOW.md, "Read PredefinedType").
+   */
+  public ModelElement(String id, String name, String entityName, List<ModelProperty> properties) {
+    this(id, name, entityName, null, false, properties);
+  }
 
   /**
    * A property as the model carries it.

@@ -366,8 +366,8 @@ public class ElementUI extends VBox {
       for (NearMiss nearMiss : result.diagnosis().nearMisses()) {
         List<String> lines = new ArrayList<>();
         lines.add(
-            "[" + nearMiss.matchedFacets() + " von " + nearMiss.totalFacets() + " Facetten] "
-                + "nicht ausgewählt");
+            "[Wert passt bei " + nearMiss.matchedFacets() + " von " + nearMiss.totalFacets()
+                + " Facetten] nicht ausgewählt");
         nearMiss.divergences().forEach(divergence -> lines.add("[Abweichung] " + divergence));
         tabPane.getTabs().add(elementTab(nearMiss.elementId(), lines));
       }

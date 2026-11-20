@@ -1,5 +1,6 @@
 package com.bimportal.hackathon.ids;
 
+import com.bimportal.hackathon.ids.IdsSpecification.Cardinality;
 import com.bimportal.hackathon.ids.IdsSpecification.EntityRequirement;
 import com.bimportal.hackathon.ids.IdsSpecification.PropertyRequirement;
 import java.io.ByteArrayInputStream;
@@ -7,6 +8,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -19,14 +21,18 @@ import org.w3c.dom.NodeList;
 /**
  * Reads the buildingSMART IDS files the BIM Portal exports per LOIN.
  *
- * <p>Only the subset the portal actually writes is understood: {@code property} and {@code entity}
- * facets, with values given either as {@code <simpleValue>} or as an {@code xs:restriction} holding
- * an {@code xs:pattern}. Anything else is skipped rather than guessed at.
+ * <p>Only the subset the portal actually writes is understood: {@code property} facets with their
+ * {@code cardinality}, and {@code entity} facets with name and {@code predefinedType}. Values are
+ * given either as {@code <simpleValue>} or as an {@code xs:restriction} holding an {@code
+ * xs:pattern}. Anything else is skipped rather than guessed at.
  */
 public final class IdsParser {
 
   private static final String IDS_NS = "http://standards.buildingsmart.org/IDS";
   private static final String XSD_NS = "http://www.w3.org/2001/XMLSchema";
+
+  /** The schema family at the start of a name: version, and the minor version after an X. */
+  private static final Pattern SCHEMA_BASE = Pattern.compile("IFC\\d+(?:X\\d+)?");
 
   private IdsParser() {}
 
@@ -51,17 +57,18 @@ public final class IdsParser {
   /**
    * Pick the specification written for a model's IFC schema.
    *
-   * <p>Matching is exact first and prefix-based second, so a model declaring {@code IFC4X3_ADD2}
-   * still finds a specification written for {@code IFC4X3}. Returns empty rather than falling back
-   * to an arbitrary block: checking IFC2X3 geometry against IFC4 entity names produces findings
-   * that look real and are not.
+   * <p>Matching is exact first, then by base schema, so a model declaring {@code IFC4X3} still
+   * finds a specification written for {@code IFC4X3_ADD2}, and the other way round. A plain prefix
+   * test is not enough for that: {@code IFC4X3} starts with {@code IFC4}, which is a different
+   * schema. Returns empty rather than falling back to an arbitrary block: checking IFC2X3 geometry
+   * against IFC4 entity names produces findings that look real and are not.
    */
   public static Optional<IdsSpecification> forSchema(
       List<IdsSpecification> specifications, String schema) {
     if (schema == null || schema.isBlank()) {
       return Optional.empty();
     }
-    String wanted = schema.trim().toUpperCase();
+    String wanted = schema.trim();
 
     return specifications.stream()
         .filter(s -> wanted.equalsIgnoreCase(s.ifcVersion()))
@@ -70,12 +77,18 @@ public final class IdsParser {
             () ->
                 specifications.stream()
                     .filter(s -> s.ifcVersion() != null && !s.ifcVersion().isBlank())
-                    .filter(
-                        s -> {
-                          String candidate = s.ifcVersion().toUpperCase();
-                          return wanted.startsWith(candidate) || candidate.startsWith(wanted);
-                        })
+                    .filter(s -> baseSchema(s.ifcVersion()).equals(baseSchema(wanted)))
                     .findFirst());
+  }
+
+  /**
+   * A schema name without its addendum or corrigendum: {@code IFC4X3_ADD2} becomes {@code IFC4X3},
+   * {@code IFC2X3_TC1} becomes {@code IFC2X3}, {@code IFC4} stays {@code IFC4}.
+   */
+  static String baseSchema(String schema) {
+    String upper = schema.trim().toUpperCase();
+    Matcher matcher = SCHEMA_BASE.matcher(upper);
+    return matcher.lookingAt() ? matcher.group() : upper;
   }
 
   private static IdsSpecification readSpecification(Element specification) {
@@ -106,12 +119,12 @@ public final class IdsParser {
 
       // Absent cardinality means required: that is the IDS default, and the portal only
       // writes the attribute out explicitly.
-      boolean required = !"optional".equalsIgnoreCase(property.getAttribute("cardinality"));
-
       properties.add(
           new PropertyRequirement(
-              key, emptyToNull(property.getAttribute("dataType")), facetText(property, "value"),
-              required));
+              key,
+              emptyToNull(property.getAttribute("dataType")),
+              facetText(property, "value"),
+              Cardinality.of(property.getAttribute("cardinality"))));
     }
     return properties;
   }
@@ -124,22 +137,42 @@ public final class IdsParser {
     if (entity == null) {
       return null;
     }
-    Element name = child(entity, "name");
+
+    // Entity names differ in case between IDS (IFCBEAM) and the model (IfcBeam).
+    ValuePattern name = readValuePattern(child(entity, "name"), Pattern.CASE_INSENSITIVE);
     if (name == null) {
       return null;
     }
+    // PredefinedTypes are enumeration items or user-defined names: compared as written.
+    ValuePattern predefinedType = readValuePattern(child(entity, "predefinedType"), 0);
 
-    String simple = text(child(name, "simpleValue"));
-    if (simple != null && !simple.isBlank()) {
-      return new EntityRequirement(
-          Pattern.compile(Pattern.quote(simple.trim()), Pattern.CASE_INSENSITIVE), simple.trim());
+    return predefinedType == null
+        ? new EntityRequirement(name.pattern(), name.source())
+        : new EntityRequirement(
+            name.pattern(), name.source(), predefinedType.pattern(), predefinedType.source());
+  }
+
+  /** A facet value compiled for matching, and as it was written. */
+  private record ValuePattern(Pattern pattern, String source) {}
+
+  /**
+   * A facet value given as {@code <simpleValue>} or as an {@code xs:pattern} restriction.
+   *
+   * @return null when the element is absent or carries neither
+   */
+  private static ValuePattern readValuePattern(Element facetValue, int flags) {
+    if (facetValue == null) {
+      return null;
     }
-
-    String pattern = restrictionPattern(name);
+    String simple = text(child(facetValue, "simpleValue"));
+    if (simple != null && !simple.isBlank()) {
+      return new ValuePattern(Pattern.compile(Pattern.quote(simple.trim()), flags), simple.trim());
+    }
+    String pattern = restrictionPattern(facetValue);
     if (pattern == null || pattern.isBlank()) {
       return null;
     }
-    return new EntityRequirement(Pattern.compile(pattern, Pattern.CASE_INSENSITIVE), pattern);
+    return new ValuePattern(Pattern.compile(pattern, flags), pattern);
   }
 
   /** The {@code value} of an {@code <xs:pattern>} nested in an {@code <xs:restriction>}. */

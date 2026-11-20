@@ -11,13 +11,16 @@ import java.util.List;
  * @param applicableElements how many of them the specification applies to
  * @param findings one finding per applicable element and requirement
  * @param diagnosis why nothing was selected, when nothing was; {@link Diagnosis#NONE} otherwise
+ * @param relatedTypes elements turned down only because of a related data type; {@link
+ *     RelatedTypes#NONE} when there are none
  */
 public record CheckResult(
     IdsSpecification specification,
     int examinedElements,
     int applicableElements,
     List<Finding> findings,
-    Diagnosis diagnosis) {
+    Diagnosis diagnosis,
+    RelatedTypes relatedTypes) {
 
   /** What a single requirement came to on a single element. */
   public enum Status {
@@ -25,7 +28,9 @@ public record CheckResult(
     MISSING("Merkmal fehlt"),
     WRONG_VALUE("Wert weicht ab"),
     WRONG_DATATYPE("Datentyp weicht ab"),
-    WRONG_ENTITY("IFC-Entity nicht zulässig");
+    WRONG_ENTITY("IFC-Entity nicht zulässig"),
+    WRONG_PREDEFINED_TYPE("PredefinedType weicht ab"),
+    PROHIBITED_PRESENT("unzulässiges Merkmal vorhanden");
 
     private final String label;
 
@@ -103,25 +108,53 @@ public record CheckResult(
    * How far one applicability facet gets on its own.
    *
    * @param facet the facet as the LOIN words it
-   * @param matchedElements elements carrying the facet's address with the required value
+   * @param matchedElements elements meeting the facet: address, value and data type
    * @param addressFound elements carrying that address at all, whatever value it holds
+   * @param valueButNotType elements carrying the required value, but not the required data type
+   * @param typeDifferences how those types differ, e.g. {@code IFCTEXT statt IFCLABEL}; empty when
+   *     {@code valueButNotType} is 0
    */
-  public record FacetMatch(String facet, int matchedElements, int addressFound) {
+  public record FacetMatch(
+      String facet,
+      int matchedElements,
+      int addressFound,
+      int valueButNotType,
+      String typeDifferences) {
+
+    /** A facet without a data type to miss, such as the entity. */
+    public FacetMatch(String facet, int matchedElements, int addressFound) {
+      this(facet, matchedElements, addressFound, 0, "");
+    }
 
     public String line() {
+      String wrongType =
+          valueButNotType
+              + " Element(e) mit passendem Wert, aber Datentyp "
+              + typeDifferences;
+
       if (matchedElements > 0) {
-        return facet + " trifft " + matchedElements + " Element(e)";
+        String line = facet + " trifft " + matchedElements + " Element(e)";
+        return valueButNotType > 0 ? line + "; dazu " + wrongType : line;
       }
-      return addressFound == 0
-          ? facet + " trifft 0 - Merkmal im Modell nicht vorhanden"
-          : facet + " trifft 0 - " + addressFound + " Element(e) mit abweichendem Wert";
+      if (addressFound == 0) {
+        return facet + " trifft 0 - Merkmal im Modell nicht vorhanden";
+      }
+      int otherValue = addressFound - valueButNotType;
+      if (valueButNotType == 0) {
+        return facet + " trifft 0 - " + otherValue + " Element(e) mit abweichendem Wert";
+      }
+      return otherValue > 0
+          ? facet + " trifft 0 - " + wrongType + ", " + otherValue + " mit abweichendem Wert"
+          : facet + " trifft 0 - " + wrongType;
     }
   }
 
   /**
    * An element that satisfied part of the applicability, and what kept it out.
    *
-   * @param matchedFacets how many of {@code totalFacets} held for this element
+   * @param matchedFacets how many of {@code totalFacets} carry the required value. The data type is
+   *     not counted here, so that a model storing every value in a related type still gets its
+   *     closest elements named; type differences are listed among the divergences.
    * @param divergences one line per facet that did not hold
    */
   public record NearMiss(
@@ -136,11 +169,40 @@ public record CheckResult(
       return elementLabel
           + " ("
           + entityName
-          + ") - "
+          + ") - Wert passt bei "
           + matchedFacets
           + " von "
           + totalFacets
           + " Facetten";
+    }
+  }
+
+  /**
+   * Elements the applicability turned down only because of a related data type.
+   *
+   * <p>The verdict follows IDS, which compares data types strictly. This is the hint decided for
+   * that rule (docs/WORKFLOW.md, section 5): it names what a lenient reading would have checked, so
+   * the reader can tell "wrong values" apart from "right values in a related type".
+   *
+   * @param elementIds the elements that would apply if related types were accepted
+   * @param typeDifferences how the types differ, e.g. {@code IFCTEXT statt IFCLABEL}
+   */
+  public record RelatedTypes(List<String> elementIds, List<String> typeDifferences) {
+
+    /** No element was turned down for a related type alone. */
+    public static final RelatedTypes NONE = new RelatedTypes(List.of(), List.of());
+
+    public boolean isEmpty() {
+      return elementIds.isEmpty();
+    }
+
+    public String line() {
+      return "Hinweis: "
+          + elementIds.size()
+          + " weitere(s) Element(e) wären anwendbar,"
+          + " wenn verwandte Datentypen akzeptiert würden ("
+          + String.join(", ", typeDifferences)
+          + ")";
     }
   }
 
@@ -191,10 +253,13 @@ public record CheckResult(
     return summary.toString();
   }
 
-  /** The whole report: the summary, then either the findings or the diagnosis. */
+  /** The whole report: the summary and the hint, then either the findings or the diagnosis. */
   public List<String> report() {
     List<String> lines = new ArrayList<>();
     lines.add(summary());
+    if (!relatedTypes.isEmpty()) {
+      lines.add("   " + relatedTypes.line());
+    }
 
     if (notApplicable()) {
       lines.addAll(diagnosis.lines());

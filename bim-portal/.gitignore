@@ -11,6 +11,9 @@
 *.odt
 *.ids
 *.xml
+# ...except test files, which have to be in git for the tests to run
+!/Java_client/hackathon-template/src/test/resources/**/*.ids
+!/Java_client/hackathon-template/src/test/resources/**/*.xml
 # Project exclude paths
 /Java_client/.gradle/
 /Java_client/exports/

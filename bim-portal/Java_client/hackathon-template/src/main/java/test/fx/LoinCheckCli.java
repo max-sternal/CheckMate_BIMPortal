@@ -59,6 +59,9 @@ public final class LoinCheckCli {
     try {
       CheckResult result = LoinIdsCheck.check(client, loin.getGuid(), schema, elements);
       System.out.println(result.summary());
+      if (!result.relatedTypes().isEmpty()) {
+        System.out.println("   " + result.relatedTypes().line());
+      }
 
       if (result.notApplicable()) {
         // Nothing was checked, so the only thing worth printing is what stood in the way.

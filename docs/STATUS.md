@@ -31,7 +31,7 @@ What is being worked on and what is still open. One line per item. Reference cod
 
 ### Repository
 
-12. `bim-portal/.gitignore` ignores every `*.xml` and `*.ids` file, so IDS or LOIN-XML test files would be silently left out of git.
+12. Done (2026-11-20): `bim-portal/.gitignore` still ignores `*.xml` and `*.ids`, except under `hackathon-template/src/test/resources/`, so test files are tracked.
 
 ### Code structure
 
