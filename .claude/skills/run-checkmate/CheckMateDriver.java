@@ -137,6 +137,8 @@ public class CheckMateDriver {
         case "add" -> select(arg, true);
         case "filter" -> filter(arg);
         case "showall" -> showAll(arg);
+        case "summary" -> summary();
+        case "row" -> row(arg);
         case "click" -> click(arg);
         case "tabs" -> tabs();
         case "tab" -> tab(arg);
@@ -177,6 +179,8 @@ public class CheckMateDriver {
             "filter <which> <text>  choose a filter value: which = fachmodell|phase|anwendungsfall,",
             "                  text = part of the value, or 'alle'",
             "showall on|off    tick or untick 'alle anzeigen, auch nicht passende'",
+            "summary           print the summary table of the last check, one row per specification",
+            "row <i|text>      select a summary row; the report and the tabs narrow to it",
             "click <label>     fire a button: 'Validate LOIN', 'Filter', ... (BIM Portal opens a browser)",
             "tabs              list the element tabs in the middle pane",
             "tab <i|text>      select an element tab and print its lines",
@@ -313,6 +317,59 @@ public class CheckMateDriver {
           }
           throw new IllegalArgumentException(
               "no value containing '" + text + "' among " + filter.getItems().size());
+        });
+  }
+
+  /** The summary table above the report: the only TableView in the window. */
+  static javafx.scene.control.TableView<?> summaryTable() {
+    return find(javafx.scene.control.TableView.class, t -> true, "summary table");
+  }
+
+  /** One row of the summary table, its cells joined by " | ". */
+  static String rowText(javafx.scene.control.TableView<?> table, int index) {
+    List<String> cells = new ArrayList<>();
+    for (javafx.scene.control.TableColumn<?, ?> column : table.getColumns()) {
+      cells.add(String.valueOf(column.getCellData(index)));
+    }
+    return String.join(" | ", cells);
+  }
+
+  static void summary() throws Exception {
+    fx(
+        () -> {
+          javafx.scene.control.TableView<?> table = summaryTable();
+          say(table.getItems().size() + " row(s)" + (table.isVisible() ? "" : " (hidden)"));
+          List<String> titles = new ArrayList<>();
+          table.getColumns().forEach(column -> titles.add(column.getText()));
+          say("  # " + String.join(" | ", titles));
+          for (int i = 0; i < table.getItems().size(); i++) {
+            say(String.format("%3d %s", i, rowText(table, i)));
+          }
+          return null;
+        });
+  }
+
+  /** Select a summary row by index, or the first whose cells contain the text. */
+  static void row(String arg) throws Exception {
+    fx(
+        () -> {
+          javafx.scene.control.TableView<?> table = summaryTable();
+          int index = -1;
+          if (arg.matches("\\d+")) {
+            index = Integer.parseInt(arg);
+          } else {
+            for (int i = 0; i < table.getItems().size() && index < 0; i++) {
+              if (rowText(table, i).toLowerCase(Locale.ROOT).contains(arg.toLowerCase(Locale.ROOT))) {
+                index = i;
+              }
+            }
+          }
+          if (index < 0 || index >= table.getItems().size()) {
+            throw new IllegalArgumentException("no row '" + arg + "' among " + table.getItems().size());
+          }
+          table.getSelectionModel().clearAndSelect(index);
+          say("row " + index + ": " + rowText(table, index));
+          return null;
         });
   }
 

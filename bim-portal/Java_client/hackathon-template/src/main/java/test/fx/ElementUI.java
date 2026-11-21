@@ -14,11 +14,14 @@ import com.bimportal.hackathon.ids.CheckResult;
 import com.bimportal.hackathon.ids.CheckResult.Finding;
 import com.bimportal.hackathon.ids.CheckResult.NearMiss;
 import com.bimportal.hackathon.ids.CheckResult.Status;
+import com.bimportal.hackathon.ids.CheckResult.Verdict;
 import com.bimportal.hackathon.ids.IdsDocument;
 import com.bimportal.hackathon.ids.IdsParser;
 import com.bimportal.hackathon.ids.ModelElement;
 import com.bimportal.hackathon.ids.PortalRequirements;
 import com.bimportal.hackathon.ids.RequirementsException;
+import com.bimportal.hackathon.report.CheckReport;
+import com.bimportal.hackathon.report.CheckReport.Run;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
 import java.io.File;
@@ -31,6 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.time.OffsetDateTime;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -44,7 +48,13 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.geometry.Orientation;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.SplitPane;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
@@ -112,6 +122,15 @@ public class ElementUI extends VBox {
   private final TabPane tabPane = new TabPane();
 
   private final TextArea reportArea = new TextArea();
+
+  /**
+   * One row per specification of the last check, and one for all of them: the verdicts at a glance.
+   * Clicking a row narrows the report and the element tabs to it.
+   */
+  private final TableView<SummaryRow> summaryTable = new TableView<>();
+
+  /** The last check, for the summary table's rows. */
+  private Checked lastCheck;
 
   public ElementUI(LoadedModel model) {
     super();
@@ -300,7 +319,7 @@ public class ElementUI extends VBox {
     reportArea.setEditable(false);
     reportArea.setStyle("-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px;");
     reportArea.setPrefRowCount(10);
-    reportArea.setMinHeight(140);
+    reportArea.setMinHeight(100);
     reportArea.setText(
         modelLine()
             + "\nLinks filtern: zuerst stehen die LOINs, deren Objekttyp im Modell vorkommt."
@@ -308,13 +327,19 @@ public class ElementUI extends VBox {
             + " ausgewählten (mehrere mit Strg/Umschalt)."
             + "\nEine ID im Suchfeld oder 'Load IDS' prüft sofort.");
 
-    VBox reportBox = new VBox(5, new Label("LOIN-PRÜFUNG"), reportArea);
+    buildSummaryTable();
+    VBox reportBox = new VBox(5, new Label("LOIN-PRÜFUNG"), summaryTable, reportArea);
     VBox.setVgrow(reportArea, Priority.ALWAYS);
 
     HBox tabPaneHBox = new HBox(loinBox, tabPane, rightBox);
     tabPaneHBox.setSpacing(10);
-    VBox.setVgrow(tabPaneHBox, Priority.ALWAYS);
-    this.getChildren().addAll(topBox, tabPaneHBox, reportBox);
+    // The elements above, the summary and the report below; the divider can be dragged, since
+    // which of them needs the room depends on what is being looked at.
+    SplitPane split = new SplitPane(tabPaneHBox, reportBox);
+    split.setOrientation(Orientation.VERTICAL);
+    split.setDividerPositions(0.55);
+    VBox.setVgrow(split, Priority.ALWAYS);
+    this.getChildren().addAll(topBox, split);
     this.setSpacing(10);
     this.setFillWidth(true);
 
@@ -644,6 +669,11 @@ public class ElementUI extends VBox {
           model = loaded;
           fit = ModelFit.of(loaded.elements());
           tabPane.getTabs().clear();
+          // The summary belongs to the model checked before.
+          lastCheck = null;
+          summaryTable.getItems().clear();
+          summaryTable.setVisible(false);
+          summaryTable.setManaged(false);
           refreshList();
           reportArea.setText(
               modelLine()
@@ -672,23 +702,161 @@ public class ElementUI extends VBox {
                 : selected.size() + " ausgewählte Einträge")
             + " ...");
 
+    OffsetDateTime checkedAt = OffsetDateTime.now();
     inBackground(
-        () -> check(selected, checked),
+        () -> check(selected, checked, checkedAt),
         outcome -> {
-          reportArea.setText("Modell: " + checked.summary() + "\n" + outcome.report());
-          if (!outcome.results().isEmpty()) {
-            showCheckedElements(outcome.results(), checked);
-          }
+          lastCheck = outcome;
+          showSummary(outcome);
         });
   }
 
   /**
-   * A check that ran, or the reason it could not.
+   * A check: the report, the text it reads as, and the model it ran against.
    *
-   * @param results one per specification checked; empty when the check did not get as far as a
-   *     verdict
+   * @param text the whole report: header, overview and every specification's details
    */
-  private record Checked(String report, List<CheckResult> results) {}
+  private record Checked(CheckReport report, String text, LoadedModel model) {}
+
+  /**
+   * One row of the summary table.
+   *
+   * @param results the specifications the row stands for: one, or all for the total row
+   * @param requirements what the specification belongs to, for its report; null for the total row
+   */
+  private record SummaryRow(
+      Verdict verdict,
+      String verdictLabel,
+      String name,
+      String applicable,
+      String passing,
+      String failing,
+      List<CheckResult> results,
+      String requirements) {
+
+    static SummaryRow of(CheckResult result, String requirements) {
+      return new SummaryRow(
+          result.verdict(),
+          result.verdict().label(),
+          result.specification().name() + " (" + result.specification().ifcVersion() + ")",
+          result.applicableElements() + " von " + result.examinedElements(),
+          String.valueOf(result.passingElements()),
+          String.valueOf(result.failingElements()),
+          List.of(result),
+          requirements);
+    }
+
+    /** The row for every specification of a check. */
+    static SummaryRow total(CheckReport report) {
+      List<CheckResult> results = report.results();
+      Verdict worst =
+          results.stream().map(CheckResult::verdict).anyMatch(v -> v == Verdict.FAILED)
+              ? Verdict.FAILED
+              : results.stream().allMatch(r -> r.verdict() == Verdict.PASSED)
+                  ? Verdict.PASSED
+                  : Verdict.NOT_APPLICABLE;
+      return new SummaryRow(
+          worst,
+          "Gesamt",
+          report.verdict(),
+          results.stream().mapToInt(CheckResult::applicableElements).sum() + " Treffer",
+          String.valueOf(results.stream().mapToLong(CheckResult::passingElements).sum()),
+          String.valueOf(results.stream().mapToLong(CheckResult::failingElements).sum()),
+          results,
+          null);
+    }
+  }
+
+  private void buildSummaryTable() {
+    TableColumn<SummaryRow, String> verdict = column("Ergebnis", SummaryRow::verdictLabel, 170);
+    verdict.setCellFactory(
+        c ->
+            new TableCell<>() {
+              @Override
+              protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                SummaryRow row = empty ? null : getTableRow().getItem();
+                setText(empty ? null : item);
+                setStyle(row == null ? "" : verdictStyle(row.verdict()));
+              }
+            });
+    summaryTable
+        .getColumns()
+        .addAll(
+            List.of(
+                verdict,
+                column("LOIN / Spezifikation", SummaryRow::name, 560),
+                column("anwendbar", SummaryRow::applicable, 120),
+                column("Elemente ohne Mängel", SummaryRow::passing, 150),
+                column("Elemente mit Mängeln", SummaryRow::failing, 150)));
+    summaryTable.setPrefHeight(140);
+    summaryTable.setMinHeight(90);
+    summaryTable.setPlaceholder(new Label("Noch nichts geprüft."));
+    summaryTable
+        .getSelectionModel()
+        .selectedItemProperty()
+        .addListener(
+            (observable, previous, row) -> {
+              if (row != null && lastCheck != null) {
+                showRow(row);
+              }
+            });
+    // Hidden until there is something to show, so the report keeps its room.
+    summaryTable.setVisible(false);
+    summaryTable.setManaged(false);
+  }
+
+  private static TableColumn<SummaryRow, String> column(
+      String title, Function<SummaryRow, String> value, double width) {
+    TableColumn<SummaryRow, String> column = new TableColumn<>(title);
+    column.setCellValueFactory(c -> new ReadOnlyStringWrapper(value.apply(c.getValue())));
+    column.setPrefWidth(width);
+    column.setSortable(false);
+    return column;
+  }
+
+  private static String verdictStyle(Verdict verdict) {
+    return switch (verdict) {
+      case PASSED -> "-fx-background-color: #c8e6c9;";
+      case FAILED -> "-fx-background-color: #ffcdd2;";
+      case PARTLY_EVALUATED -> "-fx-background-color: #fff9c4;";
+      case NOT_APPLICABLE -> "-fx-background-color: #e0e0e0;";
+    };
+  }
+
+  /** Fill the summary table after a check and show the whole report. */
+  private void showSummary(Checked check) {
+    List<SummaryRow> rows = new ArrayList<>();
+    List<CheckResult> results = check.report().results();
+    if (results.size() > 1) {
+      rows.add(SummaryRow.total(check.report()));
+    }
+    for (Run run : check.report().runs()) {
+      run.results().forEach(result -> rows.add(SummaryRow.of(result, run.name())));
+    }
+    summaryTable.setItems(FXCollections.observableArrayList(rows));
+    summaryTable.setVisible(!rows.isEmpty());
+    summaryTable.setManaged(!rows.isEmpty());
+
+    reportArea.setText(check.text());
+    tabPane.getTabs().clear();
+    if (!results.isEmpty()) {
+      showCheckedElements(results, check.model());
+    }
+  }
+
+  /** Narrow the report and the tabs to one row: one specification, or all of them. */
+  private void showRow(SummaryRow row) {
+    if (row.requirements() == null) {
+      reportArea.setText(lastCheck.text());
+    } else {
+      List<String> lines = new ArrayList<>(lastCheck.report().header());
+      lines.add("Anforderungen: " + row.requirements());
+      lines.addAll(row.results().get(0).report());
+      reportArea.setText(String.join("\n", lines));
+    }
+    showCheckedElements(row.results(), lastCheck.model());
+  }
 
   /**
    * Run the selected entries against the model.
@@ -697,8 +865,9 @@ public class ElementUI extends VBox {
    * every check walks every element. With several specifications - several LOINs, or an AIA
    * project - the report starts with one line per specification.
    */
-  private Checked check(List<RequirementSource> sources, LoadedModel against) {
-    List<CheckResult> all = new ArrayList<>();
+  private Checked check(
+      List<RequirementSource> sources, LoadedModel against, OffsetDateTime checkedAt) {
+    List<Run> runs = new ArrayList<>();
     List<String> details = new ArrayList<>();
     for (RequirementSource source : sources) {
       if (!details.isEmpty()) {
@@ -707,7 +876,7 @@ public class ElementUI extends VBox {
       try {
         IdsDocument requirements = requirements(source);
         List<CheckResult> results = requirements.check(against.schema(), against.elements());
-        all.addAll(results);
+        runs.add(Run.checked(requirements, results));
         details.add("Anforderungen: " + requirements.describe());
         if (results.size() > 1) {
           details.add(CheckResult.tally(results, against.schema()));
@@ -723,19 +892,23 @@ public class ElementUI extends VBox {
         // No IDS for a LOIN, or none for this schema, is an ordinary outcome here - it belongs
         // in the report rather than in a stack trace. RequirementsException messages name the
         // source.
-        details.add(
-            e instanceof RequirementsException ? e.getMessage() : source.label() + ": " + e);
+        String message =
+            e instanceof RequirementsException ? e.getMessage() : source.label() + ": " + e;
+        runs.add(Run.failed(source.label(), message));
+        details.add(message);
       }
     }
 
-    List<String> lines = new ArrayList<>();
+    CheckReport report = new CheckReport(checkedAt, against.info(), runs);
+    List<String> lines = new ArrayList<>(report.header());
+    List<CheckResult> all = report.results();
     if (sources.size() > 1 && !all.isEmpty()) {
-      lines.add(sources.size() + " Einträge geprüft - " + CheckResult.tally(all, against.schema()));
+      lines.add(sources.size() + " Einträge geprüft - " + report.verdict());
       all.forEach(result -> lines.add("   " + result.overviewLine()));
-      lines.add("");
     }
+    lines.add("");
     lines.addAll(details);
-    return new Checked(String.join("\n", lines), all);
+    return new Checked(report, String.join("\n", lines), against);
   }
 
   /**

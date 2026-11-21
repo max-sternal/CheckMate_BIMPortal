@@ -113,6 +113,16 @@ class LoinCheckCliTest {
   }
 
   @Test
+  void writesJsonOnlyForChecks() {
+    assertThat(Arguments.parse("--json", "build/bericht.json", "Kappe").json())
+        .isEqualTo("build/bericht.json");
+    assertThat(Arguments.parse("Kappe").json()).isNull();
+    assertThatThrownBy(() -> Arguments.parse("--suggest", "--json", "x.json"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("--suggest");
+  }
+
+  @Test
   void rejectsWhatItDoesNotUnderstand() {
     assertThatThrownBy(() -> Arguments.parse("--model"))
         .isInstanceOf(IllegalArgumentException.class)

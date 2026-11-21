@@ -11,9 +11,16 @@ import com.bimportal.hackathon.ids.IdsDocument;
 import com.bimportal.hackathon.ids.IdsParser;
 import com.bimportal.hackathon.ids.PortalRequirements;
 import com.bimportal.hackathon.ids.RequirementsException;
+import com.bimportal.hackathon.report.CheckReport;
+import com.bimportal.hackathon.report.CheckReport.Run;
+import com.bimportal.hackathon.report.ReportJson;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -50,10 +57,16 @@ import java.util.function.Supplier;
  * LOINs a search checks, by the catalogue's metadata; a part of the value is enough ({@code LPH
  * 5}). Without a search term, {@code --suggest} goes through the whole catalogue.
  *
- * <p>Exit code 1 when the model or any of the requirements cannot be read or checked (no such
- * LOIN or project, no IDS file to download, a file that is not IDS, no specification for the
- * model's schema); the other requirements are still checked. Exit code 2 for arguments it does not
- * understand. Requirements that are not met do not change the exit code yet.
+ * <p>{@code --json <Datei>} also writes the report as JSON (see {@link ReportJson}); the text
+ * still goes to the console, which the portal client and the IFC toolbox write to as well.
+ *
+ * <p>Exit codes, see {@link CheckReport#exitCode()}: 0 every specification checked was met; 1 the
+ * model or any of the requirements could not be read or checked (no such LOIN or project, no IDS
+ * file to download, a file that is not IDS, no specification for the model's schema) - the others
+ * are still checked; 2 arguments it does not understand; 3 at least one specification not met; 4
+ * none violated, but not everything confirmed (a specification applied to no element, was
+ * evaluated only in part, or nothing was checked). {@code --suggest} checks nothing and ends with
+ * 0.
  */
 public final class LoinCheckCli {
 
@@ -67,7 +80,7 @@ public final class LoinCheckCli {
       "Aufruf: runLoinCheck --args=\"[--model <IFC-Datei oder Link>] [--loin <LOIN-ID oder Link>]"
           + " [--aia <AIA-Projekt-ID oder Link>] [--ids <IDS-Datei oder ZIP>] [--suggest]"
           + " [--discipline <Fachmodell>] [--phase <Leistungsphase>] [--purpose <Anwendungsfall>]"
-          + " [Suchbegriff ...]\"\n"
+          + " [--json <Datei>] [Suchbegriff ...]\"\n"
           + "--loin, --aia und --ids dürfen mehrfach stehen.";
 
   private LoinCheckCli() {}
@@ -84,6 +97,7 @@ public final class LoinCheckCli {
    *     empty for the whole catalogue
    * @param suggest list the fitting LOINs instead of checking the search's
    * @param filter the context the LOINs of a search or suggestion have to fit
+   * @param json where to write the report as JSON; null for no JSON
    */
   record Arguments(
       String model,
@@ -91,11 +105,12 @@ public final class LoinCheckCli {
       List<String> idsFiles,
       String search,
       boolean suggest,
-      CatalogueFilter filter) {
+      CatalogueFilter filter,
+      String json) {
 
-    /** Arguments that check, without filters. */
+    /** Arguments that check, without filters and JSON. */
     Arguments(String model, List<String> portalIds, List<String> idsFiles, String search) {
-      this(model, portalIds, idsFiles, search, false, CatalogueFilter.ANY);
+      this(model, portalIds, idsFiles, search, false, CatalogueFilter.ANY, null);
     }
 
     static Arguments parse(String... args) {
@@ -107,9 +122,11 @@ public final class LoinCheckCli {
       String discipline = null;
       String phase = null;
       String purpose = null;
+      String json = null;
       for (int i = 0; i < args.length; i++) {
         switch (args[i]) {
           case "--suggest" -> suggest = true;
+          case "--json" -> json = value(args, ++i, "--json braucht eine Datei.");
           case "--discipline" ->
               discipline = value(args, ++i, "--discipline braucht ein Fachmodell.");
           case "--phase" -> phase = value(args, ++i, "--phase braucht eine Leistungsphase.");
@@ -145,13 +162,17 @@ public final class LoinCheckCli {
       } else if (portalIds.isEmpty() && idsFiles.isEmpty()) {
         search = DEFAULT_SEARCH;
       }
+      if (suggest && json != null) {
+        throw new IllegalArgumentException("--json gilt für Prüfungen, --suggest prüft nichts.");
+      }
       return new Arguments(
           model,
           List.copyOf(portalIds),
           List.copyOf(idsFiles),
           search,
           suggest,
-          new CatalogueFilter(discipline, phase, purpose));
+          new CatalogueFilter(discipline, phase, purpose),
+          json);
     }
 
     private static boolean containsId(String text) {
@@ -185,6 +206,7 @@ public final class LoinCheckCli {
       return;
     }
 
+    OffsetDateTime checkedAt = OffsetDateTime.now();
     LoadedModel model;
     try {
       model =
@@ -193,32 +215,73 @@ public final class LoinCheckCli {
               : LoadedModel.read(arguments.model());
     } catch (ModelLoadException e) {
       System.err.println(e.getMessage());
-      System.exit(1);
+      System.exit(CheckReport.NOT_READ);
       return;
     }
-    System.out.println("Modell: " + model.summary() + "\n");
 
-    boolean allRead = true;
-    for (String file : arguments.idsFiles()) {
-      allRead &= report(file, () -> IdsParser.read(Path.of(file)), model);
+    if (arguments.suggest()) {
+      System.out.println("Modell: " + model.summary() + "\n");
+      EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
+      try {
+        suggest(client, arguments.search(), arguments.filter(), model);
+      } finally {
+        client.logout();
+      }
+      System.exit(CheckReport.PASSED);
+      return;
     }
 
+    CheckReport report = check(arguments, model, checkedAt);
+    System.out.println(
+        "Ergebnis: " + report.verdict() + " (Exit-Code " + report.exitCode() + ")");
+    int exitCode = report.exitCode();
+    if (arguments.json() != null) {
+      exitCode = writeJson(report, Path.of(arguments.json()), exitCode);
+    }
+    System.exit(exitCode);
+  }
+
+  /** Check the model against everything the arguments name, printing as it goes. */
+  private static CheckReport check(
+      Arguments arguments, LoadedModel model, OffsetDateTime checkedAt) {
+    CheckReport header = new CheckReport(checkedAt, model.info(), List.of());
+    header.header().forEach(System.out::println);
+    System.out.println();
+
+    List<Run> runs = new ArrayList<>();
+    for (String file : arguments.idsFiles()) {
+      runs.add(report(file, () -> IdsParser.read(Path.of(file)), model));
+    }
     if (arguments.needsPortal()) {
       EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
       try {
         for (String id : arguments.portalIds()) {
-          allRead &= report(id, () -> PortalRequirements.requirements(client, id), model);
+          runs.add(report(id, () -> PortalRequirements.requirements(client, id), model));
         }
-        if (arguments.suggest()) {
-          suggest(client, arguments.search(), arguments.filter(), model);
-        } else if (arguments.search() != null) {
-          allRead &= search(client, arguments.search(), arguments.filter(), model);
+        if (arguments.search() != null) {
+          runs.addAll(search(client, arguments.search(), arguments.filter(), model));
         }
       } finally {
         client.logout();
       }
     }
-    System.exit(allRead ? 0 : 1);
+    return new CheckReport(checkedAt, model.info(), runs);
+  }
+
+  /**
+   * Write the report as JSON.
+   *
+   * @return the exit code to end with: 1 when the file cannot be written, else the given one
+   */
+  private static int writeJson(CheckReport report, Path file, int exitCode) {
+    try {
+      Files.writeString(file, ReportJson.write(report), StandardCharsets.UTF_8);
+      System.out.println("JSON: " + file.toAbsolutePath());
+      return exitCode;
+    } catch (IOException e) {
+      System.err.println("Der Bericht lässt sich nicht nach " + file + " schreiben: " + e);
+      return CheckReport.NOT_READ;
+    }
   }
 
   /**
@@ -261,10 +324,8 @@ public final class LoinCheckCli {
   /**
    * Check the model against every AIA project and LOIN a search finds, projects first. The filter
    * narrows the LOINs.
-   *
-   * @return false when any of them could not be read or checked
    */
-  private static boolean search(
+  private static List<Run> search(
       EnhancedBimPortalClient client, String term, CatalogueFilter filter, LoadedModel model) {
     List<SimpleAiaProjectPublicDto> projects = PortalRequirements.searchProjects(client, term);
     List<SimpleLoinPublicDto> found = PortalRequirements.search(client, term);
@@ -281,32 +342,30 @@ public final class LoinCheckCli {
             + projects.size()
             + " AIA-Projekt(e)\n");
 
-    boolean allRead = true;
+    List<Run> runs = new ArrayList<>();
     for (SimpleAiaProjectPublicDto project : projects) {
-      allRead &=
+      runs.add(
           report(
               project.getName(),
               () -> PortalRequirements.project(client, project.getGuid(), project.getName()),
-              model);
+              model));
     }
     for (SimpleLoinPublicDto loin : loins) {
-      allRead &=
+      runs.add(
           report(
               loin.getName(),
               () -> PortalRequirements.loin(client, loin.getGuid(), loin.getName()),
-              model);
+              model));
     }
-    return allRead;
+    return runs;
   }
 
   /**
    * Read one set of requirements, check the model against it and print the outcome.
    *
    * @param name what the requirements are called before they are read, for error messages
-   * @return false when the requirements could not be read or checked
    */
-  private static boolean report(
-      String name, Supplier<IdsDocument> requirements, LoadedModel model) {
+  private static Run report(String name, Supplier<IdsDocument> requirements, LoadedModel model) {
     try {
       IdsDocument document = requirements.get();
       List<CheckResult> results = document.check(model.schema(), model.elements());
@@ -315,13 +374,13 @@ public final class LoinCheckCli {
         System.out.println(CheckResult.tally(results, model.schema()) + "\n");
       }
       results.forEach(LoinCheckCli::print);
-      return true;
+      return Run.checked(document, results);
     } catch (RequirementsException e) {
       System.out.println(e.getMessage() + "\n");
-      return false;
+      return Run.failed(name, e.getMessage());
     } catch (RuntimeException e) {
       System.out.println(name + ": " + e + "\n");
-      return false;
+      return Run.failed(name, e.toString());
     }
   }
 

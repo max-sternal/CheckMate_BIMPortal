@@ -240,6 +240,20 @@ public record CheckResult(
     return applicableElements == 0;
   }
 
+  /** Applicable elements with at least one requirement not met. */
+  public long failingElements() {
+    return findings.stream()
+        .filter(finding -> !finding.status().ok())
+        .map(Finding::elementId)
+        .distinct()
+        .count();
+  }
+
+  /** Applicable elements that meet every requirement checked. */
+  public long passingElements() {
+    return applicableElements - failingElements();
+  }
+
   public long count(Status status) {
     return findings.stream().filter(finding -> finding.status() == status).count();
   }

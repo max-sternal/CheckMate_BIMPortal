@@ -89,6 +89,8 @@ so `grep '^>>'` gives just the driver's view. Then Read the PNG and look at it.
 | `add <i\|text>` | add an entry to the selection, to check several at once |
 | `filter <which> <text>` | choose a catalogue filter value: `which` is `fachmodell`, `phase` or `anwendungsfall`, `text` a part of the value (`filter phase LPH 5`) or `alle` |
 | `showall on\|off` | tick or untick "alle anzeigen, auch nicht passende" |
+| `summary` | print the summary table of the last check: verdict, specification, applicable elements, elements without and with defects; row 0 is "Gesamt" when several were checked |
+| `row <i\|text>` | select a summary row; the report and the element tabs narrow to it (`row Gesamt` for all again) |
 | `click <label>` | fire a button by its text, e.g. `Validate LOIN`, `Filter` |
 | `tabs` / `tab <i\|text>` | list the element tabs in the middle pane / select one and print its lines |
 | `dump` | control tree: types, texts, prompts, item counts |
@@ -140,11 +142,18 @@ JAVA_TOOL_OPTIONS="-Dstdout.encoding=UTF-8" ./gradlew -q --console=plain :hackat
   them, and `5` becomes a search term.
 - Without `--loin`, `--ids` and a search term, it searches for "Kappe". The search term may have
   several words.
-- Exit code 1: the model or any of the requirements couldn't be read or checked (unknown ID, no
-  IDS file to download, not an IDS file, no specification for the model's schema); the others are still
-  checked. Exit code 2: an unknown argument. Failed requirements don't change the exit code yet.
+- The report starts with `CheckMate-Prüfung vom <date>` and the model, and ends with
+  `Ergebnis: <verdict> (Exit-Code n)`. `--json <file>` also writes it as JSON (relative to
+  `hackathon-template/`, e.g. `--json build/checkmate-report.json`; not with `--suggest`).
+- Exit codes: 0 every specification met; 1 the model or any of the requirements couldn't be read
+  or checked (unknown ID, no IDS file to download, not an IDS file, no specification for the
+  model's schema), the others are still checked; 2 an unknown argument; 3 at least one
+  specification not met; 4 nothing violated, but not everything confirmed ("nicht prüfbar",
+  partly evaluated, or nothing checked). The bundled model gives 4 for every portal LOIN.
 - Gradle prints `Execution failed for task ':hackathon-template:runLoinCheck'` and `BUILD FAILED`
-  on a non-zero exit code. That is the exit code, not a build problem.
+  on any non-zero exit code, and `./gradlew` itself then exits with 1. That is the check's
+  result, not a build problem. The real code is in Gradle's message (`finished with non-zero exit
+  value 3`), in the last report line and in the JSON's `exitCode`.
 
 ## Run (human path)
 
@@ -166,7 +175,7 @@ From `bim-portal/Java_client/`:
 ./gradlew --console=plain :hackathon-template:test
 ```
 
-170 tests as of 2026-11-21; only `BasicExampleIntegrationTest` is skipped (an `assumeTrue`
+178 tests as of 2026-11-21; only `BasicExampleIntegrationTest` is skipped (an `assumeTrue`
 guard: it needs credentials). Without the Apstex JARs the `test/fx` tests are not built, and
 without the downloaded sample models (`./gradlew :hackathon-template:downloadTestModels`) the
 tests that need them are skipped with a message. Results are in

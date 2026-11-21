@@ -2,6 +2,7 @@ package test.fx;
 
 import com.apstex.ifctoolbox.ifcmodel.IfcModel;
 import com.bimportal.hackathon.ids.ModelElement;
+import com.bimportal.hackathon.report.CheckReport.ModelInfo;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.List;
@@ -68,7 +69,12 @@ public record LoadedModel(
 
   /** One line for a report: {@code Infra-Bridge.ifc - Schema IFC4, 77 Objekte}. */
   public String summary() {
-    return name + " - Schema " + schema + ", " + elements.size() + " Objekte";
+    return info().summary();
+  }
+
+  /** The model as a report names it. */
+  public ModelInfo info() {
+    return new ModelInfo(name, schema, elements.size());
   }
 
   /** A file's name, or the file name at the end of a link. */

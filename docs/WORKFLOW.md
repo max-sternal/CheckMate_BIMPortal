@@ -117,10 +117,23 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
 ### 2.5 Results
 
 - One summary line per LOIN, the findings per element, and the diagnosis when nothing applied.
-- The report states the model, the LOIN name and version, and the date.
-- GUI: a table across all checked LOINs. Clicking a row shows the details per element.
-- CLI: text or JSON output, and an exit code other than 0 when requirements are not met.
-- Main classes: [`CheckResult`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/CheckResult.java),
+- Each specification gets a verdict: erfüllt, nicht erfüllt, erfüllt (soweit ausgewertet), nicht
+  prüfbar.
+- The report starts with the date and the model, then names each set of requirements with its
+  version and source: "CheckMate-Prüfung vom 21.11.2026 23:05", "Modell: Infra-Bridge.ifc -
+  Schema IFC4, 77 Objekte", "Anforderungen: ...".
+- GUI: a table above the report, one row per specification and one for all of them: verdict,
+  applicable elements, elements without and with defects. Clicking a row narrows the report and
+  the element tabs to it. Element tabs and report share a split pane whose divider can be dragged.
+- CLI: the text report, `--json <file>` for the same as JSON, and an exit code: 0 everything met;
+  1 the model or some requirements could not be read or checked; 2 unknown argument; 3 at least
+  one specification not met; 4 nothing violated, but not everything confirmed (not applicable,
+  partly evaluated, or nothing checked). Through `gradlew` every non-zero code becomes Gradle's
+  own 1; the real one is in Gradle's message ("finished with non-zero exit value 3"), in the
+  report's last line and in the JSON's `exitCode`.
+- Main classes: [`CheckReport`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/report/CheckReport.java),
+  [`ReportJson`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/report/ReportJson.java),
+  [`CheckResult`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/CheckResult.java),
   [`ElementUI`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/ElementUI.java),
   [`LoinCheckCli`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/LoinCheckCli.java).
 
@@ -240,10 +253,11 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 ### Results
 
 - [x] Text report in the GUI and the CLI.
-- [ ] Summary table across several LOINs. So far: with several specifications or selected LOINs, the report starts with a tally ("36 Spezifikation(en) für IFC4: 36 nicht erfüllt") and one line per specification with its verdict (erfüllt, nicht erfüllt, erfüllt (soweit ausgewertet), nicht prüfbar).
+- [x] Summary table across several LOINs (GUI), with a "Gesamt" row; clicking a row narrows report and element tabs. The text report starts with a tally and one line per specification with its verdict.
 - [x] All checked elements: 20 get a tab each, with what every specification said about them; one more tab lists the rest with how many lines are open.
-- [ ] Report header: the model, the requirements' name, version and source are there; the date is missing.
-- [ ] CLI: JSON output, and an exit code other than 0 when requirements fail. Already: 1 when the model or any requirements can't be read or checked, 2 for unknown arguments.
+- [x] Report header with date and model; each set of requirements with name, version and source.
+- [x] CLI: `--json <file>`, and exit codes 0 / 1 / 2 / 3 / 4 (section 2.5).
+- [ ] Pass the exit code through to scripts: `gradlew` turns every non-zero code into 1. A start script (the `application` plugin's `installDist`) for `LoinCheckCli` would keep it; that changes `build.gradle.kts`.
 - [ ] Disable "Validate LOIN" while a check runs; a double-click currently starts a second check.
 
 ### Front ends and quality
@@ -273,6 +287,9 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
   short description on click). Requirements are downloaded only for the LOINs selected for a
   check, never for the whole catalogue or a candidate list. The earlier plan of an exact
   applicability test on downloaded candidates is dropped.
+- 2026-11-21, exit codes: 3 when a specification is not met, 4 when nothing is violated but not
+  everything is confirmed. "Nicht prüfbar" is never 0, in line with the rule that it is never
+  reported as passed. Read errors (1) take precedence, since the report is then incomplete.
 - 2026-11-21, the description on click comes from the clicked LOIN's IDS file, not the portal's
   detail: one download per click, reused for the check, and it can say how many elements the
   LOIN would apply to.
