@@ -38,7 +38,8 @@ The check is one core with three front ends:
 Four sources, all of which end up as IDS specifications:
 
 - a LOIN ID: the GUID, or any text containing one, such as a link copied from the portal;
-- an AIA project ID: the portal exports all LOINs of the project in one ZIP;
+- an AIA project ID: the portal exports all LOINs of the project in one ZIP. All IDS files in it
+  are read, each LOIN and schema once;
 - a local IDS file;
 - a selection from the portal's LOIN catalogue (see 2.3).
 
@@ -53,8 +54,10 @@ Then:
   select too many elements. In the requirements the rest is checked, but the specification cannot
   pass.
 - Main classes: [`EnhancedBimPortalClient`](../bim-portal/Java_client/bim-portal-enhanced/src/main/java/com/pb40/bimportal/client/EnhancedBimPortalClient.java)
-  (`exportLoinIds`, `exportProjectIds`), [`PortalLoins`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/PortalLoins.java)
-  (LOIN by ID, search),
+  (`exportLoinIds`, `exportProjectIds`), [`PortalRequirements`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/PortalRequirements.java)
+  (LOINs and AIA projects by ID, search),
+  [`IdsArchive`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/IdsArchive.java)
+  (ZIP exports),
   [`IdsParser`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/IdsParser.java),
   [`IdsDocument`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/IdsDocument.java),
   [`IdsSpecification`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/IdsSpecification.java).
@@ -118,9 +121,19 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
   catalogue's `id`s (measured 2026-11-21).
 - The Ingenieurbau LOINs select elements by `Klassifizierung/Objektgruppe|Objektklasse|Objekttyp`.
   Building LOINs such as "Fenster" select by IFC entity.
-- An AIA project's IDS export is a ZIP: one combined IDS for the project, sometimes plus one IDS
-  per LOIN. There are 4 public AIA projects, e.g. "Beispiel-AIA Neubau Eisenbahnbrücke" with 36
-  LOINs for LPH 5 (IFC4 only).
+- An AIA project's IDS export is a ZIP: `IDS/AIA_<project>_<guid>_<version>.ids` with every LOIN
+  of the project, and for 3 of the 4 public projects also `IDS/LOIN_<name>_<guid>_<version>.ids`
+  per LOIN. The combined file holds IFC4 only; in the two road projects each LOIN's own file also
+  holds IFC2X3 and IFC4X3_ADD2. A specification's `identifier` is `<LOIN guid> <n>`, where n only
+  counts within a file. One project ("Beispiel AIA Bundesbauten") holds two different LOINs of the
+  same name. Exports take 1-5 s (measured 2026-11-21).
+- The 4 public AIA projects: "AIA FB Straße Demonstrator FM Verkehrsanlage" and "BAB 1
+  Grundhafter Ausbau, Bergkamen" (19 LOINs each, LPH 3, by classification), "Beispiel AIA
+  Bundesbauten" (32 LOINs, by entity), "Beispiel-AIA Neubau Eisenbahnbrücke" (36 LOINs, LPH 5).
+  Every specification of the railway project selects any user-defined `IfcBuildingElementProxy`;
+  which LOIN an element belongs to only shows in the property set names. So each such proxy is
+  checked against all 36 LOINs: on the IFC4 bridge sample, 9 proxies x 36, all failing, in
+  CheckMate and in ifctester alike.
 - On a copy of the bridge model with planted errors, our check and ifctester 0.9 give the same
   verdicts. Before the data type rule of section 5 was implemented, they differed in exactly that
   rule.
@@ -159,12 +172,13 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [x] IDS parts CheckMate doesn't evaluate are listed in the report ("Nicht ausgewertet ..."): in the applicability the specification is then "nicht prüfbar", in the requirements it cannot pass. The portal's exports contain none.
 - [ ] Not evaluated yet: attribute, classification, material and partOf facets; property values given as pattern, enumeration or bounds (only presence and data type are checked); property set or name given as a pattern.
 - [ ] Specification cardinality: `maxOccurs="0"` (no element may apply) is listed as not evaluated; `minOccurs="1"` (at least one must apply) is not distinguished from optional.
-- [x] LOIN by ID: the GUID, or any text holding one (a link, a note). GUI: in the search field, checked at once. CLI: `--loin`, repeatable, or a search term holding an ID. A version record's `id` is resolved through the catalogue.
-- [ ] AIA project as a source (ZIP export).
-- [x] Local IDS file: GUI "Load IDS", checked at once; CLI `--ids`, repeatable. Not IDS, not found, or not readable is reported with the file name.
+- [x] LOIN or AIA project by ID: the GUID, or any text holding one (a link, a note). GUI: in the search field, checked at once. CLI: `--loin` or `--aia` (both take either kind), repeatable, or a search term holding an ID. A version record's `id` is resolved through the project list, then the LOIN catalogue.
+- [x] AIA project as a source: by ID, from the search (projects are listed above the LOINs), or as a downloaded ZIP. The combined file and the LOIN files are merged, each LOIN and schema once, so an IFC2X3 model can be checked against the road projects although their combined file is IFC4 only.
+- [x] Local IDS file or ZIP of IDS files: GUI "Load IDS", checked at once; CLI `--ids`, repeatable. Not IDS, not found, or not readable is reported with the file name.
+- [ ] One project, one model, but every specification selecting the same elements (as in the railway project) gives a long report; the LOIN that an element belongs to would have to come from its property set names.
 - [ ] IDS file from a link.
 - [ ] Cache for downloaded IDS exports.
-- [ ] Search: it matches parts of names, so "Schaft" also finds "Landschaftsbau" (STATUS #7). A search term of several words works ("Ueberbau > Schaft" finds exactly those 2 LOINs), and the CLI pages like the GUI since 2026-11-21.
+- [ ] Search: it matches parts of names, so "Schaft" also finds "Landschaftsbau" (STATUS #7). A search term of several words works ("Ueberbau > Schaft" finds exactly those 2 LOINs), the CLI pages like the GUI, and both also find AIA projects since 2026-11-21.
 
 ### Choose the LOINs
 
@@ -190,7 +204,7 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 ### Results
 
 - [x] Text report in the GUI and the CLI.
-- [ ] Summary table across several LOINs.
+- [ ] Summary table across several LOINs. So far: with several specifications, the report starts with a tally ("36 Spezifikation(en) für IFC4: 36 nicht erfüllt") and one line per specification with its verdict (erfüllt, nicht erfüllt, erfüllt (soweit ausgewertet), nicht prüfbar).
 - [x] All checked elements: 20 get a tab each, with what every specification said about them; one more tab lists the rest with how many lines are open.
 - [ ] Report header: the model, the requirements' name, version and source are there; the date is missing.
 - [ ] CLI: JSON output, and an exit code other than 0 when requirements fail. Already: 1 when the model or any requirements can't be read or checked, 2 for unknown arguments.
@@ -216,3 +230,6 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - 2026-11-21, IDS parts CheckMate does not evaluate: listed in the report, never dropped. In the
   applicability they make the specification "nicht prüfbar"; in the requirements the rest is
   checked and the specification cannot pass.
+- 2026-11-21, AIA exports: every IDS file in the ZIP is read, the combined file first; a
+  specification is skipped when one for the same LOIN (the GUID in its identifier) and schema was
+  already taken. Not by name, since names repeat.

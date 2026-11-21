@@ -4,6 +4,7 @@ import com.bimportal.hackathon.ids.IdsSpecification.Cardinality;
 import com.bimportal.hackathon.ids.IdsSpecification.EntityRequirement;
 import com.bimportal.hackathon.ids.IdsSpecification.PropertyRequirement;
 import com.bimportal.hackathon.ids.IdsSpecification.Unsupported;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,7 +51,8 @@ public final class IdsParser {
   private IdsParser() {}
 
   /**
-   * Read an IDS file.
+   * Read an IDS file, or a ZIP archive of IDS files such as an AIA project's export (see {@link
+   * IdsArchive}).
    *
    * @throws RequirementsException when the file is missing, unreadable or not IDS
    */
@@ -67,7 +69,7 @@ public final class IdsParser {
   }
 
   /**
-   * Read an IDS document.
+   * Read an IDS document, or a ZIP archive of them.
    *
    * @param source where it came from, for reports and error messages
    * @throws RequirementsException when the bytes are not an IDS document
@@ -77,15 +79,27 @@ public final class IdsParser {
   }
 
   /**
-   * Read an IDS document.
+   * Read an IDS document, or a ZIP archive of them; which one it is, the first bytes tell.
    *
    * @param source where it came from, for reports and error messages
    * @throws RequirementsException when the stream is not an IDS document
    */
   public static IdsDocument read(InputStream ids, String source) {
+    BufferedInputStream in = new BufferedInputStream(ids);
+    try {
+      in.mark(4);
+      byte[] head = in.readNBytes(4);
+      in.reset();
+      if (IdsArchive.isZip(head)) {
+        return IdsArchive.read(in, source);
+      }
+    } catch (IOException e) {
+      throw new RequirementsException(source + " lässt sich nicht lesen: " + e.getMessage(), e);
+    }
+
     Document document;
     try {
-      document = newDocumentBuilder().parse(ids);
+      document = newDocumentBuilder().parse(in);
     } catch (SAXException | IOException e) {
       throw new RequirementsException(
           source + " ist keine lesbare IDS-Datei: " + e.getMessage(), e);
@@ -149,7 +163,8 @@ public final class IdsParser {
         applies.entity(),
         requires.properties(),
         requires.entity(),
-        new Unsupported(unsupportedApplicability, unsupportedRequirements));
+        new Unsupported(unsupportedApplicability, unsupportedRequirements),
+        emptyToNull(specification.getAttribute("identifier")));
   }
 
   /** The facets of an applicability or requirements block that the check evaluates. */

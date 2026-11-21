@@ -14,6 +14,8 @@
 # ...except test files, which have to be in git for the tests to run
 !/Java_client/hackathon-template/src/test/resources/**/*.ids
 !/Java_client/hackathon-template/src/test/resources/**/*.xml
+# (the repo root ignores *.zip; AIA project exports are ZIPs)
+!/Java_client/hackathon-template/src/test/resources/**/*.zip
 # Sample IFC models for the tests, fetched by `gradlew :hackathon-template:downloadTestModels`
 /Java_client/hackathon-template/test-models/
 # Project exclude paths

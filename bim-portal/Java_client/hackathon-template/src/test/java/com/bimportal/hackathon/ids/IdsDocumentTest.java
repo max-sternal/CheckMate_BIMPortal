@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.bimportal.hackathon.ids.CheckResult.Finding;
 import com.bimportal.hackathon.ids.CheckResult.Status;
+import com.bimportal.hackathon.ids.CheckResult.Verdict;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -93,6 +94,34 @@ class IdsDocumentTest {
         .containsExactly(
             "Nicht ausgewertet (Anwendbarkeit): die Spezifikation verbietet anwendbare Elemente"
                 + " (maxOccurs=\"0\")");
+  }
+
+  @Test
+  void givesEachSpecificationAVerdictAndCountsThem() throws Exception {
+    List<CheckResult> results = document(LOCAL).check("IFC4", MODEL);
+
+    assertThat(results)
+        .extracting(CheckResult::verdict)
+        .containsExactly(
+            Verdict.PASSED,
+            Verdict.PARTLY_EVALUATED,
+            Verdict.NOT_APPLICABLE,
+            Verdict.NOT_APPLICABLE);
+    assertThat(CheckResult.tally(results, "IFC4"))
+        .isEqualTo(
+            "4 Spezifikation(en) für IFC4: 1 erfüllt, 1 erfüllt (soweit ausgewertet),"
+                + " 2 nicht prüfbar");
+    assertThat(results.get(1).overviewLine())
+        .startsWith("[erfüllt (soweit ausgewertet)] Waende (IFC4): 1 von 2 Elementen anwendbar");
+  }
+
+  @Test
+  void aSpecificationWithAnUnmetRequirementIsNotMet() throws Exception {
+    ModelElement platteOhneMerkmal = element("platte", "IfcSlab", List.of());
+
+    CheckResult platten = document(LOCAL).check("IFC4", List.of(platteOhneMerkmal)).get(0);
+
+    assertThat(platten.verdict()).isEqualTo(Verdict.FAILED);
   }
 
   @Test

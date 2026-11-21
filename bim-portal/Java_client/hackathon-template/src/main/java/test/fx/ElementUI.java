@@ -12,12 +12,13 @@ import com.bimportal.hackathon.ids.CheckResult.Status;
 import com.bimportal.hackathon.ids.IdsDocument;
 import com.bimportal.hackathon.ids.IdsParser;
 import com.bimportal.hackathon.ids.ModelElement;
-import com.bimportal.hackathon.ids.PortalLoins;
+import com.bimportal.hackathon.ids.PortalRequirements;
 import com.bimportal.hackathon.ids.RequirementsException;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import test.fx.RequirementSource.Loaded;
 import test.fx.RequirementSource.PortalLoin;
+import test.fx.RequirementSource.PortalProject;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.scene.control.Button;
@@ -153,7 +155,7 @@ public class ElementUI extends VBox {
     // checks that LOIN directly - in a project the AIA names the LOINs, so there is no need
     // to search.
     TextField loinSearchField = new TextField();
-    loinSearchField.setPromptText("LOIN suchen, oder LOIN-ID / Link - leer für alle");
+    loinSearchField.setPromptText("LOIN oder AIA-Projekt suchen, oder ID / Link - leer für alle");
     loinSearchField.setOnAction(e -> findLoins(loinSearchField.getText().trim()));
 
     // Only the label is shown; what the check needs travels with the item itself.
@@ -268,26 +270,30 @@ public class ElementUI extends VBox {
   }
 
   /**
-   * What the search field asks for: a text holding a LOIN ID checks that LOIN, any other text is a
-   * search term.
+   * What the search field asks for: a text holding an ID checks that LOIN or AIA project, any other
+   * text is a search term.
    */
   private void findLoins(String text) {
     Optional<UUID> id;
     try {
-      id = PortalLoins.idIn(text);
+      id = PortalRequirements.idIn(text);
     } catch (RequirementsException e) {
       reportArea.setText(e.getMessage());
       return;
     }
     if (id.isPresent()) {
-      loadLoinById(id.get());
+      loadById(id.get());
     } else {
       searchLoins(text);
     }
   }
 
+  /** What a search found: AIA projects and LOINs. */
+  private record Found(List<PortalProject> projects, List<PortalLoin> loins) {}
+
   /**
-   * Look LOINs up in the BIM Portal and offer them for checking.
+   * Look AIA projects and LOINs up in the BIM Portal and offer them for checking, projects first:
+   * there are few, and each stands for many LOINs.
    *
    * <p>An empty term lists the whole published catalogue, which is the overview to start from.
    * Requirements read from a file or fetched by ID stay at the top of the list.
@@ -297,26 +303,39 @@ public class ElementUI extends VBox {
     reportArea.setText(all ? "Lade alle LOINs ..." : "Suche LOINs zu '" + term + "' ...");
 
     inBackground(
-        () -> withPortal(client -> PortalLoins.search(client, term)),
-        loins -> {
+        () ->
+            withPortal(
+                client ->
+                    new Found(
+                        PortalRequirements.searchProjects(client, term).stream()
+                            .map(PortalProject::of)
+                            .toList(),
+                        PortalRequirements.search(client, term).stream()
+                            .map(PortalLoin::of)
+                            .toList())),
+        found -> {
           List<RequirementSource> items = new ArrayList<>();
           loinView.getItems().stream().filter(Loaded.class::isInstance).forEach(items::add);
-          loins.stream().map(PortalLoin::of).forEach(items::add);
+          items.addAll(found.projects());
+          items.addAll(found.loins());
           loinView.setItems(FXCollections.observableArrayList(items));
           reportArea.setText(
               modelLine()
                   + "\n"
-                  + loins.size()
-                  + (all ? " LOIN(s) im Portal" : " LOIN(s) zu '" + term + "'")
-                  + " - eine auswählen und prüfen.");
+                  + found.loins().size()
+                  + " LOIN(s) und "
+                  + found.projects().size()
+                  + " AIA-Projekt(e)"
+                  + (all ? " im Portal" : " zu '" + term + "'")
+                  + " - eins auswählen und prüfen.");
         });
   }
 
-  /** Fetch one LOIN by its ID and check the model against it. */
-  private void loadLoinById(UUID id) {
-    reportArea.setText("Lade LOIN " + id + " aus dem BIM Portal ...");
+  /** Fetch a LOIN or an AIA project by its ID and check the model against it. */
+  private void loadById(UUID id) {
+    reportArea.setText("Lade " + id + " aus dem BIM Portal ...");
     inBackground(
-        () -> withPortal(client -> PortalLoins.requirements(client, id)),
+        () -> withPortal(client -> PortalRequirements.requirements(client, id)),
         document -> offerAndCheck(new Loaded(document)));
   }
 
@@ -327,7 +346,8 @@ public class ElementUI extends VBox {
     chooser
         .getExtensionFilters()
         .addAll(
-            new FileChooser.ExtensionFilter("IDS-Dateien", "*.ids", "*.xml"),
+            new FileChooser.ExtensionFilter(
+                "IDS-Dateien und AIA-Exporte", "*.ids", "*.xml", "*.zip"),
             new FileChooser.ExtensionFilter("Alle Dateien", "*.*"));
     File file = chooser.showOpenDialog(getScene().getWindow());
     if (file != null) {
@@ -339,7 +359,7 @@ public class ElementUI extends VBox {
 
   /**
    * Put requirements just read at the top of the list, select them and check the model against
-   * them. Reading the same file or LOIN again replaces its entry.
+   * them. Reading the same file, LOIN or project again replaces its entry.
    */
   private void offerAndCheck(Loaded source) {
     loinView
@@ -445,8 +465,9 @@ public class ElementUI extends VBox {
   /**
    * Run one entry of the list against the model.
    *
-   * <p>Called off the FX thread: for a LOIN from a search this exports its IDS from the portal, and
-   * every check walks every element.
+   * <p>Called off the FX thread: for a LOIN or project from a search this exports its IDS from the
+   * portal, and every check walks every element. With several specifications, as an AIA project
+   * has, the report starts with one line per specification.
    */
   private Checked check(RequirementSource source, LoadedModel against) {
     try {
@@ -454,14 +475,18 @@ public class ElementUI extends VBox {
           switch (source) {
             case Loaded loaded -> loaded.document();
             case PortalLoin loin ->
-                withPortal(client -> PortalLoins.requirements(client, loin.guid()));
+                withPortal(client -> PortalRequirements.loin(client, loin.guid(), loin.name()));
+            case PortalProject project ->
+                withPortal(
+                    client -> PortalRequirements.project(client, project.guid(), project.name()));
           };
       List<CheckResult> results = requirements.check(against.schema(), against.elements());
 
       List<String> lines = new ArrayList<>();
       lines.add("Anforderungen: " + requirements.describe());
       if (results.size() > 1) {
-        lines.add(results.size() + " Spezifikationen für " + against.schema());
+        lines.add(CheckResult.tally(results, against.schema()));
+        results.forEach(result -> lines.add("   " + result.overviewLine()));
       }
       for (CheckResult result : results) {
         if (results.size() > 1) {
@@ -491,17 +516,17 @@ public class ElementUI extends VBox {
     tabPane.getTabs().clear();
     boolean several = results.size() > 1;
 
-    Map<String, List<String>> byElement = new LinkedHashMap<>();
+    ElementLines byElement = new ElementLines(several);
     for (CheckResult result : results) {
       for (Finding finding : result.findings()) {
-        List<String> lines = linesOf(byElement, finding.elementId(), result, several);
+        List<String> lines = byElement.of(finding.elementId(), result);
         lines.add(finding.requirementLine());
       }
     }
-    if (byElement.isEmpty()) {
+    if (byElement.lines().isEmpty()) {
       for (CheckResult result : results) {
         for (NearMiss nearMiss : result.diagnosis().nearMisses()) {
-          List<String> lines = linesOf(byElement, nearMiss.elementId(), result, several);
+          List<String> lines = byElement.of(nearMiss.elementId(), result);
           lines.add(
               "[Wert passt bei " + nearMiss.matchedFacets() + " von " + nearMiss.totalFacets()
                   + " Facetten] nicht ausgewählt");
@@ -511,7 +536,7 @@ public class ElementUI extends VBox {
     }
 
     List<String> beyondLimit = new ArrayList<>();
-    for (Map.Entry<String, List<String>> entry : byElement.entrySet()) {
+    for (Map.Entry<String, List<String>> entry : byElement.lines().entrySet()) {
       if (tabPane.getTabs().size() < MAX_ELEMENT_TABS) {
         tabPane.getTabs().add(elementTab(checked, entry.getKey(), entry.getValue()));
       } else {
@@ -544,17 +569,32 @@ public class ElementUI extends VBox {
   }
 
   /**
-   * An element's lines in the tab being built. With several specifications, each one's lines start
-   * with its name, so the reader can tell which LOIN said what.
+   * The lines of each element's tab, being built. With several specifications, each one's lines
+   * start with its name, so the reader can tell which LOIN said what. Told apart by the result, not
+   * by the name: an AIA project may hold two LOINs of the same name.
    */
-  private static List<String> linesOf(
-      Map<String, List<String>> byElement, String elementId, CheckResult result, boolean several) {
-    List<String> lines = byElement.computeIfAbsent(elementId, id -> new ArrayList<>());
-    String heading = result.specification().name() + ":";
-    if (several && !lines.contains(heading)) {
-      lines.add(heading);
+  private static final class ElementLines {
+
+    private final boolean several;
+    private final Map<String, List<String>> lines = new LinkedHashMap<>();
+    private final Map<String, CheckResult> lastResult = new HashMap<>();
+
+    ElementLines(boolean several) {
+      this.several = several;
     }
-    return lines;
+
+    /** The element's lines, with the result's heading added when the result changes. */
+    List<String> of(String elementId, CheckResult result) {
+      List<String> elementLines = lines.computeIfAbsent(elementId, id -> new ArrayList<>());
+      if (several && lastResult.put(elementId, result) != result) {
+        elementLines.add(result.specification().name() + ":");
+      }
+      return elementLines;
+    }
+
+    Map<String, List<String>> lines() {
+      return lines;
+    }
   }
 
   /** One line for an element beyond the tab limit: its name and how many lines are not met. */

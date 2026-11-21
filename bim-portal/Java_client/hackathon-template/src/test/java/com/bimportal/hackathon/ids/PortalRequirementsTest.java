@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.bimportal.client.model.LoinForPublicRequest;
+import com.bimportal.client.model.SimpleAiaProjectPublicDto;
 import com.bimportal.client.model.SimpleLoinPublicDto;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
 import java.nio.charset.StandardCharsets;
@@ -29,19 +30,29 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * LOINs from the portal by ID and by search, with the portal mocked.
+ * LOINs and AIA projects from the portal, by ID and by search, with the portal mocked.
+ *
+ * <p>The AIA export is a real one, see {@code src/test/resources/ids/portal/README.md}.
  *
  * <p>The point of the error cases: each of them would otherwise end as an empty report, which reads
  * like a pass.
  */
 @ExtendWith(MockitoExtension.class)
-class PortalLoinsTest {
+class PortalRequirementsTest {
 
   /** Ueberbau &gt; Kappe, LPH 8-9: the GUID the export answers to... */
   private static final UUID GUID = UUID.fromString("be959b9d-daef-5315-9aba-f60b6ad54ccb");
 
   /** ...and the ID of its version record in the catalogue, which the export does not know. */
   private static final UUID RECORD_ID = UUID.fromString("dd5675ce-408f-4c34-8618-7d543f2a76d4");
+
+  /** Beispiel-AIA Neubau Eisenbahnbrücke: its GUID, and the ID of its version record. */
+  private static final UUID PROJECT = UUID.fromString("e6f69257-dfda-441b-97bb-e9df44c5cf8b");
+
+  private static final UUID PROJECT_RECORD_ID =
+      UUID.fromString("987ec218-1f1f-44b3-b09c-061f989747a1");
+
+  private static final String RAILWAY_EXPORT = "/ids/portal/aia-neubau-eisenbahnbruecke.zip";
 
   private static final List<ModelElement> MODEL =
       List.of(
@@ -57,24 +68,25 @@ class PortalLoinsTest {
 
   @Test
   void findsTheIdInALinkOrANote() {
-    assertThat(PortalLoins.idIn("be959b9d-daef-5315-9aba-f60b6ad54ccb")).contains(GUID);
-    assertThat(PortalLoins.idIn(" BE959B9D-DAEF-5315-9ABA-F60B6AD54CCB ")).contains(GUID);
-    assertThat(PortalLoins.idIn("https://via.bund.de/bim/loin/" + GUID + "?tab=ids"))
+    assertThat(PortalRequirements.idIn("be959b9d-daef-5315-9aba-f60b6ad54ccb")).contains(GUID);
+    assertThat(PortalRequirements.idIn(" BE959B9D-DAEF-5315-9ABA-F60B6AD54CCB ")).contains(GUID);
+    assertThat(PortalRequirements.idIn("https://via.bund.de/bim/loin/" + GUID + "?tab=ids"))
         .contains(GUID);
-    assertThat(PortalLoins.idIn("LOIN " + GUID + " (Kappe), siehe auch " + GUID)).contains(GUID);
+    assertThat(PortalRequirements.idIn("LOIN " + GUID + " (Kappe), siehe auch " + GUID))
+        .contains(GUID);
   }
 
   @Test
   void aSearchTermHoldsNoId() {
-    assertThat(PortalLoins.idIn("Ueberbau > Kappe")).isEmpty();
-    assertThat(PortalLoins.idIn("")).isEmpty();
+    assertThat(PortalRequirements.idIn("Ueberbau > Kappe")).isEmpty();
+    assertThat(PortalRequirements.idIn("")).isEmpty();
     // One hex digit too many is not an ID.
-    assertThat(PortalLoins.idIn("be959b9d-daef-5315-9aba-f60b6ad54ccb0")).isEmpty();
+    assertThat(PortalRequirements.idIn("be959b9d-daef-5315-9aba-f60b6ad54ccb0")).isEmpty();
   }
 
   @Test
   void refusesToGuessBetweenSeveralIds() {
-    assertThatThrownBy(() -> PortalLoins.idIn(GUID + " " + RECORD_ID))
+    assertThatThrownBy(() -> PortalRequirements.idIn(GUID + " " + RECORD_ID))
         .isInstanceOf(RequirementsException.class)
         .hasMessageContaining(GUID.toString())
         .hasMessageContaining(RECORD_ID.toString());
@@ -86,7 +98,7 @@ class PortalLoinsTest {
   void readsTheExportOfALoinWithItsNameAndVersion() throws Exception {
     when(client.exportLoinIds(GUID)).thenReturn(Optional.of(bytes(KAPPE_LPH_8_9)));
 
-    IdsDocument document = PortalLoins.requirements(client, "LOIN " + GUID);
+    IdsDocument document = PortalRequirements.requirements(client, "LOIN " + GUID);
 
     assertThat(document.label()).isEqualTo("Ueberbau > Kappe (Ingenieurbau): LPH 8-9, Version 4.1");
     assertThat(document.source()).isEqualTo("BIM Portal, LOIN " + GUID);
@@ -97,7 +109,8 @@ class PortalLoinsTest {
   void checksTheModelAgainstTheSpecificationForItsSchema() throws Exception {
     when(client.exportLoinIds(GUID)).thenReturn(Optional.of(bytes(KAPPE_LPH_8_9)));
 
-    List<CheckResult> results = PortalLoins.requirements(client, GUID).check("IFC2X3", MODEL);
+    List<CheckResult> results =
+        PortalRequirements.requirements(client, GUID).check("IFC2X3", MODEL);
 
     assertThat(results).hasSize(1);
     assertThat(results.get(0).specification().ifcVersion()).isEqualTo("IFC2X3");
@@ -111,7 +124,7 @@ class PortalLoinsTest {
     when(client.searchLoins(any())).thenReturn(List.of(catalogueEntry()));
     when(client.exportLoinIds(GUID)).thenReturn(Optional.of(bytes(KAPPE_LPH_8_9)));
 
-    IdsDocument document = PortalLoins.requirements(client, RECORD_ID);
+    IdsDocument document = PortalRequirements.requirements(client, RECORD_ID);
 
     assertThat(document.source()).isEqualTo("BIM Portal, LOIN " + GUID);
   }
@@ -122,9 +135,54 @@ class PortalLoinsTest {
     when(client.exportLoinIds(unknown)).thenReturn(Optional.empty());
     when(client.searchLoins(any())).thenReturn(List.of(catalogueEntry()));
 
-    assertThatThrownBy(() -> PortalLoins.requirements(client, unknown))
+    assertThatThrownBy(() -> PortalRequirements.requirements(client, unknown))
         .isInstanceOf(RequirementsException.class)
-        .hasMessageContaining("keine LOIN mit der ID " + unknown);
+        .hasMessageContaining("keine LOIN und kein AIA-Projekt mit der ID " + unknown);
+  }
+
+  @Test
+  void readsAnAiaProjectByItsGuid() throws Exception {
+    when(client.exportLoinIds(PROJECT)).thenReturn(Optional.empty());
+    when(client.exportProjectIds(PROJECT)).thenReturn(Optional.of(bytes(RAILWAY_EXPORT)));
+
+    IdsDocument document = PortalRequirements.requirements(client, PROJECT);
+
+    assertThat(document.label()).isEqualTo("Beispiel-AIA Neubau Eisenbahnbrücke, Version 1.1");
+    assertThat(document.source()).isEqualTo("BIM Portal, AIA-Projekt " + PROJECT);
+    assertThat(document.specifications()).hasSize(36);
+  }
+
+  @Test
+  void findsAnAiaProjectByTheIdOfItsVersionRecord() throws Exception {
+    when(client.exportLoinIds(PROJECT_RECORD_ID)).thenReturn(Optional.empty());
+    when(client.exportProjectIds(PROJECT_RECORD_ID)).thenReturn(Optional.empty());
+    when(client.searchProjects(any()))
+        .thenReturn(List.of(new SimpleAiaProjectPublicDto().id(PROJECT_RECORD_ID).guid(PROJECT)));
+    when(client.exportProjectIds(PROJECT)).thenReturn(Optional.of(bytes(RAILWAY_EXPORT)));
+
+    IdsDocument document = PortalRequirements.requirements(client, PROJECT_RECORD_ID);
+
+    assertThat(document.source()).isEqualTo("BIM Portal, AIA-Projekt " + PROJECT);
+    // The LOIN catalogue, the slow lookup, was not needed.
+    verify(client, never()).searchLoins(any());
+  }
+
+  @Test
+  void aProjectWithoutExportIsAnError() {
+    when(client.exportProjectIds(PROJECT)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> PortalRequirements.project(client, PROJECT, "Eisenbahnbrücke"))
+        .isInstanceOf(RequirementsException.class)
+        .hasMessageContaining("das AIA-Projekt 'Eisenbahnbrücke' keinen IDS-Export");
+  }
+
+  @Test
+  void searchesProjectsWithTheTerm() {
+    when(client.searchProjects(
+            argThat(request -> request != null && "Eisenbahn".equals(request.getSearchString()))))
+        .thenReturn(List.of(new SimpleAiaProjectPublicDto().guid(PROJECT)));
+
+    assertThat(PortalRequirements.searchProjects(client, "Eisenbahn")).hasSize(1);
   }
 
   @Test
@@ -133,7 +191,7 @@ class PortalLoinsTest {
     when(client.searchLoins(any())).thenReturn(List.of(catalogueEntry()));
     when(client.exportLoinIds(GUID)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> PortalLoins.requirements(client, RECORD_ID))
+    assertThatThrownBy(() -> PortalRequirements.requirements(client, RECORD_ID))
         .isInstanceOf(RequirementsException.class)
         .hasMessageContaining("keinen IDS-Export")
         .hasMessageContaining("Ueberbau > Kappe");
@@ -141,9 +199,9 @@ class PortalLoinsTest {
 
   @Test
   void aTextWithoutIdIsAnErrorBeforeThePortalIsAsked() {
-    assertThatThrownBy(() -> PortalLoins.requirements(client, "Kappe"))
+    assertThatThrownBy(() -> PortalRequirements.requirements(client, "Kappe"))
         .isInstanceOf(RequirementsException.class)
-        .hasMessageContaining("Keine LOIN-ID");
+        .hasMessageContaining("Keine ID");
     verify(client, never()).exportLoinIds(any());
   }
 
@@ -152,7 +210,7 @@ class PortalLoinsTest {
     byte[] errorPage = "<html><body>Wartung</body></html>".getBytes(StandardCharsets.UTF_8);
     when(client.exportLoinIds(GUID)).thenReturn(Optional.of(errorPage));
 
-    assertThatThrownBy(() -> PortalLoins.requirements(client, GUID))
+    assertThatThrownBy(() -> PortalRequirements.requirements(client, GUID))
         .isInstanceOf(RequirementsException.class)
         .hasMessageContaining("keine IDS-Datei");
   }
@@ -164,7 +222,7 @@ class PortalLoinsTest {
             .getBytes(StandardCharsets.UTF_8);
     when(client.exportLoinIds(GUID)).thenReturn(Optional.of(empty));
 
-    IdsDocument document = PortalLoins.requirements(client, GUID);
+    IdsDocument document = PortalRequirements.requirements(client, GUID);
 
     assertThatThrownBy(() -> document.check("IFC2X3", MODEL))
         .isInstanceOf(RequirementsException.class)
@@ -175,7 +233,7 @@ class PortalLoinsTest {
   void anExportThatDoesNotCoverTheModelSchemaIsAnError() throws Exception {
     when(client.exportLoinIds(GUID)).thenReturn(Optional.of(bytes(KAPPE_LPH_8_9)));
 
-    IdsDocument document = PortalLoins.requirements(client, GUID);
+    IdsDocument document = PortalRequirements.requirements(client, GUID);
 
     assertThatThrownBy(() -> document.check("IFC5", MODEL))
         .isInstanceOf(RequirementsException.class)
@@ -189,12 +247,12 @@ class PortalLoinsTest {
   @Test
   void readsEveryPageOfASearch() {
     List<SimpleLoinPublicDto> fullPage =
-        IntStream.range(0, PortalLoins.PAGE_SIZE).mapToObj(i -> catalogueEntry()).toList();
+        IntStream.range(0, PortalRequirements.PAGE_SIZE).mapToObj(i -> catalogueEntry()).toList();
     when(client.searchLoins(argThat(request -> page(request) == 0))).thenReturn(fullPage);
     when(client.searchLoins(argThat(request -> page(request) == 1)))
         .thenReturn(List.of(catalogueEntry(), catalogueEntry()));
 
-    assertThat(PortalLoins.search(client, "LPH")).hasSize(PortalLoins.PAGE_SIZE + 2);
+    assertThat(PortalRequirements.search(client, "LPH")).hasSize(PortalRequirements.PAGE_SIZE + 2);
   }
 
   @Test
@@ -205,8 +263,8 @@ class PortalLoinsTest {
     when(client.searchLoins(argThat(request -> request != null && term(request) == null)))
         .thenReturn(Collections.nCopies(3, catalogueEntry()));
 
-    assertThat(PortalLoins.search(client, " Kappe ")).hasSize(1);
-    assertThat(PortalLoins.search(client, "")).hasSize(3);
+    assertThat(PortalRequirements.search(client, " Kappe ")).hasSize(1);
+    assertThat(PortalRequirements.search(client, "")).hasSize(3);
   }
 
   /** The catalogue's entry for the Kappe LOIN: record ID and GUID differ. */

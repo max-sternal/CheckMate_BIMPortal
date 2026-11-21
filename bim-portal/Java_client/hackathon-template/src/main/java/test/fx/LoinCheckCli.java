@@ -1,10 +1,11 @@
 package test.fx;
 
+import com.bimportal.client.model.SimpleAiaProjectPublicDto;
 import com.bimportal.client.model.SimpleLoinPublicDto;
 import com.bimportal.hackathon.ids.CheckResult;
 import com.bimportal.hackathon.ids.IdsDocument;
 import com.bimportal.hackathon.ids.IdsParser;
-import com.bimportal.hackathon.ids.PortalLoins;
+import com.bimportal.hackathon.ids.PortalRequirements;
 import com.bimportal.hackathon.ids.RequirementsException;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
@@ -14,8 +15,8 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * Runs the LOIN check without a GUI: checks an IFC model against LOINs named by ID, local IDS
- * files, or the LOINs a portal search finds, and reports each.
+ * Runs the LOIN check without a GUI: checks an IFC model against LOINs and AIA projects named by
+ * ID, local IDS files and AIA exports, or what a portal search finds, and reports each.
  *
  * <p>Headless on purpose - this is the path that works in a container, and the one to reach for
  * when a report has to be reproducible rather than clicked together.
@@ -23,6 +24,7 @@ import java.util.function.Supplier;
  * <pre>
  *   ./gradlew :hackathon-template:runLoinCheck --args="Kappe"
  *   ./gradlew :hackathon-template:runLoinCheck --args="--loin be959b9d-daef-5315-9aba-f60b6ad54ccb"
+ *   ./gradlew :hackathon-template:runLoinCheck --args="--aia e6f69257-dfda-441b-97bb-e9df44c5cf8b"
  *   ./gradlew :hackathon-template:runLoinCheck --args="--ids anforderungen.ids"
  *   ./gradlew :hackathon-template:runLoinCheck --args="--model test-models/ifc4/Bridge.ifc Kappe"
  *   ./gradlew :hackathon-template:runLoinCheck --args="--model https://github.com/o/r/blob/a.ifc"
@@ -30,14 +32,17 @@ import java.util.function.Supplier;
  * </pre>
  *
  * <p>Without {@code --model}, the model {@code CHECKMATE_IFC} names is checked, or the bundled one.
- * Without {@code --loin}, {@code --ids} and a search term, the search term is "Kappe". A search
- * term holding a LOIN ID counts as {@code --loin}, as in the GUI. A relative path is relative to
- * {@code hackathon-template/}, where Gradle runs the task.
+ * {@code --loin} and {@code --aia} both take any ID from the portal, a LOIN's or an AIA project's;
+ * the two names are only for reading. {@code --ids} takes an IDS file or a ZIP of them, such as an
+ * AIA project's export. Without any of these and without a search term, the search term is
+ * "Kappe". A search term holding an ID counts as {@code --loin}, as in the GUI; any other finds
+ * AIA projects and LOINs. A relative path is relative to {@code hackathon-template/}, where Gradle
+ * runs the task.
  *
  * <p>Exit code 1 when the model or any of the requirements cannot be read or checked (no such
- * LOIN, no IDS export, a file that is not IDS, no specification for the model's schema); the other
- * requirements are still checked. Exit code 2 for arguments it does not understand. Requirements
- * that are not met do not change the exit code yet.
+ * LOIN or project, no IDS export, a file that is not IDS, no specification for the model's
+ * schema); the other requirements are still checked. Exit code 2 for arguments it does not
+ * understand. Requirements that are not met do not change the exit code yet.
  */
 public final class LoinCheckCli {
 
@@ -49,8 +54,8 @@ public final class LoinCheckCli {
 
   private static final String USAGE =
       "Aufruf: runLoinCheck --args=\"[--model <IFC-Datei oder Link>] [--loin <LOIN-ID oder Link>]"
-          + " [--ids <IDS-Datei>] [Suchbegriff ...]\"\n"
-          + "--loin und --ids dürfen mehrfach stehen.";
+          + " [--aia <AIA-Projekt-ID oder Link>] [--ids <IDS-Datei oder ZIP>] [Suchbegriff ...]\"\n"
+          + "--loin, --aia und --ids dürfen mehrfach stehen.";
 
   private LoinCheckCli() {}
 
@@ -59,15 +64,16 @@ public final class LoinCheckCli {
    * words.
    *
    * @param model a path or a link; null for the configured model
-   * @param loins LOIN IDs, or texts holding one, such as links copied from the portal
-   * @param idsFiles paths of local IDS files
+   * @param portalIds IDs of LOINs or AIA projects, or texts holding one, such as links copied from
+   *     the portal
+   * @param idsFiles paths of local IDS files or ZIPs of them
    * @param search the search term; null when the requirements are given by ID or file only
    */
-  record Arguments(String model, List<String> loins, List<String> idsFiles, String search) {
+  record Arguments(String model, List<String> portalIds, List<String> idsFiles, String search) {
 
     static Arguments parse(String... args) {
       String model = null;
-      List<String> loins = new ArrayList<>();
+      List<String> portalIds = new ArrayList<>();
       List<String> idsFiles = new ArrayList<>();
       List<String> words = new ArrayList<>();
       for (int i = 0; i < args.length; i++) {
@@ -75,7 +81,9 @@ public final class LoinCheckCli {
           case "--model" ->
               model = value(args, ++i, "--model braucht eine IFC-Datei oder einen Link.");
           case "--loin" ->
-              loins.add(value(args, ++i, "--loin braucht eine LOIN-ID oder einen Link."));
+              portalIds.add(value(args, ++i, "--loin braucht eine LOIN-ID oder einen Link."));
+          case "--aia" ->
+              portalIds.add(value(args, ++i, "--aia braucht eine AIA-Projekt-ID oder einen Link."));
           case "--ids" -> idsFiles.add(value(args, ++i, "--ids braucht eine IDS-Datei."));
           default -> {
             if (args[i].startsWith("--")) {
@@ -86,25 +94,25 @@ public final class LoinCheckCli {
         }
       }
 
-      // Words holding a LOIN ID name that LOIN, as in the GUI's search field: searching the
-      // catalogue for an ID finds nothing.
+      // Words holding an ID name that LOIN or project, as in the GUI's search field: searching
+      // the catalogue for an ID finds nothing.
       String search = null;
       if (!words.isEmpty()) {
         String text = String.join(" ", words);
-        if (containsLoinId(text)) {
-          loins.add(text);
+        if (containsId(text)) {
+          portalIds.add(text);
         } else {
           search = text;
         }
-      } else if (loins.isEmpty() && idsFiles.isEmpty()) {
+      } else if (portalIds.isEmpty() && idsFiles.isEmpty()) {
         search = DEFAULT_SEARCH;
       }
-      return new Arguments(model, List.copyOf(loins), List.copyOf(idsFiles), search);
+      return new Arguments(model, List.copyOf(portalIds), List.copyOf(idsFiles), search);
     }
 
-    private static boolean containsLoinId(String text) {
+    private static boolean containsId(String text) {
       try {
-        return PortalLoins.idIn(text).isPresent();
+        return PortalRequirements.idIn(text).isPresent();
       } catch (RequirementsException e) {
         throw new IllegalArgumentException(e.getMessage(), e);
       }
@@ -118,7 +126,7 @@ public final class LoinCheckCli {
     }
 
     boolean needsPortal() {
-      return !loins.isEmpty() || search != null;
+      return !portalIds.isEmpty() || search != null;
     }
   }
 
@@ -154,23 +162,52 @@ public final class LoinCheckCli {
     if (arguments.needsPortal()) {
       EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
       try {
-        for (String loin : arguments.loins()) {
-          allRead &= report(loin, () -> PortalLoins.requirements(client, loin), model);
+        for (String id : arguments.portalIds()) {
+          allRead &= report(id, () -> PortalRequirements.requirements(client, id), model);
         }
         if (arguments.search() != null) {
-          List<SimpleLoinPublicDto> found = PortalLoins.search(client, arguments.search());
-          System.out.println("Suche '" + arguments.search() + "': " + found.size() + " LOIN(s)\n");
-          for (SimpleLoinPublicDto loin : found) {
-            allRead &=
-                report(
-                    loin.getName(), () -> PortalLoins.requirements(client, loin.getGuid()), model);
-          }
+          allRead &= search(client, arguments.search(), model);
         }
       } finally {
         client.logout();
       }
     }
     System.exit(allRead ? 0 : 1);
+  }
+
+  /**
+   * Check the model against every AIA project and LOIN a search finds, projects first.
+   *
+   * @return false when any of them could not be read or checked
+   */
+  private static boolean search(EnhancedBimPortalClient client, String term, LoadedModel model) {
+    List<SimpleAiaProjectPublicDto> projects = PortalRequirements.searchProjects(client, term);
+    List<SimpleLoinPublicDto> loins = PortalRequirements.search(client, term);
+    System.out.println(
+        "Suche '"
+            + term
+            + "': "
+            + loins.size()
+            + " LOIN(s), "
+            + projects.size()
+            + " AIA-Projekt(e)\n");
+
+    boolean allRead = true;
+    for (SimpleAiaProjectPublicDto project : projects) {
+      allRead &=
+          report(
+              project.getName(),
+              () -> PortalRequirements.project(client, project.getGuid(), project.getName()),
+              model);
+    }
+    for (SimpleLoinPublicDto loin : loins) {
+      allRead &=
+          report(
+              loin.getName(),
+              () -> PortalRequirements.loin(client, loin.getGuid(), loin.getName()),
+              model);
+    }
+    return allRead;
   }
 
   /**
@@ -185,6 +222,9 @@ public final class LoinCheckCli {
       IdsDocument document = requirements.get();
       List<CheckResult> results = document.check(model.schema(), model.elements());
       System.out.println("Anforderungen: " + document.describe());
+      if (results.size() > 1) {
+        System.out.println(CheckResult.tally(results, model.schema()) + "\n");
+      }
       results.forEach(LoinCheckCli::print);
       return true;
     } catch (RequirementsException e) {

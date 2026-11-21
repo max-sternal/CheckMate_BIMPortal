@@ -3,6 +3,7 @@ package com.bimportal.hackathon.ids;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,7 +27,13 @@ public record IdsSpecification(
     EntityRequirement applicableEntity,
     List<PropertyRequirement> requirements,
     EntityRequirement requiredEntity,
-    Unsupported unsupported) {
+    Unsupported unsupported,
+    String identifier) {
+
+  /** A LOIN's GUID at the start of an identifier, as the portal writes it. */
+  private static final Pattern LEADING_UUID =
+      Pattern.compile(
+          "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?=\\s|$)");
 
   /** The schema family at the start of a name: version, and the minor version after an X. */
   private static final Pattern SCHEMA_BASE = Pattern.compile("IFC\\d+(?:X\\d+)?");
@@ -46,7 +53,26 @@ public record IdsSpecification(
         applicableEntity,
         requirements,
         requiredEntity,
-        Unsupported.NONE);
+        Unsupported.NONE,
+        null);
+  }
+
+  /**
+   * The GUID of the LOIN this specification was exported from. The portal writes the {@code
+   * identifier} as {@code "<LOIN guid> <n>"}, where n only counts the specifications within one
+   * file, so the same LOIN and schema have a different n in an AIA project's combined file than in
+   * the LOIN's own file.
+   *
+   * @return empty for identifiers written by other tools, or none
+   */
+  public Optional<String> loinGuid() {
+    if (identifier == null) {
+      return Optional.empty();
+    }
+    Matcher matcher = LEADING_UUID.matcher(identifier.trim());
+    return matcher.lookingAt()
+        ? Optional.of(matcher.group().toLowerCase(Locale.ROOT))
+        : Optional.empty();
   }
 
   /**

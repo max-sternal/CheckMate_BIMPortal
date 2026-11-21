@@ -102,7 +102,14 @@ class LocalIdsTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {KAPPE_LPH_8_9, SCHAFT_LPH_1_9, FENSTER})
+  @ValueSource(
+      strings = {
+        KAPPE_LPH_8_9,
+        SCHAFT_LPH_1_9,
+        FENSTER,
+        "/ids/portal/aia-neubau-eisenbahnbruecke.zip",
+        "/ids/portal/aia-strasse-demonstrator.zip"
+      })
   void evaluatesEverythingThePortalWrites(String export) throws Exception {
     assertThat(specifications(export))
         .allSatisfy(specification -> assertThat(specification.unsupported().isEmpty()).isTrue());

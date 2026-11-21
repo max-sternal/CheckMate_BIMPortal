@@ -1,7 +1,9 @@
 package com.bimportal.hackathon.ids;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The outcome of checking one IDS specification against a model.
@@ -44,6 +46,26 @@ public record CheckResult(
 
     public boolean ok() {
       return this == FULFILLED;
+    }
+  }
+
+  /** What a specification came to as a whole. */
+  public enum Verdict {
+    PASSED("erfüllt"),
+    FAILED("nicht erfüllt"),
+    /** Every evaluated requirement is met, but some were not evaluated. */
+    PARTLY_EVALUATED("erfüllt (soweit ausgewertet)"),
+    /** It selected no element; see {@link CheckResult#notApplicable()}. */
+    NOT_APPLICABLE("nicht prüfbar");
+
+    private final String label;
+
+    Verdict(String label) {
+      this.label = label;
+    }
+
+    public String label() {
+      return label;
     }
   }
 
@@ -238,6 +260,36 @@ public record CheckResult(
     return !notApplicable()
         && complete()
         && findings.stream().allMatch(finding -> finding.status().ok());
+  }
+
+  /** The specification's verdict as a whole. */
+  public Verdict verdict() {
+    if (notApplicable()) {
+      return Verdict.NOT_APPLICABLE;
+    }
+    if (findings.stream().anyMatch(finding -> !finding.status().ok())) {
+      return Verdict.FAILED;
+    }
+    return complete() ? Verdict.PASSED : Verdict.PARTLY_EVALUATED;
+  }
+
+  /**
+   * How many of several specifications came to which verdict, e.g. {@code 36 Spezifikation(en) für
+   * IFC4: 2 erfüllt, 34 nicht prüfbar}.
+   *
+   * @param schema the model's schema, which picked the specifications
+   */
+  public static String tally(List<CheckResult> results, String schema) {
+    Map<Verdict, Long> counts = new EnumMap<>(Verdict.class);
+    results.forEach(result -> counts.merge(result.verdict(), 1L, Long::sum));
+    List<String> parts = new ArrayList<>();
+    counts.forEach((verdict, count) -> parts.add(count + " " + verdict.label()));
+    return results.size() + " Spezifikation(en) für " + schema + ": " + String.join(", ", parts);
+  }
+
+  /** The summary with the verdict in front, for an overview of several specifications. */
+  public String overviewLine() {
+    return "[" + verdict().label() + "] " + summary();
   }
 
   /** A single line stating what happened, for the top of a report. */

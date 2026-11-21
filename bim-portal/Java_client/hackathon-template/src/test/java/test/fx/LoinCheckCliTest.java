@@ -45,10 +45,23 @@ class LoinCheckCliTest {
             "--loin",
             "https://via.bund.de/bim/loin/4a532757-d08f-5f5b-a7a7-198f54ad6c6e");
 
-    assertThat(arguments.loins()).hasSize(2);
+    assertThat(arguments.portalIds()).hasSize(2);
     assertThat(arguments.idsFiles()).containsExactly("a.ids");
     assertThat(arguments.search()).isNull();
     assertThat(arguments.needsPortal()).isTrue();
+  }
+
+  @Test
+  void takesAiaProjectsLikeLoins() {
+    Arguments arguments =
+        Arguments.parse("--aia", "e6f69257-dfda-441b-97bb-e9df44c5cf8b", "--loin", KAPPE);
+
+    assertThat(arguments.portalIds())
+        .containsExactly("e6f69257-dfda-441b-97bb-e9df44c5cf8b", KAPPE);
+    assertThat(arguments.search()).isNull();
+    assertThatThrownBy(() -> Arguments.parse("--aia"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("--aia");
   }
 
   @Test
@@ -63,7 +76,7 @@ class LoinCheckCliTest {
   void aSearchTermHoldingAnIdNamesThatLoin() {
     Arguments arguments = Arguments.parse("https://via.bund.de/bim/loin/" + KAPPE);
 
-    assertThat(arguments.loins()).containsExactly("https://via.bund.de/bim/loin/" + KAPPE);
+    assertThat(arguments.portalIds()).containsExactly("https://via.bund.de/bim/loin/" + KAPPE);
     assertThat(arguments.search()).isNull();
   }
 
