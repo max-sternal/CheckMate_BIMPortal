@@ -4,7 +4,8 @@ description: Build, run and drive the CheckMate JavaFX GUI (checks an IFC model 
 ---
 
 CheckMate is the JavaFX app `test.fx.App` in `hackathon-template`. It loads a bundled IFC
-bridge model, lists LOINs from the BIM Portal and checks the model against the selected one.
+bridge model, lists LOINs from the BIM Portal and checks the model against the selected one, a
+LOIN given by its ID, or a local IDS file.
 **Drive it with `.claude/skills/run-checkmate/drive.sh`**: it compiles the module and starts
 `CheckMateDriver.java`, which launches the real `test.fx.App` in its own JVM and then runs
 commands against the scene graph (search, select, click, read the report, screenshot).
@@ -81,8 +82,9 @@ so `grep '^>>'` gives just the driver's view. Then Read the PNG and look at it.
 | `idle [sec]` | wait until the report panel stops ending in `...` (catalogue load, search or check finished). Use after startup, `search` and `click Validate LOIN`. |
 | `wait <regex>` | wait until the report panel text matches |
 | `report` | print the report panel (bottom, "LOIN-PRÜFUNG") |
-| `search <term>` | type into the LOIN search field and press Enter (server-side search, empty = all) |
-| `loins [n\|text]` | list the first n LOINs (default 20) or the ones whose name contains text, with indices |
+| `search <term>` | type into the LOIN search field and press Enter (server-side search, empty = all). A term holding a LOIN ID (or a link with one) fetches that LOIN, puts it on top of the list and checks it at once; follow with `idle`. |
+| `ids <file>` | read a local IDS file and check it, as `Load IDS` does after its file dialog; it lands on top of the list. Follow with `idle`. |
+| `loins [n\|text]` | list the first n entries (default 20) or the ones whose label contains text, with indices. LOINs by ID and IDS files show as `<title>, Version <v> (<source>)`. |
 | `select <i\|text>` | select a LOIN by index or name substring |
 | `click <label>` | fire a button by its text, e.g. `Validate LOIN`, `Filter` |
 | `tabs` / `tab <i\|text>` | list the element tabs in the middle pane / select one and print its lines |
@@ -108,17 +110,27 @@ then starts with the bundled model. The dialog blocks the driver, so check the p
 
 ## Run: headless LOIN check (no window)
 
-The same check as the button, for every LOIN matching a search term. Takes about 13 s.
-Run it from `bim-portal/Java_client/`:
+The same check as the button, for LOINs by ID, local IDS files, or every LOIN matching a search
+term. Takes about 13 s. Run it from `bim-portal/Java_client/`:
 
 ```bash
 JAVA_TOOL_OPTIONS="-Dstdout.encoding=UTF-8" ./gradlew -q --console=plain :hackathon-template:runLoinCheck --args="Kappe"
 JAVA_TOOL_OPTIONS="-Dstdout.encoding=UTF-8" ./gradlew -q --console=plain :hackathon-template:runLoinCheck --args="--model test-models/ifc4/Infra-Bridge.ifc Ueberbau > Schaft"
+JAVA_TOOL_OPTIONS="-Dstdout.encoding=UTF-8" ./gradlew -q --console=plain :hackathon-template:runLoinCheck --args="--loin be959b9d-daef-5315-9aba-f60b6ad54ccb"
+JAVA_TOOL_OPTIONS="-Dstdout.encoding=UTF-8" ./gradlew -q --console=plain :hackathon-template:runLoinCheck --args="--model test-models/ifc4/Infra-Bridge.ifc --ids src/test/resources/ids/local/mehrere-spezifikationen.ids"
 ```
 
-`--model` takes a path or a link; a relative path is relative to `hackathon-template/`. The
-search term may have several words. Exit code 1 means the model couldn't be read, 2 an unknown
-argument.
+- `--model` takes a path or a link. Relative paths (`--model`, `--ids`) are relative to
+  `hackathon-template/`.
+- `--loin` takes a LOIN ID or any text holding one (a link copied from the portal); `--ids` a
+  local IDS file. Both may be repeated. A search term holding an ID counts as `--loin`.
+- Without `--loin`, `--ids` and a search term, it searches for "Kappe". The search term may have
+  several words.
+- Exit code 1: the model or any of the requirements couldn't be read or checked (unknown ID, no
+  IDS export, not an IDS file, no specification for the model's schema); the others are still
+  checked. Exit code 2: an unknown argument. Failed requirements don't change the exit code yet.
+- Gradle prints `Execution failed for task ':hackathon-template:runLoinCheck'` and `BUILD FAILED`
+  on a non-zero exit code. That is the exit code, not a build problem.
 
 ## Run (human path)
 
@@ -140,8 +152,11 @@ From `bim-portal/Java_client/`:
 ./gradlew --console=plain :hackathon-template:test
 ```
 
-There are 4 tests: `BasicExampleLoinIdsTest` 3 pass, and `BasicExampleIntegrationTest` 1 is
-skipped (an `assumeTrue` guard). Results are in `hackathon-template/build/test-results/test/`.
+132 tests as of 2026-11-21; only `BasicExampleIntegrationTest` is skipped (an `assumeTrue`
+guard: it needs credentials). Without the Apstex JARs the `test/fx` tests are not built, and
+without the downloaded sample models (`./gradlew :hackathon-template:downloadTestModels`) the
+tests that need them are skipped with a message. Results are in
+`hackathon-template/build/test-results/test/`.
 
 ## Gotchas
 
@@ -166,9 +181,12 @@ skipped (an `assumeTrue` guard). Results are in `hackathon-template/build/test-r
 - **Closing the window shuts the FX toolkit down** (implicit exit). After that,
   `Platform.runLater` never runs. The driver tracks the window's showing state and fails fast
   with "the window was closed" instead of hanging.
-- **Buttons not to click in automation.** `Load IFC` opens a file dialog and `Load IFC link` a
-  text dialog; the driver can't operate either, so set `CHECKMATE_IFC` instead. `BIM Portal`
-  opens a browser at a placeholder URL (`https://bimportal.com`). `Connect MCP` has no handler.
+- **Buttons not to click in automation.** `Load IFC` and `Load IDS` open a file dialog and
+  `Load IFC link` a text dialog; the driver can't operate them. Set `CHECKMATE_IFC` instead of
+  loading a model, and use the `ids <file>` command instead of `Load IDS`. `BIM Portal` opens a
+  browser at a placeholder URL (`https://bimportal.com`). `Connect MCP` has no handler.
+- **An ID the portal doesn't know takes about 7 s** before the report says so: the ID is looked
+  up among the catalogue's version record IDs first. Use `idle 60` after `search <id>`.
 - **`.env` vars are not exported to drive.sh's JVM.** Only Gradle `JavaExec` tasks copy `.env`
   into the environment, and `IfcResources` reads `CHECKMATE_IFC` from `System.getenv` only. So
   export it in the shell. Credentials still work because `ConfigLoader` finds `.env` itself
@@ -201,4 +219,7 @@ skipped (an `assumeTrue` guard). Results are in `hackathon-template/build/test-r
   It calls `Application.launch(test.fx.App.class)` on a side thread, finds the stage via
   `Window.getWindows()`, and does every scene access through `Platform.runLater`. Lookups go by
   visible text: the read-only `TextArea` is the report, the `ListView` next to the `LOINs` label
-  is the LOIN list, and buttons match by label. If `ElementUI` changes those, update the lookups.
+  is the LOIN list, the search field's prompt starts with `LOIN`, and buttons match by label.
+  If `ElementUI` changes those, update the lookups. The `ids` command calls the private
+  `ElementUI.offerAndCheck` and the package-private `RequirementSource.Loaded` through
+  reflection; renaming either breaks it.

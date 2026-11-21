@@ -5,14 +5,15 @@ import com.apstex.ifctoolbox.ifc.IfcPropertySet;
 import com.apstex.ifctoolbox.ifc.IfcPropertySetDefinition;
 import com.apstex.ifctoolbox.ifc.IfcRelDefines;
 import com.apstex.step.core.ClassInterface;
-import com.bimportal.client.model.LoinForPublicRequest;
-import com.bimportal.client.model.SimpleLoinPublicDto;
 import com.bimportal.hackathon.ids.CheckResult;
 import com.bimportal.hackathon.ids.CheckResult.Finding;
 import com.bimportal.hackathon.ids.CheckResult.NearMiss;
 import com.bimportal.hackathon.ids.CheckResult.Status;
-import com.bimportal.hackathon.ids.LoinIdsCheck;
+import com.bimportal.hackathon.ids.IdsDocument;
+import com.bimportal.hackathon.ids.IdsParser;
 import com.bimportal.hackathon.ids.ModelElement;
+import com.bimportal.hackathon.ids.PortalLoins;
+import com.bimportal.hackathon.ids.RequirementsException;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
 import java.io.File;
@@ -20,10 +21,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.util.function.Function;
+import test.fx.RequirementSource.Loaded;
+import test.fx.RequirementSource.PortalLoin;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.scene.control.Button;
@@ -43,13 +48,10 @@ import javafx.stage.FileChooser;
 
 public class ElementUI extends VBox {
 
-  /** Elements the portal puts on one page of LOIN search results; a shorter page is the last. */
-  private static final int PORTAL_PAGE_SIZE = 1000;
-
-  /** Bound on paging, so a portal always answering a full page cannot spin forever. */
-  private static final int MAX_PAGES = 20;
-
-  /** Bound on element tabs, so a specification applying to the whole model stays navigable. */
+  /**
+   * Bound on element tabs, so a specification applying to the whole model stays navigable. The
+   * elements beyond it are listed in one last tab.
+   */
   private static final int MAX_ELEMENT_TABS = 20;
 
   /**
@@ -58,7 +60,8 @@ public class ElementUI extends VBox {
    */
   private LoadedModel model;
 
-  private final ListView<SimpleLoinPublicDto> loinView = new ListView<>();
+  /** What the model can be checked against: LOINs from a search, IDS files, LOINs by ID. */
+  private final ListView<RequirementSource> loinView = new ListView<>();
 
   private final TabPane tabPane = new TabPane();
 
@@ -103,8 +106,12 @@ public class ElementUI extends VBox {
     Button loadIfcLinkButton = new Button("Load IFC link");
     loadIfcLinkButton.setOnAction(e -> askModelLink());
     loadIfcLinkButton.setStyle(loadIfcButton.getStyle());
+    // Requirements from a local IDS file, beside the LOINs from the portal.
+    Button loadIdsButton = new Button("Load IDS");
+    loadIdsButton.setOnAction(e -> chooseIdsFile());
+    loadIdsButton.setStyle(loadIfcButton.getStyle());
     Button validateLoinButton = new Button("Validate LOIN");
-    validateLoinButton.setOnAction(e -> validateSelectedLoin());
+    validateLoinButton.setOnAction(e -> validateSelected());
 
     validateLoinButton.setStyle(
         "-fx-font-size: 16px; -fx-background-color: #fbc02d; -fx-text-fill: black; -fx-font-weight: bold; -fx-padding: 10 20;");
@@ -125,6 +132,7 @@ public class ElementUI extends VBox {
             bimPortalButton,
             loadIfcButton,
             loadIfcLinkButton,
+            loadIdsButton,
             validateLoinButton,
             connectMcpButton);
     buttonsBox.setSpacing(10);
@@ -133,34 +141,42 @@ public class ElementUI extends VBox {
     VBox topBox = new VBox(10, filterBox, buttonsBox);
 
     HBox.setHgrow(tabPane, Priority.ALWAYS);
+    // A fixed preferred width: by default it is the width of all tab headers, and twenty
+    // element tabs would squeeze the LOIN list to nothing. Headers that don't fit go into the
+    // tab pane's own menu.
+    tabPane.setPrefWidth(600);
+    tabPane.setMinWidth(200);
 
     /*--------------------------------------------------------------------*/
     // LOIN list: the search term is editable, because which LOINs exist for a term is
-    // exactly what one wants to try out against a model.
+    // exactly what one wants to try out against a model. A LOIN ID, or a link holding one,
+    // checks that LOIN directly - in a project the AIA names the LOINs, so there is no need
+    // to search.
     TextField loinSearchField = new TextField();
-    loinSearchField.setPromptText("LOIN-Suchbegriff - leer für alle");
-    loinSearchField.setOnAction(e -> searchLoins(loinSearchField.getText().trim()));
+    loinSearchField.setPromptText("LOIN suchen, oder LOIN-ID / Link - leer für alle");
+    loinSearchField.setOnAction(e -> findLoins(loinSearchField.getText().trim()));
 
-    // Only the name is shown; the GUID the check needs travels with the item itself.
+    // Only the label is shown; what the check needs travels with the item itself.
     loinView.setCellFactory(
         lv ->
             new javafx.scene.control.ListCell<>() {
               @Override
-              protected void updateItem(SimpleLoinPublicDto item, boolean empty) {
+              protected void updateItem(RequirementSource item, boolean empty) {
                 super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName());
+                setText(empty || item == null ? null : item.label());
               }
             });
     loinView.setOnMouseClicked(
         e -> {
           if (e.getClickCount() == 2) {
-            validateSelectedLoin();
+            validateSelected();
           }
         });
     VBox.setVgrow(loinView, Priority.ALWAYS);
 
     VBox loinBox = new VBox(10, new Label("LOINs"), loinSearchField, loinView);
     loinBox.setPrefWidth(320);
+    loinBox.setMinWidth(280);
     HBox.setHgrow(loinBox, Priority.ALWAYS);
 
     /*--------------------------------------------------------------------*/
@@ -206,7 +222,8 @@ public class ElementUI extends VBox {
     reportArea.setText(
         modelLine()
             + "\nLOIN links auswählen und 'Validate LOIN' drücken (oder doppelklicken):"
-            + "\nin der Mitte stehen dann die Elemente, um die es geht, hier das Ergebnis.");
+            + "\nin der Mitte stehen dann die Elemente, um die es geht, hier das Ergebnis."
+            + "\nEine LOIN-ID im Suchfeld oder 'Load IDS' prüft sofort.");
 
     VBox reportBox = new VBox(5, new Label("LOIN-PRÜFUNG"), reportArea);
     VBox.setVgrow(reportArea, Priority.ALWAYS);
@@ -251,27 +268,41 @@ public class ElementUI extends VBox {
   }
 
   /**
+   * What the search field asks for: a text holding a LOIN ID checks that LOIN, any other text is a
+   * search term.
+   */
+  private void findLoins(String text) {
+    Optional<UUID> id;
+    try {
+      id = PortalLoins.idIn(text);
+    } catch (RequirementsException e) {
+      reportArea.setText(e.getMessage());
+      return;
+    }
+    if (id.isPresent()) {
+      loadLoinById(id.get());
+    } else {
+      searchLoins(text);
+    }
+  }
+
+  /**
    * Look LOINs up in the BIM Portal and offer them for checking.
    *
-   * <p>An empty term lists the whole published catalogue, which is the overview to start from. A
-   * term is passed to the server rather than filtered here, because the matches for something like
-   * "Schaft" sit outside the first page.
+   * <p>An empty term lists the whole published catalogue, which is the overview to start from.
+   * Requirements read from a file or fetched by ID stay at the top of the list.
    */
   private void searchLoins(String term) {
     boolean all = term.isEmpty();
     reportArea.setText(all ? "Lade alle LOINs ..." : "Suche LOINs zu '" + term + "' ...");
 
     inBackground(
-        () -> {
-          EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
-          try {
-            return fetchLoins(client, term);
-          } finally {
-            client.logout();
-          }
-        },
+        () -> withPortal(client -> PortalLoins.search(client, term)),
         loins -> {
-          loinView.setItems(FXCollections.observableArrayList(loins));
+          List<RequirementSource> items = new ArrayList<>();
+          loinView.getItems().stream().filter(Loaded.class::isInstance).forEach(items::add);
+          loins.stream().map(PortalLoin::of).forEach(items::add);
+          loinView.setItems(FXCollections.observableArrayList(items));
           reportArea.setText(
               modelLine()
                   + "\n"
@@ -281,30 +312,53 @@ public class ElementUI extends VBox {
         });
   }
 
-  /**
-   * Every LOIN the portal answers with, paged.
-   *
-   * <p>A single request stops at {@value #PORTAL_PAGE_SIZE} results, filtered or not - a term like
-   * "LPH" hits that limit just as an empty one does, and the list would silently end mid-catalogue.
-   * So pages are read until one comes back short.
-   */
-  private static List<SimpleLoinPublicDto> fetchLoins(
-      EnhancedBimPortalClient client, String term) {
+  /** Fetch one LOIN by its ID and check the model against it. */
+  private void loadLoinById(UUID id) {
+    reportArea.setText("Lade LOIN " + id + " aus dem BIM Portal ...");
+    inBackground(
+        () -> withPortal(client -> PortalLoins.requirements(client, id)),
+        document -> offerAndCheck(new Loaded(document)));
+  }
 
-    List<SimpleLoinPublicDto> all = new ArrayList<>();
-    for (int page = 0; page < MAX_PAGES; page++) {
-      LoinForPublicRequest request = new LoinForPublicRequest().pageNumber(page);
-      if (!term.isEmpty()) {
-        request.searchString(term);
-      }
-
-      List<SimpleLoinPublicDto> found = client.searchLoins(request);
-      all.addAll(found);
-      if (found.size() < PORTAL_PAGE_SIZE) {
-        break;
-      }
+  /** Let the user pick an IDS file on this machine, then check the model against it. */
+  private void chooseIdsFile() {
+    FileChooser chooser = new FileChooser();
+    chooser.setTitle("IDS-Datei öffnen");
+    chooser
+        .getExtensionFilters()
+        .addAll(
+            new FileChooser.ExtensionFilter("IDS-Dateien", "*.ids", "*.xml"),
+            new FileChooser.ExtensionFilter("Alle Dateien", "*.*"));
+    File file = chooser.showOpenDialog(getScene().getWindow());
+    if (file != null) {
+      reportArea.setText("Lese IDS " + file + " ...");
+      inBackground(
+          () -> IdsParser.read(file.toPath()), document -> offerAndCheck(new Loaded(document)));
     }
-    return all;
+  }
+
+  /**
+   * Put requirements just read at the top of the list, select them and check the model against
+   * them. Reading the same file or LOIN again replaces its entry.
+   */
+  private void offerAndCheck(Loaded source) {
+    loinView
+        .getItems()
+        .removeIf(item -> item instanceof Loaded loaded && loaded.label().equals(source.label()));
+    loinView.getItems().add(0, source);
+    loinView.getSelectionModel().select(0);
+    loinView.scrollTo(0);
+    validateSelected();
+  }
+
+  /** Run something against the portal with a client of its own, logged out afterwards. */
+  private static <T> T withPortal(Function<EnhancedBimPortalClient, T> work) {
+    EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
+    try {
+      return work.apply(client);
+    } finally {
+      client.logout();
+    }
   }
 
   /** What the check is run against, for the top of the report panel. */
@@ -360,22 +414,22 @@ public class ElementUI extends VBox {
         });
   }
 
-  /** Check the model against the selected LOIN, then show the report and the elements it is about. */
-  private void validateSelectedLoin() {
-    SimpleLoinPublicDto selected = loinView.getSelectionModel().getSelectedItem();
+  /** Check the model against the selected entry; show the report and the elements it is about. */
+  private void validateSelected() {
+    RequirementSource selected = loinView.getSelectionModel().getSelectedItem();
     if (selected == null) {
       reportArea.setText("Keine LOIN ausgewählt.");
       return;
     }
     LoadedModel checked = model;
-    reportArea.setText("Prüfe " + checked.name() + " gegen '" + selected.getName() + "' ...");
+    reportArea.setText("Prüfe " + checked.name() + " gegen '" + selected.label() + "' ...");
 
     inBackground(
         () -> check(selected, checked),
         outcome -> {
           reportArea.setText("Modell: " + checked.summary() + "\n" + outcome.report());
-          if (outcome.result() != null) {
-            showCheckedElements(outcome.result(), checked);
+          if (!outcome.results().isEmpty()) {
+            showCheckedElements(outcome.results(), checked);
           }
         });
   }
@@ -383,79 +437,131 @@ public class ElementUI extends VBox {
   /**
    * A check that ran, or the reason it could not.
    *
-   * @param result null when the check did not get as far as a verdict
+   * @param results one per specification checked; empty when the check did not get as far as a
+   *     verdict
    */
-  private record Checked(String report, CheckResult result) {}
+  private record Checked(String report, List<CheckResult> results) {}
 
   /**
-   * Run one LOIN against the model.
+   * Run one entry of the list against the model.
    *
-   * <p>Called off the FX thread: this exports an IDS from the portal and walks every element.
+   * <p>Called off the FX thread: for a LOIN from a search this exports its IDS from the portal, and
+   * every check walks every element.
    */
-  private Checked check(SimpleLoinPublicDto loin, LoadedModel against) {
-    EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
+  private Checked check(RequirementSource source, LoadedModel against) {
     try {
-      CheckResult result =
-          LoinIdsCheck.check(client, loin.getGuid(), against.schema(), against.elements());
-      return new Checked(String.join("\n", result.report()), result);
-    } catch (Exception e) {
-      // The portal not holding an IDS for a LOIN, or none for this schema, is an ordinary
-      // outcome here - it belongs in the report rather than in a stack trace.
-      return new Checked(loin.getName() + ": " + e.getMessage(), null);
-    } finally {
-      client.logout();
+      IdsDocument requirements =
+          switch (source) {
+            case Loaded loaded -> loaded.document();
+            case PortalLoin loin ->
+                withPortal(client -> PortalLoins.requirements(client, loin.guid()));
+          };
+      List<CheckResult> results = requirements.check(against.schema(), against.elements());
+
+      List<String> lines = new ArrayList<>();
+      lines.add("Anforderungen: " + requirements.describe());
+      if (results.size() > 1) {
+        lines.add(results.size() + " Spezifikationen für " + against.schema());
+      }
+      for (CheckResult result : results) {
+        if (results.size() > 1) {
+          lines.add("");
+        }
+        lines.addAll(result.report());
+      }
+      return new Checked(String.join("\n", lines), results);
+    } catch (RuntimeException e) {
+      // No IDS for a LOIN, or none for this schema, is an ordinary outcome here - it belongs in
+      // the report rather than in a stack trace. RequirementsException messages name the source.
+      String message =
+          e instanceof RequirementsException ? e.getMessage() : source.label() + ": " + e;
+      return new Checked(message, List.of());
     }
   }
 
   /**
    * Show the elements the report is about in the middle pane.
    *
-   * <p>The checked elements when the specification applied, otherwise the ones that came closest -
-   * so the pane always answers "which elements is the verdict below about", instead of standing on
-   * an unrelated class filter.
+   * <p>The checked elements when a specification applied, otherwise the ones that came closest - so
+   * the pane always answers "which elements is the verdict below about", instead of standing on an
+   * unrelated class filter. With several specifications, an element's tab holds what each of them
+   * said about it.
    */
-  private void showCheckedElements(CheckResult result, LoadedModel checked) {
+  private void showCheckedElements(List<CheckResult> results, LoadedModel checked) {
     tabPane.getTabs().clear();
+    boolean several = results.size() > 1;
 
-    if (result.notApplicable()) {
-      for (NearMiss nearMiss : result.diagnosis().nearMisses()) {
-        List<String> lines = new ArrayList<>();
-        lines.add(
-            "[Wert passt bei " + nearMiss.matchedFacets() + " von " + nearMiss.totalFacets()
-                + " Facetten] nicht ausgewählt");
-        nearMiss.divergences().forEach(divergence -> lines.add("[Abweichung] " + divergence));
-        tabPane.getTabs().add(elementTab(checked, nearMiss.elementId(), lines));
+    Map<String, List<String>> byElement = new LinkedHashMap<>();
+    for (CheckResult result : results) {
+      for (Finding finding : result.findings()) {
+        List<String> lines = linesOf(byElement, finding.elementId(), result, several);
+        lines.add(finding.requirementLine());
       }
-    } else {
-      Map<String, List<Finding>> byElement =
-          result.findings().stream()
-              .collect(
-                  Collectors.groupingBy(
-                      Finding::elementId, LinkedHashMap::new, Collectors.toList()));
-
-      for (Map.Entry<String, List<Finding>> entry : byElement.entrySet()) {
-        if (tabPane.getTabs().size() >= MAX_ELEMENT_TABS) {
-          break;
+    }
+    if (byElement.isEmpty()) {
+      for (CheckResult result : results) {
+        for (NearMiss nearMiss : result.diagnosis().nearMisses()) {
+          List<String> lines = linesOf(byElement, nearMiss.elementId(), result, several);
+          lines.add(
+              "[Wert passt bei " + nearMiss.matchedFacets() + " von " + nearMiss.totalFacets()
+                  + " Facetten] nicht ausgewählt");
+          nearMiss.divergences().forEach(divergence -> lines.add("[Abweichung] " + divergence));
         }
-        tabPane
-            .getTabs()
-            .add(
-                elementTab(
-                    checked,
-                    entry.getKey(),
-                    entry.getValue().stream().map(Finding::requirementLine).toList()));
       }
     }
 
-    if (tabPane.getTabs().isEmpty()) {
-      // Neither checked nor near: the facet counts are the only thing left to show.
+    List<String> beyondLimit = new ArrayList<>();
+    for (Map.Entry<String, List<String>> entry : byElement.entrySet()) {
+      if (tabPane.getTabs().size() < MAX_ELEMENT_TABS) {
+        tabPane.getTabs().add(elementTab(checked, entry.getKey(), entry.getValue()));
+      } else {
+        beyondLimit.add(overviewLine(checked, entry.getKey(), entry.getValue()));
+      }
+    }
+    if (!beyondLimit.isEmpty()) {
       tabPane
           .getTabs()
           .add(
               new Tab(
-                  "kein Treffer",
-                  new ListView<>(FXCollections.observableArrayList(result.diagnosis().lines()))));
+                  "+" + beyondLimit.size() + " weitere",
+                  new ListView<>(FXCollections.observableArrayList(beyondLimit))));
     }
+
+    if (tabPane.getTabs().isEmpty()) {
+      // Neither checked nor near: the notes and facet counts are the only thing left to show.
+      List<String> lines = new ArrayList<>();
+      for (CheckResult result : results) {
+        if (several) {
+          lines.add(result.specification().name() + ":");
+        }
+        result.notes().forEach(note -> lines.add("   " + note));
+        lines.addAll(result.diagnosis().lines());
+      }
+      tabPane
+          .getTabs()
+          .add(new Tab("kein Treffer", new ListView<>(FXCollections.observableArrayList(lines))));
+    }
+  }
+
+  /**
+   * An element's lines in the tab being built. With several specifications, each one's lines start
+   * with its name, so the reader can tell which LOIN said what.
+   */
+  private static List<String> linesOf(
+      Map<String, List<String>> byElement, String elementId, CheckResult result, boolean several) {
+    List<String> lines = byElement.computeIfAbsent(elementId, id -> new ArrayList<>());
+    String heading = result.specification().name() + ":";
+    if (several && !lines.contains(heading)) {
+      lines.add(heading);
+    }
+    return lines;
+  }
+
+  /** One line for an element beyond the tab limit: its name and how many lines are not met. */
+  private static String overviewLine(LoadedModel checked, String elementId, List<String> lines) {
+    long open = lines.stream().filter(ElementUI::heldAgainst).count();
+    String title = tabTitle(checked.elementsById().get(elementId), elementId);
+    return open == 0 ? title + " - alles erfüllt" : title + " - " + open + " offen";
   }
 
   /** One tab per element: what the check said about it, then the merkmale it carries. */
@@ -488,10 +594,19 @@ public class ElementUI extends VBox {
 
   /** Met requirements green, anything the check held against the element red, the rest plain. */
   private static String styleFor(String line) {
-    if (line.startsWith("[" + Status.FULFILLED.label() + "]")) {
+    if (met(line)) {
       return "-fx-background-color: #c8e6c9;";
     }
-    return line.startsWith("[") ? "-fx-background-color: #ffcdd2;" : "";
+    return heldAgainst(line) ? "-fx-background-color: #ffcdd2;" : "";
+  }
+
+  private static boolean met(String line) {
+    return line.startsWith("[" + Status.FULFILLED.label() + "]");
+  }
+
+  /** A finding that is not met, or a divergence of a near miss. */
+  private static boolean heldAgainst(String line) {
+    return line.startsWith("[") && !met(line);
   }
 
   /**
@@ -532,12 +647,15 @@ public class ElementUI extends VBox {
   }
 
   /**
-   * A failure for the report panel. A model that could not be loaded says why in its own words;
-   * the model that was loaded before stays in use, and the panel says so.
+   * A failure for the report panel. A model or requirements that could not be loaded say why in
+   * their own words; the model that was loaded before stays in use, and the panel says so.
    */
   private String failure(Throwable error) {
     if (error instanceof ModelLoadException load) {
       return load.getMessage() + "\n\nWeiterhin geladen: " + model.summary();
+    }
+    if (error instanceof RequirementsException requirements) {
+      return requirements.getMessage();
     }
     return "Fehlgeschlagen: " + error;
   }

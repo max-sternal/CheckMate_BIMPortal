@@ -222,9 +222,22 @@ public record CheckResult(
     return findings.stream().filter(finding -> finding.status() == status).count();
   }
 
-  /** True when the specification applied to something and every requirement was met. */
+  /**
+   * True when every requirement of the specification was evaluated. False when the parser listed
+   * requirements CheckMate does not evaluate; the findings then cover only the rest.
+   */
+  public boolean complete() {
+    return specification.unsupported().requirements().isEmpty();
+  }
+
+  /**
+   * True when the specification applied to something and every requirement was met - all of them,
+   * so never when some could not be evaluated.
+   */
   public boolean passed() {
-    return !notApplicable() && findings.stream().allMatch(finding -> finding.status().ok());
+    return !notApplicable()
+        && complete()
+        && findings.stream().allMatch(finding -> finding.status().ok());
   }
 
   /** A single line stating what happened, for the top of a report. */
@@ -240,6 +253,12 @@ public record CheckResult(
         .append(examinedElements)
         .append(" Elementen anwendbar");
 
+    if (!specification.unsupported().applicability().isEmpty()) {
+      return summary
+          .append(" - nicht prüfbar: die Anwendbarkeit nutzt Teile von IDS,")
+          .append(" die CheckMate nicht auswertet")
+          .toString();
+    }
     if (notApplicable()) {
       return summary.append(" - nicht prüfbar").toString();
     }
@@ -250,16 +269,40 @@ public record CheckResult(
         summary.append(", ").append(count).append(" ").append(status.label());
       }
     }
+    if (!complete()) {
+      summary
+          .append(", ")
+          .append(specification.unsupported().requirements().size())
+          .append(" Anforderung(en) nicht ausgewertet");
+    }
     return summary.toString();
   }
 
-  /** The whole report: the summary and the hint, then either the findings or the diagnosis. */
+  /**
+   * What the reader has to know besides the findings: the hint about related data types, and the
+   * parts of the specification that were not evaluated.
+   */
+  public List<String> notes() {
+    List<String> notes = new ArrayList<>();
+    if (!relatedTypes.isEmpty()) {
+      notes.add(relatedTypes.line());
+    }
+    specification
+        .unsupported()
+        .applicability()
+        .forEach(part -> notes.add("Nicht ausgewertet (Anwendbarkeit): " + part));
+    specification
+        .unsupported()
+        .requirements()
+        .forEach(part -> notes.add("Nicht ausgewertet (Anforderungen): " + part));
+    return notes;
+  }
+
+  /** The whole report: the summary and the notes, then either the findings or the diagnosis. */
   public List<String> report() {
     List<String> lines = new ArrayList<>();
     lines.add(summary());
-    if (!relatedTypes.isEmpty()) {
-      lines.add("   " + relatedTypes.line());
-    }
+    notes().forEach(note -> lines.add("   " + note));
 
     if (notApplicable()) {
       lines.addAll(diagnosis.lines());

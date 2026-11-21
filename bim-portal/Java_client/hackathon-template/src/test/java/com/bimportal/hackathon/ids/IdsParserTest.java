@@ -15,7 +15,6 @@ import com.bimportal.hackathon.ids.IdsSpecification.EntityRequirement;
 import com.bimportal.hackathon.ids.IdsSpecification.PropertyRequirement;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.xml.sax.SAXParseException;
 
@@ -156,37 +155,37 @@ class IdsParserTest {
   void picksTheSpecificationForTheModelSchema() throws Exception {
     List<IdsSpecification> specifications = specifications(KAPPE_LPH_8_9);
 
-    assertThat(schemaPickedFor(specifications, "IFC2X3")).contains("IFC2X3");
-    assertThat(schemaPickedFor(specifications, "ifc2x3")).contains("IFC2X3");
-    assertThat(schemaPickedFor(specifications, "IFC4")).contains("IFC4");
-    assertThat(schemaPickedFor(specifications, "IFC4X3_ADD2")).contains("IFC4X3_ADD2");
+    assertThat(schemaPickedFor(specifications, "IFC2X3")).containsExactly("IFC2X3");
+    assertThat(schemaPickedFor(specifications, "ifc2x3")).containsExactly("IFC2X3");
+    assertThat(schemaPickedFor(specifications, "IFC4")).containsExactly("IFC4");
+    assertThat(schemaPickedFor(specifications, "IFC4X3_ADD2")).containsExactly("IFC4X3_ADD2");
   }
 
   @Test
   void picksTheSpecificationAcrossAddendaAndCorrigenda() throws Exception {
     List<IdsSpecification> specifications = specifications(KAPPE_LPH_8_9);
 
-    assertThat(schemaPickedFor(specifications, "IFC2X3_TC1")).contains("IFC2X3");
+    assertThat(schemaPickedFor(specifications, "IFC2X3_TC1")).containsExactly("IFC2X3");
     // IFC4X3 starts with IFC4, and the IFC4 block comes first in this file: a prefix test
     // would pick it. IFC4X3 is a schema of its own, so the IFC4X3_ADD2 block is the right one.
-    assertThat(schemaPickedFor(specifications, "IFC4X3")).contains("IFC4X3_ADD2");
+    assertThat(schemaPickedFor(specifications, "IFC4X3")).containsExactly("IFC4X3_ADD2");
   }
 
   @Test
   void picksNothingForAnUnknownOrMissingSchema() throws Exception {
     List<IdsSpecification> specifications = specifications(KAPPE_LPH_8_9);
 
-    assertThat(IdsParser.forSchema(specifications, "IFC5")).isEmpty();
-    assertThat(IdsParser.forSchema(specifications, "")).isEmpty();
-    assertThat(IdsParser.forSchema(specifications, null)).isEmpty();
+    assertThat(schemaPickedFor(specifications, "IFC5")).isEmpty();
+    assertThat(schemaPickedFor(specifications, "")).isEmpty();
+    assertThat(schemaPickedFor(specifications, null)).isEmpty();
   }
 
   @Test
   void reducesSchemaNamesToTheirBaseSchema() {
-    assertThat(IdsParser.baseSchema("IFC4X3_ADD2")).isEqualTo("IFC4X3");
-    assertThat(IdsParser.baseSchema("IFC4X3")).isEqualTo("IFC4X3");
-    assertThat(IdsParser.baseSchema("IFC2X3_TC1")).isEqualTo("IFC2X3");
-    assertThat(IdsParser.baseSchema(" ifc4 ")).isEqualTo("IFC4");
+    assertThat(IdsSpecification.baseSchema("IFC4X3_ADD2")).isEqualTo("IFC4X3");
+    assertThat(IdsSpecification.baseSchema("IFC4X3")).isEqualTo("IFC4X3");
+    assertThat(IdsSpecification.baseSchema("IFC2X3_TC1")).isEqualTo("IFC2X3");
+    assertThat(IdsSpecification.baseSchema(" ifc4 ")).isEqualTo("IFC4");
   }
 
   @Test
@@ -197,12 +196,17 @@ class IdsParserTest {
                 + "<ids xmlns=\"http://standards.buildingsmart.org/IDS\"/>")
             .getBytes(StandardCharsets.UTF_8);
 
-    assertThatThrownBy(() -> IdsParser.parse(withDoctype)).isInstanceOf(SAXParseException.class);
+    assertThatThrownBy(() -> IdsParser.parse(withDoctype))
+        .isInstanceOf(RequirementsException.class)
+        .hasCauseInstanceOf(SAXParseException.class);
   }
 
-  private static Optional<String> schemaPickedFor(
+  private static List<String> schemaPickedFor(
       List<IdsSpecification> specifications, String schema) {
-    return IdsParser.forSchema(specifications, schema).map(IdsSpecification::ifcVersion);
+    return specifications.stream()
+        .filter(specification -> specification.covers(schema))
+        .map(IdsSpecification::ifcVersion)
+        .toList();
   }
 
   /** A {@code <property>} facet in {@code Pset_Test}, with a cardinality attribute or without. */

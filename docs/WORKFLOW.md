@@ -1,7 +1,7 @@
 # How CheckMate works
 
 This file describes how CheckMate is meant to work (sections 1-3) and how much of that works
-today (section 4). As of 2026-11-20. Open points that are also listed in [STATUS.md](STATUS.md)
+today (section 4). As of 2026-11-21. Open points that are also listed in [STATUS.md](STATUS.md)
 are referred to by their number there ("STATUS #2") instead of being repeated.
 
 ## 1. Goal
@@ -45,11 +45,18 @@ Four sources, all of which end up as IDS specifications:
 Then:
 
 - Downloads are cached per LOIN and version.
-- From each IDS, the specification for the model's schema is picked. If there is none, that is an
-  error, not an empty result.
+- From each IDS, every specification written for the model's schema is checked. A portal export
+  has one per schema; other IDS files may have several, and one specification may name several
+  schemas. If there is none for the schema, that is an error, not an empty result.
+- Parts of IDS that CheckMate does not evaluate are listed in the report, never dropped silently.
+  In the applicability they make the specification "nicht prüfbar", because without them it would
+  select too many elements. In the requirements the rest is checked, but the specification cannot
+  pass.
 - Main classes: [`EnhancedBimPortalClient`](../bim-portal/Java_client/bim-portal-enhanced/src/main/java/com/pb40/bimportal/client/EnhancedBimPortalClient.java)
-  (`exportLoinIds`, `exportProjectIds`), [`LoinIdsCheck`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/LoinIdsCheck.java),
+  (`exportLoinIds`, `exportProjectIds`), [`PortalLoins`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/PortalLoins.java)
+  (LOIN by ID, search),
   [`IdsParser`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/IdsParser.java),
+  [`IdsDocument`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/IdsDocument.java),
   [`IdsSpecification`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/IdsSpecification.java).
 
 ### 2.3 Choose the relevant LOINs
@@ -104,7 +111,11 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - One LOIN's IDS export is about 11 KB and takes about 0.5 s. It is valid IDS 1.0, with one
   specification per schema (IFC2X3, IFC4, IFC4X3_ADD2). It uses only a small part of IDS: property
   facets with fixed values, and entity facets (name, sometimes `predefinedType`). It contains all
-  properties the LOIN lists.
+  properties the LOIN lists. Its `<info>` carries the LOIN's name and version.
+- Each LOIN has two IDs: the `guid`, which stays the same across versions, and the `id` of each
+  version's record. The IDS export and the detail endpoint only answer to the `guid`; for the
+  `id` they return 404 "Die LOIN existiert nicht". CheckMate looks an unknown ID up among the
+  catalogue's `id`s (measured 2026-11-21).
 - The Ingenieurbau LOINs select elements by `Klassifizierung/Objektgruppe|Objektklasse|Objekttyp`.
   Building LOINs such as "Fenster" select by IFC entity.
 - An AIA project's IDS export is a ZIP: one combined IDS for the project, sometimes plus one IDS
@@ -140,16 +151,20 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [x] Load the LOIN list from the portal, paged (GUI).
 - [x] Download a LOIN's IDS export and pick the specification for the model's schema.
 - [x] Picking the specification works across addenda: an IFC4X3 model gets the IFC4X3_ADD2 block, not the IFC4 one.
-- [ ] `ifcVersion` listing several schemas (`"IFC2X3 IFC4"`), which IDS 1.0 allows. The portal writes one per specification, so this matters for local IDS files.
+- [x] `ifcVersion` listing several schemas (`"IFC2X3 IFC4"`), which IDS 1.0 allows.
+- [x] Every specification for the model's schema is checked, one result each; a portal export has one, other IDS files may have several.
 - [x] The parser reads what the portal writes: property facets and the entity name.
-- [x] Entity `predefinedType`, as a value or a pattern; `USERDEFINED` asks for a user-defined type, as in ifctester.
+- [x] Entity name and `predefinedType` as a value, a pattern (several patterns are alternatives) or an `xs:enumeration`; `USERDEFINED` asks for a user-defined type, as in ifctester.
 - [x] `cardinality`: required, optional and prohibited.
-- [ ] Report IDS parts the parser doesn't support instead of dropping them silently (matters for local IDS files).
-- [ ] LOIN by ID.
+- [x] IDS parts CheckMate doesn't evaluate are listed in the report ("Nicht ausgewertet ..."): in the applicability the specification is then "nicht prüfbar", in the requirements it cannot pass. The portal's exports contain none.
+- [ ] Not evaluated yet: attribute, classification, material and partOf facets; property values given as pattern, enumeration or bounds (only presence and data type are checked); property set or name given as a pattern.
+- [ ] Specification cardinality: `maxOccurs="0"` (no element may apply) is listed as not evaluated; `minOccurs="1"` (at least one must apply) is not distinguished from optional.
+- [x] LOIN by ID: the GUID, or any text holding one (a link, a note). GUI: in the search field, checked at once. CLI: `--loin`, repeatable, or a search term holding an ID. A version record's `id` is resolved through the catalogue.
 - [ ] AIA project as a source (ZIP export).
-- [ ] Local IDS file.
+- [x] Local IDS file: GUI "Load IDS", checked at once; CLI `--ids`, repeatable. Not IDS, not found, or not readable is reported with the file name.
+- [ ] IDS file from a link.
 - [ ] Cache for downloaded IDS exports.
-- [ ] Search: it matches parts of names, so "Schaft" also finds "Landschaftsbau" (STATUS #7). The CLI doesn't page. A search term of several words works since 2026-11-20 ("Ueberbau > Schaft" finds exactly those 2 LOINs).
+- [ ] Search: it matches parts of names, so "Schaft" also finds "Landschaftsbau" (STATUS #7). A search term of several words works ("Ueberbau > Schaft" finds exactly those 2 LOINs), and the CLI pages like the GUI since 2026-11-21.
 
 ### Choose the LOINs
 
@@ -170,20 +185,21 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [ ] IFC2X3: accept an entity through the element's type (an `IfcBeamType` makes the element an `IfcBeam`), as ifctester does.
 - [ ] Text values compared case-sensitively, as ifctester does; currently case is ignored.
 - [ ] The diagnosis of an entity facet with a PredefinedType counts every element as "abweichender Wert". It should say how many have the entity but another type (e.g. "11 IfcWindow, keiner mit benutzerdefiniertem Typ").
+- [ ] The elements come in a different order on each start (the toolbox's object set has no fixed order), so two reports on the same model list findings differently. Sort them, e.g. by GlobalId.
 
 ### Results
 
 - [x] Text report in the GUI and the CLI.
 - [ ] Summary table across several LOINs.
-- [ ] Show all checked elements: the GUI currently stops at 20 tabs without saying so ([`ElementUI.java:437`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/ElementUI.java#L437)).
-- [ ] Report header with the model, the LOIN version and the date.
-- [ ] CLI: JSON output, and an exit code other than 0 when requirements fail. Load errors (1) and unknown arguments (2) already have one.
+- [x] All checked elements: 20 get a tab each, with what every specification said about them; one more tab lists the rest with how many lines are open.
+- [ ] Report header: the model, the requirements' name, version and source are there; the date is missing.
+- [ ] CLI: JSON output, and an exit code other than 0 when requirements fail. Already: 1 when the model or any requirements can't be read or checked, 2 for unknown arguments.
 - [ ] Disable "Validate LOIN" while a check runs; a double-click currently starts a second check.
 
 ### Front ends and quality
 
 - [x] Headless CLI: `runLoinCheck`.
-- [x] Window size: the GUI opens at 1280x900 (STATUS #5).
+- [x] Window size: the GUI opens at 1280x900 (STATUS #5). Many element tabs no longer squeeze the LOIN list.
 - [ ] GUI cleanup: "BIM Portal" button (STATUS #4), chat placeholder (STATUS #3), the leftover class filter. The class filter's tabs still read IFC2X3 only and through the unreliable inverse relations (`ElementUI.createObjectTab`).
 - [ ] MCP server (later).
 - [x] Tests for the `ids` package ([`src/test/java/com/bimportal/hackathon/ids/`](../bim-portal/Java_client/hackathon-template/src/test/java/com/bimportal/hackathon/ids)), with real portal exports as test files ([`src/test/resources/ids/portal/`](../bim-portal/Java_client/hackathon-template/src/test/resources/ids/portal/README.md)).
@@ -197,3 +213,6 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
   accepted, and the applicability ignored the data type.
 - 2026-11-20, choosing LOINs: by ID first (LOIN, AIA project, local IDS file). Sorting the
   catalogue by fit comes after that.
+- 2026-11-21, IDS parts CheckMate does not evaluate: listed in the report, never dropped. In the
+  applicability they make the specification "nicht prüfbar"; in the requirements the rest is
+  checked and the specification cannot pass.

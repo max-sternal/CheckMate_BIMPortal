@@ -131,6 +131,7 @@ public class CheckMateDriver {
         case "wait" -> waitForReport(arg);
         case "report" -> block(fx(() -> reportArea().getText()));
         case "search" -> search(arg);
+        case "ids" -> ids(arg);
         case "loins" -> loins(arg);
         case "select" -> select(arg);
         case "click" -> click(arg);
@@ -166,17 +167,41 @@ public class CheckMateDriver {
             "wait <regex>      wait until the report panel text matches <regex>",
             "report            print the report panel (LOIN-PRUEFUNG, bottom)",
             "search <term>     server-side LOIN search (empty = whole catalogue); follow with idle",
+            "ids <file>        read a local IDS file and check it, as 'Load IDS' does after its dialog",
             "loins [n|text]    list the first n LOINs (default 20) or those containing text, with index",
             "select <i|text>   select a LOIN by index or by name substring",
             "click <label>     fire a button: 'Validate LOIN', 'Filter', ... (BIM Portal opens a browser)",
             "tabs              list the element tabs in the middle pane",
             "tab <i|text>      select an element tab and print its lines",
             "dump              print the control tree (type, text, prompt)",
-            "size <w> <h>      resize the window (the default 600x900 clips the layout)",
+            "size <w> <h>      resize the window (it opens at 1280x900)",
             "ss [file.png]     scene to PNG (default hackathon-template/build/checkmate.png)",
             "sleep <ms>        pause",
             "hold              hand over: block until a human closes the window",
             "quit              close the app"));
+  }
+
+  /**
+   * What "Load IDS" does once its file dialog returns, without the dialog: read the file and hand it
+   * to {@code ElementUI.offerAndCheck}, which lists it, selects it and checks the model. Through
+   * reflection, because that method and the list entry type are not public.
+   */
+  static void ids(String path) throws Exception {
+    java.nio.file.Path file = java.nio.file.Path.of(path).toAbsolutePath();
+    Object document = com.bimportal.hackathon.ids.IdsParser.read(file);
+    fx(
+        () -> {
+          Object ui = stage.getScene().getRoot();
+          Class<?> loaded = Class.forName("test.fx.RequirementSource$Loaded");
+          java.lang.reflect.Constructor<?> entry =
+              loaded.getDeclaredConstructor(com.bimportal.hackathon.ids.IdsDocument.class);
+          entry.setAccessible(true);
+          java.lang.reflect.Method offer = ui.getClass().getDeclaredMethod("offerAndCheck", loaded);
+          offer.setAccessible(true);
+          offer.invoke(ui, entry.newInstance(document));
+          return null;
+        });
+    say("checking against " + file);
   }
 
   static void idle(int seconds) throws Exception {
@@ -204,7 +229,7 @@ public class CheckMateDriver {
               find(
                   TextField.class,
                   f -> f.getPromptText() != null && f.getPromptText().startsWith("LOIN"),
-                  "LOIN search field (prompt 'LOIN-Suchbegriff...')");
+                  "LOIN search field (prompt 'LOIN suchen...')");
           field.setText(term);
           field.fireEvent(new ActionEvent()); // same as pressing Enter
           return null;
@@ -406,14 +431,22 @@ public class CheckMateDriver {
     throw new IllegalArgumentException("nothing contains '" + arg + "' among " + items.size() + " item(s)");
   }
 
-  /** LOIN DTOs show their name in the list; anything else its toString. */
+  /**
+   * What the list shows for an item: {@code label()} for the GUI's requirement entries (LOINs from
+   * a search, IDS files, LOINs by ID), {@code getName()} for plain LOIN DTOs, else its toString.
+   * The entry types are package-private, hence setAccessible.
+   */
   static String name(Object item) {
-    try {
-      Object name = item.getClass().getMethod("getName").invoke(item);
-      return String.valueOf(name);
-    } catch (ReflectiveOperationException e) {
-      return String.valueOf(item);
+    for (String getter : List.of("label", "getName")) {
+      try {
+        java.lang.reflect.Method method = item.getClass().getMethod(getter);
+        method.setAccessible(true);
+        return String.valueOf(method.invoke(item));
+      } catch (ReflectiveOperationException | RuntimeException e) {
+        // try the next one
+      }
     }
+    return String.valueOf(item);
   }
 
   // ---------------------------------------------------------------- plumbing

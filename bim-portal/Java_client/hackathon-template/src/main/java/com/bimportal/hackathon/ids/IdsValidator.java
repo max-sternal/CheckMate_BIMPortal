@@ -37,8 +37,18 @@ public final class IdsValidator {
 
   private IdsValidator() {}
 
-  /** Run one specification against a model. */
+  /**
+   * Run one specification against a model.
+   *
+   * <p>A specification whose applicability uses parts CheckMate does not evaluate is not checked:
+   * without them it would select more elements than it should. The result lists those parts.
+   */
   public static CheckResult check(IdsSpecification specification, Collection<ModelElement> model) {
+    if (!specification.unsupported().applicability().isEmpty()) {
+      return new CheckResult(
+          specification, model.size(), 0, List.of(), Diagnosis.NONE, RelatedTypes.NONE);
+    }
+
     List<ModelElement> applicable =
         model.stream().filter(element -> applies(specification, element, false)).toList();
 

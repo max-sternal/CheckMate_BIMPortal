@@ -24,6 +24,12 @@ final class IdsFixtures {
   /** Fenster: selects by entity instead of classification, IFC4 only. */
   static final String FENSTER = "/ids/portal/fenster.ids";
 
+  /**
+   * Hand-written, the way other tools write IDS: five specifications, one for two schemas, and
+   * parts CheckMate does not evaluate. See {@code src/test/resources/ids/local/README.md}.
+   */
+  static final String LOCAL = "/ids/local/mehrere-spezifikationen.ids";
+
   static final String LABEL = "IfcLabel";
   static final String TEXT = "IfcText";
   static final String INTEGER = "IfcInteger";
@@ -43,9 +49,19 @@ final class IdsFixtures {
     return IdsParser.parse(bytes(resource));
   }
 
+  /** A test file as a document, with the resource name as its source. */
+  static IdsDocument document(String resource) throws Exception {
+    return IdsParser.read(bytes(resource), resource);
+  }
+
   /** The one specification of a test file written for a schema. */
   static IdsSpecification specification(String resource, String schema) throws Exception {
-    return IdsParser.forSchema(specifications(resource), schema).orElseThrow();
+    List<IdsSpecification> found = document(resource).forSchema(schema);
+    if (found.size() != 1) {
+      throw new IllegalStateException(
+          resource + " has " + found.size() + " specifications for " + schema + ", not one");
+    }
+    return found.get(0);
   }
 
   /** The classification the portal LOINs select on, under the portal's own names. */

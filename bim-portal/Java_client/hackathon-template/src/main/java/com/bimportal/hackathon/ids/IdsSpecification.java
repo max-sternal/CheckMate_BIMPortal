@@ -1,6 +1,9 @@
 package com.bimportal.hackathon.ids;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -8,8 +11,9 @@ import java.util.regex.Pattern;
  * elements have to carry.
  *
  * <p>The BIM Portal exports one block per IFC schema version (IFC4, IFC4X3_ADD2, IFC2X3) with the
- * same content but different entity names, so a check has to pick the block matching the model -
- * see {@link IdsParser#forSchema}.
+ * same content but different entity names, so a check has to pick the blocks matching the model -
+ * see {@link #covers} and {@link IdsDocument#forSchema}. Other IDS files may list several schemas
+ * in one block.
  *
  * <p>Note how the portal lays its exports out: {@code applicability} selects elements purely by
  * their classification properties, and the entity type is an {@code requirements} entry rather than
@@ -21,7 +25,92 @@ public record IdsSpecification(
     List<PropertyRequirement> applicability,
     EntityRequirement applicableEntity,
     List<PropertyRequirement> requirements,
-    EntityRequirement requiredEntity) {
+    EntityRequirement requiredEntity,
+    Unsupported unsupported) {
+
+  /** The schema family at the start of a name: version, and the minor version after an X. */
+  private static final Pattern SCHEMA_BASE = Pattern.compile("IFC\\d+(?:X\\d+)?");
+
+  /** A specification whose every part CheckMate evaluates. */
+  public IdsSpecification(
+      String name,
+      String ifcVersion,
+      List<PropertyRequirement> applicability,
+      EntityRequirement applicableEntity,
+      List<PropertyRequirement> requirements,
+      EntityRequirement requiredEntity) {
+    this(
+        name,
+        ifcVersion,
+        applicability,
+        applicableEntity,
+        requirements,
+        requiredEntity,
+        Unsupported.NONE);
+  }
+
+  /**
+   * The schemas this specification is written for. IDS 1.0 allows a list, e.g. {@code "IFC2X3
+   * IFC4"}; the portal writes one per specification.
+   */
+  public List<String> ifcVersions() {
+    if (ifcVersion == null || ifcVersion.isBlank()) {
+      return List.of();
+    }
+    return Arrays.asList(ifcVersion.trim().split("\\s+"));
+  }
+
+  /**
+   * Whether this specification is written for a model's schema.
+   *
+   * <p>Compared by base schema, so a model declaring {@code IFC4X3} is covered by a specification
+   * for {@code IFC4X3_ADD2}, and the other way round. A plain prefix test is not enough for that:
+   * {@code IFC4X3} starts with {@code IFC4}, which is a different schema.
+   */
+  public boolean covers(String schema) {
+    if (schema == null || schema.isBlank()) {
+      return false;
+    }
+    String wanted = baseSchema(schema);
+    return ifcVersions().stream().anyMatch(version -> baseSchema(version).equals(wanted));
+  }
+
+  /**
+   * A schema name without its addendum or corrigendum: {@code IFC4X3_ADD2} becomes {@code IFC4X3},
+   * {@code IFC2X3_TC1} becomes {@code IFC2X3}, {@code IFC4} stays {@code IFC4}.
+   */
+  static String baseSchema(String schema) {
+    String upper = schema.trim().toUpperCase(Locale.ROOT);
+    Matcher matcher = SCHEMA_BASE.matcher(upper);
+    return matcher.lookingAt() ? matcher.group() : upper;
+  }
+
+  /**
+   * Parts of the specification that CheckMate reads but does not evaluate, worded for the report.
+   *
+   * <p>They are listed instead of dropped, because dropping changes the verdict. A dropped
+   * applicability facet makes the specification select more elements than it should, so with
+   * unsupported parts there the specification is not checked at all. A dropped requirement lets an
+   * element pass that should not, so with unsupported parts there the rest is checked, but the
+   * specification cannot pass.
+   *
+   * @param applicability unsupported parts of the applicability
+   * @param requirements unsupported parts of the requirements
+   */
+  public record Unsupported(List<String> applicability, List<String> requirements) {
+
+    /** Everything is evaluated. */
+    public static final Unsupported NONE = new Unsupported(List.of(), List.of());
+
+    public Unsupported {
+      applicability = List.copyOf(applicability);
+      requirements = List.copyOf(requirements);
+    }
+
+    public boolean isEmpty() {
+      return applicability.isEmpty() && requirements.isEmpty();
+    }
+  }
 
   /** How a {@code <property>} facet in the requirements is to be read. */
   public enum Cardinality {
