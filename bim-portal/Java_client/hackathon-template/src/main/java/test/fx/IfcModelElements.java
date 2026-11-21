@@ -32,6 +32,7 @@ import com.bimportal.hackathon.ids.PropertyKey;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,11 +63,18 @@ public final class IfcModelElements {
 
   private IfcModelElements() {}
 
-  /** Read every object that can carry properties. */
+  /**
+   * Read every object that can carry properties, in the order of the file.
+   *
+   * <p>The toolbox hands its objects out as a set in no fixed order, so without sorting two reports
+   * on the same model list their findings differently.
+   */
   public static List<ModelElement> from(IfcModel model) {
     Definitions definitions = Definitions.of(model);
+    List<ClassInterface> objects = new ArrayList<>(model.getObjects());
+    objects.sort(Comparator.comparingLong(object -> object.getStepLineNumber()));
     List<ModelElement> elements = new ArrayList<>();
-    for (ClassInterface object : model.getObjects()) {
+    for (ClassInterface object : objects) {
       // The schema-specific interfaces, not the common one: in IFC4, IfcProject is an
       // IfcContext and not an IfcObject, and it must not be counted as one.
       if (object instanceof IfcObject.Ifc2x3
@@ -117,7 +125,8 @@ public final class IfcModelElements {
         object.getClassName(),
         predefinedType(object, type),
         userDefinedType(object, type),
-        List.copyOf(properties.values()));
+        List.copyOf(properties.values()),
+        type == null ? null : type.getClassName());
   }
 
   /**

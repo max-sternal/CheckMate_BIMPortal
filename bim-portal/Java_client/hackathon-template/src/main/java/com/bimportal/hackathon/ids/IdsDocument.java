@@ -70,7 +70,7 @@ public record IdsDocument(
               + specifications.stream().map(IdsSpecification::ifcVersion).distinct().toList());
     }
     return covering.stream()
-        .map(specification -> IdsValidator.check(specification, model))
+        .map(specification -> IdsValidator.check(specification, model, schema))
         .toList();
   }
 }

@@ -192,4 +192,23 @@ class IfcModelElementsTest {
             ModelElement::entityName, ModelElement::predefinedType, ModelElement::userDefinedType)
         .containsExactly(entity, predefinedType, userDefined);
   }
+
+  @Test
+  void readsTheElementsInTheOrderOfTheFileEveryTime() {
+    // The toolbox hands out its objects as a set; two reads used to come out in different orders.
+    List<String> first = IfcModelElements.from(TestModels.cases("ifc4")).stream()
+        .map(ModelElement::id).toList();
+    List<String> second = IfcModelElements.from(TestModels.cases("ifc4")).stream()
+        .map(ModelElement::id).toList();
+
+    assertThat(second).isEqualTo(first);
+  }
+
+  @Test
+  void knowsTheEntityOfAnElementsType() {
+    ModelElement typed =
+        byName(IfcModelElements.from(TestModels.cases("ifc2x3")), "platte-typ");
+
+    assertThat(typed.typeEntityName()).isEqualToIgnoringCase("IfcSlabType");
+  }
 }

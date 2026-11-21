@@ -95,7 +95,7 @@ public final class LoinDescription {
     if (specifications.size() > 1) {
       lines.add(specifications.size() + " Spezifikationen für " + schema + ":");
       for (IdsSpecification specification : specifications) {
-        CheckResult result = IdsValidator.check(specification, model);
+        CheckResult result = IdsValidator.check(specification, model, schema);
         lines.add("   " + specification.name() + " - " + applicable(result));
       }
       return lines;
@@ -104,7 +104,7 @@ public final class LoinDescription {
     IdsSpecification specification = specifications.get(0);
     lines.add("Wählt aus: " + selects(specification));
     lines.add("Verlangt: " + asks(specification));
-    CheckResult result = IdsValidator.check(specification, model);
+    CheckResult result = IdsValidator.check(specification, model, schema);
     lines.add("Im Modell: " + applicable(result));
     if (!result.relatedTypes().isEmpty()) {
       lines.add(result.relatedTypes().line());

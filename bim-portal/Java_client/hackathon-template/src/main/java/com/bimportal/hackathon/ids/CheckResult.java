@@ -141,14 +141,46 @@ public record CheckResult(
       int matchedElements,
       int addressFound,
       int valueButNotType,
-      String typeDifferences) {
+      String typeDifferences,
+      boolean entity) {
 
-    /** A facet without a data type to miss, such as the entity. */
-    public FacetMatch(String facet, int matchedElements, int addressFound) {
-      this(facet, matchedElements, addressFound, 0, "");
+    /** A property facet. */
+    public FacetMatch(
+        String facet,
+        int matchedElements,
+        int addressFound,
+        int valueButNotType,
+        String typeDifferences) {
+      this(facet, matchedElements, addressFound, valueButNotType, typeDifferences, false);
+    }
+
+    /**
+     * An entity facet.
+     *
+     * @param ofEntity elements of one of the facet's entities, whatever their PredefinedType
+     * @param predefinedTypeMismatch what those have instead of the required PredefinedType, e.g.
+     *     {@code keines mit benutzerdefiniertem Typ (gefunden: WINDOW 3)}; empty when the facet
+     *     asks for none
+     */
+    public static FacetMatch entity(
+        String facet, int matchedElements, int ofEntity, String predefinedTypeMismatch) {
+      return new FacetMatch(facet, matchedElements, ofEntity, 0, predefinedTypeMismatch, true);
     }
 
     public String line() {
+      if (entity) {
+        if (matchedElements > 0) {
+          return facet + " trifft " + matchedElements + " Element(e)";
+        }
+        if (addressFound == 0) {
+          return facet + " trifft 0 - kein Element dieser Entity im Modell";
+        }
+        return facet
+            + " trifft 0 - "
+            + addressFound
+            + " Element(e) dieser Entity, "
+            + typeDifferences;
+      }
       String wrongType =
           valueButNotType
               + " Element(e) mit passendem Wert, aber Datentyp "

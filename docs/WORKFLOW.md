@@ -106,13 +106,20 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
 - Data types are compared strictly, as IDS defines them: `IfcText` does not count as `IFCLABEL`.
   Elements that a related type would let through are named in a hint, e.g. "6 Elemente wären
   anwendbar, wenn IfcText statt IFCLABEL akzeptiert würde".
+- Values are compared by the property's data type, as ifctester does: text exactly, including
+  case (a value differing only in case is reported as "nur Groß-/Kleinschreibung weicht ab");
+  integers as numbers; real numbers and measures within a relative tolerance of 1e-6; booleans as
+  XML Schema writes them. A property without a value counts as missing.
+- In IFC2X3 an element also has the entity of its type object: an `IfcBuildingElementProxy` typed
+  by an `IfcBeamType` passes an `IFCBEAM` facet.
 - Model-specific property names are mapped to the ones the LOIN asks for. The report says when a
   mapped name was used.
 - When nothing applies, the result is "nicht prüfbar" with a diagnosis: how many elements each
   condition hits, and which elements came closest. It is never reported as passed.
 - Main classes: [`IdsValidator`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/IdsValidator.java),
   [`PropertyAliases`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/PropertyAliases.java),
-  [`DataTypes`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/DataTypes.java).
+  [`DataTypes`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/DataTypes.java),
+  [`Values`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/Values.java).
 
 ### 2.5 Results
 
@@ -240,15 +247,16 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [x] Applicability (all conditions must hold), and one finding per element and requirement.
 - [x] Diagnosis when nothing applies: hits per condition and the closest elements.
 - [x] Mapping of the BIM.Hamburg classification (`Pset_Objektinformation/_IDEbene1..3`).
-- [x] Numbers are compared as numbers, so `0` equals `0.`.
+- [x] Values by data type, as ifctester: text exactly (a case-only difference is named), integers exactly as numbers (`42` = `42.0`), reals and measures within a relative tolerance of 1e-6, booleans `true`/`1`/`false`/`0`. A number stored as `IfcLabel` is text.
 - [x] Data types strict, as in IDS, in the applicability and the requirements, with a hint naming the elements a related type would let through (section 5).
 - [x] A prohibited property is met when it is missing or has another value or type.
 - [x] An entity's `predefinedType` is checked; a mismatch is "PredefinedType weicht ab".
-- [ ] Decimal numbers compared with IDS's relative tolerance of 1e-6; currently they are compared exactly.
-- [ ] IFC2X3: accept an entity through the element's type (an `IfcBeamType` makes the element an `IfcBeam`), as ifctester does.
-- [ ] Text values compared case-sensitively, as ifctester does; currently case is ignored.
-- [ ] The diagnosis of an entity facet with a PredefinedType counts every element as "abweichender Wert". It should say how many have the entity but another type (e.g. "11 IfcWindow, keiner mit benutzerdefiniertem Typ").
-- [ ] The elements come in a different order on each start (the toolbox's object set has no fixed order), so two reports on the same model list findings differently. Sort them, e.g. by GlobalId.
+- [x] A property without a value (empty, or `UNKNOWN` of an `IfcLogical`) counts as missing: "vorhanden, aber ohne Wert".
+- [x] IFC2X3: an element also has the entity of its type object (`IfcBeamType` → `IFCBEAM`, `IfcDoorStyle` → `IFCDOOR`), as ifctester does. Only for IFC2X3 models.
+- [x] The diagnosis of an entity facet says how many elements have the entity and which PredefinedTypes they carry instead, e.g. "2 Element(e) dieser Entity, keines mit benutzerdefiniertem Typ (gefunden: WINDOW 1, ohne 1)", or "kein Element dieser Entity im Modell".
+- [x] Elements in the order of the file (by STEP line), so two reports on the same model read the same.
+- [ ] Values with a unit are compared as stored; ifctester converts them to SI units first (a model in millimetres against an IDS in metres).
+- [ ] Property set and property names are compared ignoring case; ifctester compares them exactly. Kept for now because authoring tools are inconsistent about it; a strict comparison with a hint, as for data types, would match IDS.
 
 ### Results
 
@@ -287,6 +295,8 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
   short description on click). Requirements are downloaded only for the LOINs selected for a
   check, never for the whole catalogue or a candidate list. The earlier plan of an exact
   applicability test on downloaded candidates is dropped.
+- 2026-11-21, values: compared by data type as ifctester does, text including case. Where only
+  the case differs, the finding says so, the same way the data type hint explains a strict verdict.
 - 2026-11-21, exit codes: 3 when a specification is not met, 4 when nothing is violated but not
   everything is confirmed. "Nicht prüfbar" is never 0, in line with the rule that it is never
   reported as passed. Read errors (1) take precedence, since the report is then incomplete.

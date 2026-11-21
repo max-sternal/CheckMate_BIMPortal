@@ -20,6 +20,8 @@ import java.util.Optional;
  *     USERDEFINED checks
  * @param properties every single, enumerated and list property found on the element and on its
  *     type
+ * @param typeEntityName the IFC entity of the element's type object, e.g. {@code IfcBeamType};
+ *     null when it has none. In IFC2X3 an entity facet also accepts an element through it.
  */
 public record ModelElement(
     String id,
@@ -27,7 +29,19 @@ public record ModelElement(
     String entityName,
     String predefinedType,
     boolean userDefinedType,
-    List<ModelProperty> properties) {
+    List<ModelProperty> properties,
+    String typeEntityName) {
+
+  /** An element without a type object. */
+  public ModelElement(
+      String id,
+      String name,
+      String entityName,
+      String predefinedType,
+      boolean userDefinedType,
+      List<ModelProperty> properties) {
+    this(id, name, entityName, predefinedType, userDefinedType, properties, null);
+  }
 
   /** An element whose PredefinedType is not known, e.g. one built by hand in a test. */
   public ModelElement(String id, String name, String entityName, List<ModelProperty> properties) {
