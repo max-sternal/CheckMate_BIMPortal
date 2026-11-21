@@ -121,8 +121,11 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 ### Load the model
 
 - [x] The bundled IFC2X3 bridge model loads; `CHECKMATE_IFC` or `-Dcheckmate.ifc` points at another file.
-- [ ] Load from a local file in the GUI (STATUS #2).
-- [ ] Load from a link, including GitHub file links and `.ifczip`.
+- [x] Load from a file ("Load IFC") or a link ("Load IFC link") in the GUI, in the background. The new model replaces the old one; a check already running keeps the model it started on.
+- [x] Links: a GitHub file link becomes its raw file, a Git LFS pointer is followed to the file, and the download is recognised by its first bytes, so a web page or an error page is reported as such. 200 MB limit; the download is deleted after reading.
+- [x] `.ifczip`, from a file or a link.
+- [x] CLI: `--model <file or link>`; `CHECKMATE_IFC` takes a link too.
+- [x] If the configured model can't be read at startup, the GUI says why and starts with the bundled model.
 - [ ] All IFC files of a GitHub folder or repository (CLI, later).
 - [x] IFC2X3, IFC4 and IFC4X3; checked against IfcOpenShell on the bundled model and five downloaded samples.
 - [x] Every property is read. The toolbox's inverse relations (`IsDefinedBy`) lose entries at random while parsing, so the reader goes by the relations' `RelatedObjects` instead. Before, a different few percent of the properties went missing on each start.
@@ -146,7 +149,7 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [ ] AIA project as a source (ZIP export).
 - [ ] Local IDS file.
 - [ ] Cache for downloaded IDS exports.
-- [ ] Search: it matches parts of names, so "Schaft" also finds "Landschaftsbau" (STATUS #7). The CLI doesn't page and uses only its first argument ([`LoinCheckCli.java:32`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/LoinCheckCli.java#L32)).
+- [ ] Search: it matches parts of names, so "Schaft" also finds "Landschaftsbau" (STATUS #7). The CLI doesn't page. A search term of several words works since 2026-11-20 ("Ueberbau > Schaft" finds exactly those 2 LOINs).
 
 ### Choose the LOINs
 
@@ -166,20 +169,22 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [ ] Decimal numbers compared with IDS's relative tolerance of 1e-6; currently they are compared exactly.
 - [ ] IFC2X3: accept an entity through the element's type (an `IfcBeamType` makes the element an `IfcBeam`), as ifctester does.
 - [ ] Text values compared case-sensitively, as ifctester does; currently case is ignored.
+- [ ] The diagnosis of an entity facet with a PredefinedType counts every element as "abweichender Wert". It should say how many have the entity but another type (e.g. "11 IfcWindow, keiner mit benutzerdefiniertem Typ").
 
 ### Results
 
 - [x] Text report in the GUI and the CLI.
 - [ ] Summary table across several LOINs.
-- [ ] Show all checked elements: the GUI currently stops at 20 tabs without saying so ([`ElementUI.java:382`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/ElementUI.java#L382)).
+- [ ] Show all checked elements: the GUI currently stops at 20 tabs without saying so ([`ElementUI.java:437`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/ElementUI.java#L437)).
 - [ ] Report header with the model, the LOIN version and the date.
-- [ ] CLI: JSON output and an exit code.
+- [ ] CLI: JSON output, and an exit code other than 0 when requirements fail. Load errors (1) and unknown arguments (2) already have one.
 - [ ] Disable "Validate LOIN" while a check runs; a double-click currently starts a second check.
 
 ### Front ends and quality
 
 - [x] Headless CLI: `runLoinCheck`.
-- [ ] GUI cleanup: window size (STATUS #5), "BIM Portal" button (STATUS #4), chat placeholder (STATUS #3), the leftover class filter. The class filter's tabs still read IFC2X3 only and through the unreliable inverse relations (`ElementUI.createObjectTab`).
+- [x] Window size: the GUI opens at 1280x900 (STATUS #5).
+- [ ] GUI cleanup: "BIM Portal" button (STATUS #4), chat placeholder (STATUS #3), the leftover class filter. The class filter's tabs still read IFC2X3 only and through the unreliable inverse relations (`ElementUI.createObjectTab`).
 - [ ] MCP server (later).
 - [x] Tests for the `ids` package ([`src/test/java/com/bimportal/hackathon/ids/`](../bim-portal/Java_client/hackathon-template/src/test/java/com/bimportal/hackathon/ids)), with real portal exports as test files ([`src/test/resources/ids/portal/`](../bim-portal/Java_client/hackathon-template/src/test/resources/ids/portal/README.md)).
 - [x] Tests for reading IFC ([`src/test/java/test/fx/`](../bim-portal/Java_client/hackathon-template/src/test/java/test/fx)): small case files of our own per schema ([`make_ifc_fixtures.py`](../bim-portal/Java_client/hackathon-template/src/test/python/make_ifc_fixtures.py)), the bundled model, and sample models that `gradlew :hackathon-template:downloadTestModels` fetches into the ignored `test-models/` (about 5 MB, list in [`samples.properties`](../bim-portal/Java_client/hackathon-template/src/test/resources/ifc/samples.properties)).

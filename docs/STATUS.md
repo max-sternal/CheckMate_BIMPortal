@@ -12,10 +12,10 @@ What is being worked on and what is still open. One line per item. Reference cod
    - Move the driver out of `.claude/skills/run-checkmate/` into `hackathon-template/src/test/java/com/bimportal/hackathon/devtools/CheckMateGuiDriver.java`, add a `runGuiDriver` Gradle task, and have the driver use those constants.
 
    The driver then compiles with the app, and `driver-classpath.init.gradle` is no longer needed.
-2. "Load IFC" has no handler (`ElementUI.java:104`). The model can only be changed through `CHECKMATE_IFC` or `-Dcheckmate.ifc`.
+2. Done (2026-11-20): "Load IFC" opens a file, "Load IFC link" a link (GitHub file links and `.ifczip` included).
 3. "Connect MCP" has no handler (`ElementUI.java:112`). The LLM chat from the pitch is not implemented.
 4. "BIM Portal" opens a placeholder URL, `https://bimportal.com` (`ElementUI.java:94`).
-5. The default window size of 600x900 (`App.java:21`) cuts off the tab pane and the chat panel.
+5. Done (2026-11-20): the window opens at 1280x900, which fits the whole layout.
 
 ### LOIN check
 

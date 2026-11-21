@@ -94,12 +94,17 @@ so `grep '^>>'` gives just the driver's view. Then Read the PNG and look at it.
 Relative `ss` paths resolve against `bim-portal/Java_client` (drive.sh `cd`s there). Keep
 them under `hackathon-template/build/`, which git ignores (`*.png` is not ignored).
 
-To use a different model, set `CHECKMATE_IFC` in the shell to an absolute path (the log then
-says `Reading IFC model from ...`). From the repo root:
+To use a different model, set `CHECKMATE_IFC` in the shell to an absolute path or a link
+(`.ifc` or `.ifczip`; a GitHub file link works as copied from the browser). The report panel's
+first line names the model in use. From the repo root:
 
 ```bash
 CHECKMATE_IFC="$PWD/bim-portal/Java_client/hackathon-template/src/main/resources/ifc/bruecke-tbw1-mit-merkmalen.ifc" .claude/skills/run-checkmate/drive.sh "idle" "report"
+CHECKMATE_IFC="https://github.com/ibpsa/project1-wp-2-2-bim/blob/master/IFC_Files/MISC/AC20-FZK-Haus.ifc" .claude/skills/run-checkmate/drive.sh "idle 90" "report"
 ```
+
+If `CHECKMATE_IFC` can't be read, the app shows an error dialog before the window opens and
+then starts with the bundled model. The dialog blocks the driver, so check the path first.
 
 ## Run: headless LOIN check (no window)
 
@@ -108,7 +113,12 @@ Run it from `bim-portal/Java_client/`:
 
 ```bash
 JAVA_TOOL_OPTIONS="-Dstdout.encoding=UTF-8" ./gradlew -q --console=plain :hackathon-template:runLoinCheck --args="Kappe"
+JAVA_TOOL_OPTIONS="-Dstdout.encoding=UTF-8" ./gradlew -q --console=plain :hackathon-template:runLoinCheck --args="--model test-models/ifc4/Infra-Bridge.ifc Ueberbau > Schaft"
 ```
+
+`--model` takes a path or a link; a relative path is relative to `hackathon-template/`. The
+search term may have several words. Exit code 1 means the model couldn't be read, 2 an unknown
+argument.
 
 ## Run (human path)
 
@@ -148,8 +158,7 @@ skipped (an `assumeTrue` guard). Results are in `hackathon-template/build/test-r
 - **Some non-21 JDKs also bundle JavaFX** (e.g. Zulu 17 FX). A JavaFX check alone accepts them,
   and Gradle then dies with `invalid source release: 21`. drive.sh also checks
   `JAVA_VERSION="21` in `$JAVA_HOME/release`.
-- **The default window (600x900) clips the layout.** The tab pane and chat panel are cut off.
-  Run `size 1400 950` before `ss`.
+- **The window opens at 1280x900**, which fits the whole layout; `size` only for other sizes.
 - **Take screenshots with `ss`, not desktop capture.** `ss` renders the scene graph, so it
   works even when the window is covered. Capturing the screen region via
   `GetWindowRect` + `CopyFromScreen` from PowerShell grabbed the wrong area: the coordinates are
@@ -157,9 +166,9 @@ skipped (an `assumeTrue` guard). Results are in `hackathon-template/build/test-r
 - **Closing the window shuts the FX toolkit down** (implicit exit). After that,
   `Platform.runLater` never runs. The driver tracks the window's showing state and fails fast
   with "the window was closed" instead of hanging.
-- **Buttons that do nothing useful.** `Load IFC` and `Connect MCP` have no handler.
-  `BIM Portal` opens a browser at a placeholder URL (`https://bimportal.com`), so don't click
-  it in automation.
+- **Buttons not to click in automation.** `Load IFC` opens a file dialog and `Load IFC link` a
+  text dialog; the driver can't operate either, so set `CHECKMATE_IFC` instead. `BIM Portal`
+  opens a browser at a placeholder URL (`https://bimportal.com`). `Connect MCP` has no handler.
 - **`.env` vars are not exported to drive.sh's JVM.** Only Gradle `JavaExec` tasks copy `.env`
   into the environment, and `IfcResources` reads `CHECKMATE_IFC` from `System.getenv` only. So
   export it in the shell. Credentials still work because `ConfigLoader` finds `.env` itself

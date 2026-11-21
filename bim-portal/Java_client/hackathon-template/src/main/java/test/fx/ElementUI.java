@@ -4,7 +4,6 @@ import com.apstex.ifctoolbox.ifc.IfcBuildingElement;
 import com.apstex.ifctoolbox.ifc.IfcPropertySet;
 import com.apstex.ifctoolbox.ifc.IfcPropertySetDefinition;
 import com.apstex.ifctoolbox.ifc.IfcRelDefines;
-import com.apstex.ifctoolbox.ifcmodel.IfcModel;
 import com.apstex.step.core.ClassInterface;
 import com.bimportal.client.model.LoinForPublicRequest;
 import com.bimportal.client.model.SimpleLoinPublicDto;
@@ -16,6 +15,7 @@ import com.bimportal.hackathon.ids.LoinIdsCheck;
 import com.bimportal.hackathon.ids.ModelElement;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,11 +33,13 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 
 public class ElementUI extends VBox {
 
@@ -50,13 +52,11 @@ public class ElementUI extends VBox {
   /** Bound on element tabs, so a specification applying to the whole model stays navigable. */
   private static final int MAX_ELEMENT_TABS = 20;
 
-  /** The model as the LOIN check sees it - read once, it does not change while the GUI is open. */
-  private final List<ModelElement> modelElements;
-
-  /** The same elements by id, to get from a finding back to the element it is about. */
-  private final Map<String, ModelElement> elementsById;
-
-  private final String modelSchema;
+  /**
+   * The model the LOIN check runs against. Replaced as a whole when another one is loaded; a check
+   * already running keeps the one it started with.
+   */
+  private LoadedModel model;
 
   private final ListView<SimpleLoinPublicDto> loinView = new ListView<>();
 
@@ -64,22 +64,16 @@ public class ElementUI extends VBox {
 
   private final TextArea reportArea = new TextArea();
 
-  public ElementUI(IfcModel apModel) {
+  public ElementUI(LoadedModel model) {
     super();
-    this.modelElements = IfcModelElements.from(apModel);
-    this.modelSchema = IfcModelElements.schemaOf(apModel);
-    this.elementsById =
-        modelElements.stream()
-            .collect(
-                Collectors.toMap(
-                    ModelElement::id, element -> element, (first, duplicate) -> first));
+    this.model = model;
     this.setSpacing(10);
     this.setFillWidth(true);
-    this.buildGUI(apModel);
+    this.buildGUI();
   }
 
   /** Build the main GUI layout with filter input and tab pane for IFC objects. */
-  private void buildGUI(IfcModel apModel) {
+  private void buildGUI() {
 
     // UI Components:
     TextField filterField = new TextField();
@@ -101,9 +95,14 @@ public class ElementUI extends VBox {
 
     bimPortalButton.setStyle(
         "-fx-font-size: 16px; -fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20;");
+    // Two ways to a model: a file on this machine, or a link (a GitHub file link works too).
     Button loadIfcButton = new Button("Load IFC");
+    loadIfcButton.setOnAction(e -> chooseModelFile());
     loadIfcButton.setStyle(
         "-fx-font-size: 16px; -fx-background-color: #388e3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20;");
+    Button loadIfcLinkButton = new Button("Load IFC link");
+    loadIfcLinkButton.setOnAction(e -> askModelLink());
+    loadIfcLinkButton.setStyle(loadIfcButton.getStyle());
     Button validateLoinButton = new Button("Validate LOIN");
     validateLoinButton.setOnAction(e -> validateSelectedLoin());
 
@@ -121,7 +120,13 @@ public class ElementUI extends VBox {
         "-fx-font-size: 16px; -fx-background-color: #1976d2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20;");
 
     HBox buttonsBox =
-        new HBox(10, bimPortalButton, loadIfcButton, validateLoinButton, connectMcpButton);
+        new HBox(
+            10,
+            bimPortalButton,
+            loadIfcButton,
+            loadIfcLinkButton,
+            validateLoinButton,
+            connectMcpButton);
     buttonsBox.setSpacing(10);
     buttonsBox.setStyle("-fx-alignment: center;");
 
@@ -217,7 +222,7 @@ public class ElementUI extends VBox {
     Consumer<String> updateTabs =
         (filter) -> {
           tabPane.getTabs().clear();
-          apModel.getObjects().stream()
+          model.ifc().getObjects().stream()
               .filter(obj -> obj.getClassName().equalsIgnoreCase(filter))
               .map(this::createObjectTab)
               .forEach(tabPane.getTabs()::add);
@@ -304,7 +309,55 @@ public class ElementUI extends VBox {
 
   /** What the check is run against, for the top of the report panel. */
   private String modelLine() {
-    return "Modell: Schema " + modelSchema + ", " + modelElements.size() + " Objekte";
+    return "Modell: " + model.summary();
+  }
+
+  /** Let the user pick an IFC file on this machine and load it. */
+  private void chooseModelFile() {
+    FileChooser chooser = new FileChooser();
+    chooser.setTitle("IFC-Modell öffnen");
+    chooser
+        .getExtensionFilters()
+        .addAll(
+            new FileChooser.ExtensionFilter("IFC-Modelle", "*.ifc", "*.ifczip"),
+            new FileChooser.ExtensionFilter("Alle Dateien", "*.*"));
+    File file = chooser.showOpenDialog(getScene().getWindow());
+    if (file != null) {
+      loadModel(file.getPath());
+    }
+  }
+
+  /** Ask for a link to an IFC file and load it. */
+  private void askModelLink() {
+    TextInputDialog dialog = new TextInputDialog();
+    dialog.setTitle("<CheckMate>");
+    dialog.setHeaderText("IFC-Modell aus einem Link laden (.ifc oder .ifczip)");
+    dialog.setContentText("Link, z. B. zu einer Datei auf GitHub:");
+    dialog.getEditor().setPrefColumnCount(50);
+    dialog
+        .showAndWait()
+        .map(String::trim)
+        .filter(link -> !link.isEmpty())
+        .ifPresent(this::loadModel);
+  }
+
+  /**
+   * Read a model from a path or a link and make it the one the checks run against.
+   *
+   * <p>In the background: a download or a large model would otherwise freeze the window. The
+   * element tabs belong to the old model, so they go.
+   */
+  private void loadModel(String source) {
+    reportArea.setText("Lade Modell " + source + " ...");
+    inBackground(
+        () -> LoadedModel.read(source),
+        loaded -> {
+          model = loaded;
+          tabPane.getTabs().clear();
+          reportArea.setText(
+              modelLine()
+                  + "\nLOIN links auswählen und 'Validate LOIN' drücken (oder doppelklicken).");
+        });
   }
 
   /** Check the model against the selected LOIN, then show the report and the elements it is about. */
@@ -314,14 +367,15 @@ public class ElementUI extends VBox {
       reportArea.setText("Keine LOIN ausgewählt.");
       return;
     }
-    reportArea.setText("Prüfe Modell gegen '" + selected.getName() + "' ...");
+    LoadedModel checked = model;
+    reportArea.setText("Prüfe " + checked.name() + " gegen '" + selected.getName() + "' ...");
 
     inBackground(
-        () -> check(selected),
-        checked -> {
-          reportArea.setText(checked.report());
-          if (checked.result() != null) {
-            showCheckedElements(checked.result());
+        () -> check(selected, checked),
+        outcome -> {
+          reportArea.setText("Modell: " + checked.summary() + "\n" + outcome.report());
+          if (outcome.result() != null) {
+            showCheckedElements(outcome.result(), checked);
           }
         });
   }
@@ -338,10 +392,11 @@ public class ElementUI extends VBox {
    *
    * <p>Called off the FX thread: this exports an IDS from the portal and walks every element.
    */
-  private Checked check(SimpleLoinPublicDto loin) {
+  private Checked check(SimpleLoinPublicDto loin, LoadedModel against) {
     EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
     try {
-      CheckResult result = LoinIdsCheck.check(client, loin.getGuid(), modelSchema, modelElements);
+      CheckResult result =
+          LoinIdsCheck.check(client, loin.getGuid(), against.schema(), against.elements());
       return new Checked(String.join("\n", result.report()), result);
     } catch (Exception e) {
       // The portal not holding an IDS for a LOIN, or none for this schema, is an ordinary
@@ -359,7 +414,7 @@ public class ElementUI extends VBox {
    * so the pane always answers "which elements is the verdict below about", instead of standing on
    * an unrelated class filter.
    */
-  private void showCheckedElements(CheckResult result) {
+  private void showCheckedElements(CheckResult result, LoadedModel checked) {
     tabPane.getTabs().clear();
 
     if (result.notApplicable()) {
@@ -369,7 +424,7 @@ public class ElementUI extends VBox {
             "[Wert passt bei " + nearMiss.matchedFacets() + " von " + nearMiss.totalFacets()
                 + " Facetten] nicht ausgewählt");
         nearMiss.divergences().forEach(divergence -> lines.add("[Abweichung] " + divergence));
-        tabPane.getTabs().add(elementTab(nearMiss.elementId(), lines));
+        tabPane.getTabs().add(elementTab(checked, nearMiss.elementId(), lines));
       }
     } else {
       Map<String, List<Finding>> byElement =
@@ -386,6 +441,7 @@ public class ElementUI extends VBox {
             .getTabs()
             .add(
                 elementTab(
+                    checked,
                     entry.getKey(),
                     entry.getValue().stream().map(Finding::requirementLine).toList()));
       }
@@ -403,8 +459,8 @@ public class ElementUI extends VBox {
   }
 
   /** One tab per element: what the check said about it, then the merkmale it carries. */
-  private Tab elementTab(String elementId, List<String> verdict) {
-    ModelElement element = elementsById.get(elementId);
+  private Tab elementTab(LoadedModel checked, String elementId, List<String> verdict) {
+    ModelElement element = checked.elementsById().get(elementId);
 
     List<String> lines = new ArrayList<>(verdict);
     if (element != null) {
@@ -456,8 +512,8 @@ public class ElementUI extends VBox {
   /**
    * Run work off the FX thread and hand the result back on it.
    *
-   * <p>Both the LOIN search and the check talk to the portal, which would otherwise freeze the
-   * window for as long as the request takes.
+   * <p>The LOIN search and the check talk to the portal, and loading a model may download one;
+   * each would otherwise freeze the window for as long as it takes.
    */
   private <T> void inBackground(Callable<T> work, Consumer<T> onSuccess) {
     Task<T> task =
@@ -468,11 +524,22 @@ public class ElementUI extends VBox {
           }
         };
     task.setOnSucceeded(e -> onSuccess.accept(task.getValue()));
-    task.setOnFailed(e -> reportArea.setText("Fehlgeschlagen: " + task.getException()));
+    task.setOnFailed(e -> reportArea.setText(failure(task.getException())));
 
     Thread worker = new Thread(task, "checkmate-worker");
     worker.setDaemon(true);
     worker.start();
+  }
+
+  /**
+   * A failure for the report panel. A model that could not be loaded says why in its own words;
+   * the model that was loaded before stays in use, and the panel says so.
+   */
+  private String failure(Throwable error) {
+    if (error instanceof ModelLoadException load) {
+      return load.getMessage() + "\n\nWeiterhin geladen: " + model.summary();
+    }
+    return "Fehlgeschlagen: " + error;
   }
 
   /** Create a Tab for a given IFC object, displaying its properties and quantities. */
