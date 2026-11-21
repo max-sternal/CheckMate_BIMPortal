@@ -133,7 +133,10 @@ public class CheckMateDriver {
         case "search" -> search(arg);
         case "ids" -> ids(arg);
         case "loins" -> loins(arg);
-        case "select" -> select(arg);
+        case "select" -> select(arg, false);
+        case "add" -> select(arg, true);
+        case "filter" -> filter(arg);
+        case "showall" -> showAll(arg);
         case "click" -> click(arg);
         case "tabs" -> tabs();
         case "tab" -> tab(arg);
@@ -169,7 +172,11 @@ public class CheckMateDriver {
             "search <term>     server-side LOIN search (empty = whole catalogue); follow with idle",
             "ids <file>        read a local IDS file and check it, as 'Load IDS' does after its dialog",
             "loins [n|text]    list the first n LOINs (default 20) or those containing text, with index",
-            "select <i|text>   select a LOIN by index or by name substring",
+            "select <i|text>   select one entry by index or by name substring (it gets described)",
+            "add <i|text>      add an entry to the selection, to check several at once",
+            "filter <which> <text>  choose a filter value: which = fachmodell|phase|anwendungsfall,",
+            "                  text = part of the value, or 'alle'",
+            "showall on|off    tick or untick 'alle anzeigen, auch nicht passende'",
             "click <label>     fire a button: 'Validate LOIN', 'Filter', ... (BIM Portal opens a browser)",
             "tabs              list the element tabs in the middle pane",
             "tab <i|text>      select an element tab and print its lines",
@@ -255,14 +262,74 @@ public class CheckMateDriver {
         });
   }
 
-  static void select(String arg) throws Exception {
+  /** Select an entry, alone or in addition to the ones already selected. */
+  static void select(String arg, boolean add) throws Exception {
     fx(
         () -> {
           ListView<?> list = loinList();
           int index = indexOf(list.getItems(), arg);
-          list.getSelectionModel().select(index);
+          if (add) {
+            list.getSelectionModel().select(index);
+          } else {
+            list.getSelectionModel().clearAndSelect(index);
+          }
           list.scrollTo(index);
-          say("selected " + index + ": " + name(list.getItems().get(index)));
+          say((add ? "added " : "selected ") + index + ": " + name(list.getItems().get(index))
+              + " (" + list.getSelectionModel().getSelectedItems().size() + " selected)");
+          return null;
+        });
+  }
+
+  /**
+   * Choose a value in one of the catalogue filters. The filters are the combo boxes whose first
+   * item is "alle ..."; which one, the word after "alle" tells (Fachmodelle, Leistungsphasen,
+   * Anwendungsfälle).
+   */
+  static void filter(String arg) throws Exception {
+    int space = arg.indexOf(' ');
+    if (space < 0) {
+      throw new IllegalArgumentException("filter <fachmodell|phase|anwendungsfall> <text|alle>");
+    }
+    String which = arg.substring(0, space).toLowerCase(Locale.ROOT);
+    String text = arg.substring(space + 1).strip().toLowerCase(Locale.ROOT);
+    fx(
+        () -> {
+          javafx.scene.control.ComboBox<?> box =
+              find(
+                  javafx.scene.control.ComboBox.class,
+                  c -> !c.getItems().isEmpty()
+                      && String.valueOf(c.getItems().get(0)).toLowerCase(Locale.ROOT)
+                          .contains(which.substring(0, Math.min(5, which.length()))),
+                  "filter '" + which + "'");
+          @SuppressWarnings("unchecked")
+          javafx.scene.control.ComboBox<Object> filter = (javafx.scene.control.ComboBox<Object>) box;
+          for (Object item : filter.getItems()) {
+            String value = String.valueOf(item);
+            if (value.toLowerCase(Locale.ROOT).contains(text)) {
+              filter.setValue(item);
+              say("filter " + which + " = " + value);
+              return null;
+            }
+          }
+          throw new IllegalArgumentException(
+              "no value containing '" + text + "' among " + filter.getItems().size());
+        });
+  }
+
+  /** Tick or untick the check box that shows also the LOINs not fitting the model. */
+  static void showAll(String arg) throws Exception {
+    boolean on = arg.equalsIgnoreCase("on");
+    fx(
+        () -> {
+          javafx.scene.control.CheckBox box =
+              find(
+                  javafx.scene.control.CheckBox.class,
+                  c -> c.getText() != null && c.getText().startsWith("alle anzeigen"),
+                  "check box 'alle anzeigen'");
+          if (box.isSelected() != on) {
+            box.fire();
+          }
+          say("alle anzeigen: " + (box.isSelected() ? "on" : "off"));
           return null;
         });
   }

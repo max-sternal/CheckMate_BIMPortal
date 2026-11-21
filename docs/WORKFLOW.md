@@ -76,13 +76,27 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
      object type, discipline, construction type, phases, use cases, organisation and version.
   2. Filter by context: discipline and phase, optionally use case. The portal can't filter by
      these itself, so this happens in CheckMate.
-  3. Sort by fit: the most promising LOINs first, by how well each LOIN's object type matches the
-     model's classification values and entity names. LOINs that don't fit are hidden behind "alle
-     anzeigen". The search stays available.
-  4. Clicking a LOIN shows a short description from the portal's detail of that one LOIN (about
-     8 KB): object type, IFC class, the properties it asks for, phases and use cases. The reader
-     decides from that whether it makes sense.
-  5. Several LOINs can be selected. Only the selected ones are downloaded and checked.
+  3. Sort by fit: the most promising LOINs first. A LOIN fits when its object type (e.g.
+     `Kappe`, or a part of `Stütze - Pfeiler`) occurs in the model: as a classification value
+     (`Objekttyp`, `Objektklasse`, `Objektgruppe`, `_IDEbene1..n`, a user-defined type) or, weaker,
+     as a word of an element's name. Compared without case and with umlauts written out. Elements
+     that also carry the LOIN's group (the part of its name before `>`) put it ahead of others of
+     the same object type. The list shows the count, e.g. "6 Element(e) mit 'Lager' in der
+     Klassifizierung, 6 davon in Gruppe 'Lager'". LOINs that don't fit are hidden behind "alle
+     anzeigen"; when none fits, all are shown. The search stays available.
+  4. Clicking a LOIN shows a short description: name, version, organisation, object type,
+     discipline, phases, use cases, its fit, and from its IDS file what it selects by, what it
+     asks for and how many elements of the model it would apply to. That one IDS file (about
+     11 KB) is downloaded for this and kept for the check. The portal's LOIN detail would be the
+     natural source, but the generated client loses its IFC classes and property names.
+  5. Several LOINs can be selected (Ctrl/Shift) and checked in one go. Only what was clicked or
+     selected is downloaded.
+- Main classes: [`CatalogueEntry`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/catalogue/CatalogueEntry.java),
+  [`CatalogueFilter`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/catalogue/CatalogueFilter.java),
+  [`ModelFit`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/catalogue/ModelFit.java),
+  [`LoinDescription`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/catalogue/LoinDescription.java).
+  CLI: `--suggest` lists the fitting LOINs with their IDs, `--discipline`, `--phase` and
+  `--purpose` filter.
 
 ### 2.4 Check
 
@@ -125,7 +139,10 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
   the `description` is empty for all but 51. The search only filters by name text, not by these
   fields (measured 2026-11-21).
 - The detail of one LOIN (`GET /loin/{guid}`, about 8 KB) adds the IFC class (`dataFormats`), the
-  required properties by name, the classification it selects by, use cases and dates.
+  required properties by name, the classification it selects by, use cases and dates. The
+  generated client loses part of it: `dataFormats` arrive as `null` (the portal writes
+  `"@class": "ifc"`, the client expects `IFCDto`), and the property groups come without their
+  properties.
 - One LOIN's IDS file is about 11 KB and takes about 0.5 s. It is valid IDS 1.0, with one
   specification per schema (IFC2X3, IFC4, IFC4X3_ADD2). It uses only a small part of IDS: property
   facets with fixed values, and entity facets (name, sometimes `predefinedType`). It contains all
@@ -197,10 +214,13 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 
 ### Choose the LOINs
 
-- [ ] Context filters for discipline, phase and use case. The GUI currently drops this metadata.
-- [ ] Sort the catalogue by fit to the model, from the metadata alone.
-- [ ] A short description of a LOIN on click, from the portal's detail of that LOIN.
-- [ ] Select several LOINs and check them in one go; only the selected ones are downloaded.
+- [x] Context filters for discipline, phase and use case (GUI: three lists with the values the catalogue holds; CLI: `--discipline`, `--phase`, `--purpose`, a part of the value is enough).
+- [x] Sort the catalogue by fit to the model, from the metadata alone. On the bundled bridge 103 of 1,568 LOINs fit, 59 with the filters LPH 5 and Ingenieurbau; the first are "Bewehrung", "Gruendung", "Widerlager" and "Lager".
+- [x] A short description of a LOIN on click, including how many elements its requirements would apply to.
+- [x] Select several LOINs and check them in one go; only what is clicked or selected is downloaded, once per session.
+- [x] CLI: `--suggest` lists the fitting LOINs with their IDs, without downloading any.
+- [ ] Cache the LOIN list between starts (3 MB, about 7 s at every start).
+- [ ] Building models with English or no names: nothing fits by object type there (e.g. the buildingSMART samples). The IFC class of each LOIN would help, but only the LOIN detail has it, and the client loses it (section 3).
 
 ### Check
 
@@ -220,7 +240,7 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 ### Results
 
 - [x] Text report in the GUI and the CLI.
-- [ ] Summary table across several LOINs. So far: with several specifications, the report starts with a tally ("36 Spezifikation(en) für IFC4: 36 nicht erfüllt") and one line per specification with its verdict (erfüllt, nicht erfüllt, erfüllt (soweit ausgewertet), nicht prüfbar).
+- [ ] Summary table across several LOINs. So far: with several specifications or selected LOINs, the report starts with a tally ("36 Spezifikation(en) für IFC4: 36 nicht erfüllt") and one line per specification with its verdict (erfüllt, nicht erfüllt, erfüllt (soweit ausgewertet), nicht prüfbar).
 - [x] All checked elements: 20 get a tab each, with what every specification said about them; one more tab lists the rest with how many lines are open.
 - [ ] Report header: the model, the requirements' name, version and source are there; the date is missing.
 - [ ] CLI: JSON output, and an exit code other than 0 when requirements fail. Already: 1 when the model or any requirements can't be read or checked, 2 for unknown arguments.
@@ -253,3 +273,6 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
   short description on click). Requirements are downloaded only for the LOINs selected for a
   check, never for the whole catalogue or a candidate list. The earlier plan of an exact
   applicability test on downloaded candidates is dropped.
+- 2026-11-21, the description on click comes from the clicked LOIN's IDS file, not the portal's
+  detail: one download per click, reused for the check, and it can say how many elements the
+  LOIN would apply to.

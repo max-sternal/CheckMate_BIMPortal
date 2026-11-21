@@ -2,6 +2,10 @@ package test.fx;
 
 import com.bimportal.client.model.SimpleAiaProjectPublicDto;
 import com.bimportal.client.model.SimpleLoinPublicDto;
+import com.bimportal.hackathon.catalogue.CatalogueEntry;
+import com.bimportal.hackathon.catalogue.CatalogueFilter;
+import com.bimportal.hackathon.catalogue.ModelFit;
+import com.bimportal.hackathon.catalogue.ModelFit.Ranked;
 import com.bimportal.hackathon.ids.CheckResult;
 import com.bimportal.hackathon.ids.IdsDocument;
 import com.bimportal.hackathon.ids.IdsParser;
@@ -26,6 +30,7 @@ import java.util.function.Supplier;
  *   ./gradlew :hackathon-template:runLoinCheck --args="--loin be959b9d-daef-5315-9aba-f60b6ad54ccb"
  *   ./gradlew :hackathon-template:runLoinCheck --args="--aia e6f69257-dfda-441b-97bb-e9df44c5cf8b"
  *   ./gradlew :hackathon-template:runLoinCheck --args="--ids anforderungen.ids"
+ *   ./gradlew :hackathon-template:runLoinCheck --args="--suggest --phase LPH 5"
  *   ./gradlew :hackathon-template:runLoinCheck --args="--model test-models/ifc4/Bridge.ifc Kappe"
  *   ./gradlew :hackathon-template:runLoinCheck --args="--model https://github.com/o/r/blob/a.ifc"
  *   CHECKMATE_IFC=/models/bruecke.ifc ./gradlew :hackathon-template:runLoinCheck --args="Kappe"
@@ -38,6 +43,12 @@ import java.util.function.Supplier;
  * the search term is "Kappe". A search term holding an ID counts as {@code --loin}, as in the GUI;
  * any other finds AIA projects and LOINs. A relative path is relative to {@code
  * hackathon-template/}, where Gradle runs the task.
+ *
+ * <p>{@code --suggest} checks nothing and downloads no requirements: it lists the catalogue's
+ * LOINs whose object type occurs in the model, best first, with their IDs to pass to {@code
+ * --loin}. {@code --discipline}, {@code --phase} and {@code --purpose} narrow that list, and the
+ * LOINs a search checks, by the catalogue's metadata; a part of the value is enough ({@code LPH
+ * 5}). Without a search term, {@code --suggest} goes through the whole catalogue.
  *
  * <p>Exit code 1 when the model or any of the requirements cannot be read or checked (no such
  * LOIN or project, no IDS file to download, a file that is not IDS, no specification for the
@@ -54,7 +65,9 @@ public final class LoinCheckCli {
 
   private static final String USAGE =
       "Aufruf: runLoinCheck --args=\"[--model <IFC-Datei oder Link>] [--loin <LOIN-ID oder Link>]"
-          + " [--aia <AIA-Projekt-ID oder Link>] [--ids <IDS-Datei oder ZIP>] [Suchbegriff ...]\"\n"
+          + " [--aia <AIA-Projekt-ID oder Link>] [--ids <IDS-Datei oder ZIP>] [--suggest]"
+          + " [--discipline <Fachmodell>] [--phase <Leistungsphase>] [--purpose <Anwendungsfall>]"
+          + " [Suchbegriff ...]\"\n"
           + "--loin, --aia und --ids dürfen mehrfach stehen.";
 
   private LoinCheckCli() {}
@@ -67,17 +80,40 @@ public final class LoinCheckCli {
    * @param portalIds IDs of LOINs or AIA projects, or texts holding one, such as links copied from
    *     the portal
    * @param idsFiles paths of local IDS files or ZIPs of them
-   * @param search the search term; null when the requirements are given by ID or file only
+   * @param search the search term; null when the requirements are given by ID or file only;
+   *     empty for the whole catalogue
+   * @param suggest list the fitting LOINs instead of checking the search's
+   * @param filter the context the LOINs of a search or suggestion have to fit
    */
-  record Arguments(String model, List<String> portalIds, List<String> idsFiles, String search) {
+  record Arguments(
+      String model,
+      List<String> portalIds,
+      List<String> idsFiles,
+      String search,
+      boolean suggest,
+      CatalogueFilter filter) {
+
+    /** Arguments that check, without filters. */
+    Arguments(String model, List<String> portalIds, List<String> idsFiles, String search) {
+      this(model, portalIds, idsFiles, search, false, CatalogueFilter.ANY);
+    }
 
     static Arguments parse(String... args) {
       String model = null;
       List<String> portalIds = new ArrayList<>();
       List<String> idsFiles = new ArrayList<>();
       List<String> words = new ArrayList<>();
+      boolean suggest = false;
+      String discipline = null;
+      String phase = null;
+      String purpose = null;
       for (int i = 0; i < args.length; i++) {
         switch (args[i]) {
+          case "--suggest" -> suggest = true;
+          case "--discipline" ->
+              discipline = value(args, ++i, "--discipline braucht ein Fachmodell.");
+          case "--phase" -> phase = value(args, ++i, "--phase braucht eine Leistungsphase.");
+          case "--purpose" -> purpose = value(args, ++i, "--purpose braucht einen Anwendungsfall.");
           case "--model" ->
               model = value(args, ++i, "--model braucht eine IFC-Datei oder einen Link.");
           case "--loin" ->
@@ -104,10 +140,18 @@ public final class LoinCheckCli {
         } else {
           search = text;
         }
+      } else if (suggest) {
+        search = "";
       } else if (portalIds.isEmpty() && idsFiles.isEmpty()) {
         search = DEFAULT_SEARCH;
       }
-      return new Arguments(model, List.copyOf(portalIds), List.copyOf(idsFiles), search);
+      return new Arguments(
+          model,
+          List.copyOf(portalIds),
+          List.copyOf(idsFiles),
+          search,
+          suggest,
+          new CatalogueFilter(discipline, phase, purpose));
     }
 
     private static boolean containsId(String text) {
@@ -165,8 +209,10 @@ public final class LoinCheckCli {
         for (String id : arguments.portalIds()) {
           allRead &= report(id, () -> PortalRequirements.requirements(client, id), model);
         }
-        if (arguments.search() != null) {
-          allRead &= search(client, arguments.search(), model);
+        if (arguments.suggest()) {
+          suggest(client, arguments.search(), arguments.filter(), model);
+        } else if (arguments.search() != null) {
+          allRead &= search(client, arguments.search(), arguments.filter(), model);
         }
       } finally {
         client.logout();
@@ -176,19 +222,62 @@ public final class LoinCheckCli {
   }
 
   /**
-   * Check the model against every AIA project and LOIN a search finds, projects first.
+   * List the catalogue's LOINs that fit the model, best first, without downloading any.
+   *
+   * <p>Each line starts with the ID, so it can be passed to {@code --loin} as it is.
+   */
+  private static void suggest(
+      EnhancedBimPortalClient client, String term, CatalogueFilter filter, LoadedModel model) {
+    List<CatalogueEntry> found =
+        PortalRequirements.search(client, term).stream().map(CatalogueEntry::of).toList();
+    List<CatalogueEntry> filtered = filter.apply(found);
+    List<Ranked> ranked = ModelFit.of(model.elements()).rank(filtered);
+    long fitting = ranked.stream().filter(r -> r.fit().fits()).count();
+    System.out.println(
+        (term.isBlank() ? "Katalog" : "Suche '" + term + "'")
+            + ": "
+            + found.size()
+            + " LOIN(s)"
+            + (filter.isAny() ? "" : ", " + filtered.size() + " nach Filter")
+            + ", "
+            + fitting
+            + " passend zum Modell\n");
+    if (fitting == 0) {
+      System.out.println("Kein Objekttyp dieser LOINs kommt im Modell vor. Die ersten 20:\n");
+    }
+    ranked.stream()
+        .filter(r -> fitting == 0 || r.fit().fits())
+        .limit(fitting == 0 ? 20 : Long.MAX_VALUE)
+        .forEach(
+            r ->
+                System.out.println(
+                    r.entry().guid()
+                        + "  "
+                        + r.entry().name()
+                        + (r.fit().fits() ? "  -  " + r.fit().describe() : "")));
+    System.out.println("\nPrüfen mit: runLoinCheck --args=\"--loin <ID> [--loin <ID> ...]\"");
+  }
+
+  /**
+   * Check the model against every AIA project and LOIN a search finds, projects first. The filter
+   * narrows the LOINs.
    *
    * @return false when any of them could not be read or checked
    */
-  private static boolean search(EnhancedBimPortalClient client, String term, LoadedModel model) {
+  private static boolean search(
+      EnhancedBimPortalClient client, String term, CatalogueFilter filter, LoadedModel model) {
     List<SimpleAiaProjectPublicDto> projects = PortalRequirements.searchProjects(client, term);
-    List<SimpleLoinPublicDto> loins = PortalRequirements.search(client, term);
+    List<SimpleLoinPublicDto> found = PortalRequirements.search(client, term);
+    List<SimpleLoinPublicDto> loins =
+        found.stream().filter(loin -> filter.accepts(CatalogueEntry.of(loin))).toList();
     System.out.println(
         "Suche '"
             + term
             + "': "
-            + loins.size()
-            + " LOIN(s), "
+            + found.size()
+            + " LOIN(s)"
+            + (filter.isAny() ? "" : ", " + loins.size() + " nach Filter")
+            + ", "
             + projects.size()
             + " AIA-Projekt(e)\n");
 

@@ -85,7 +85,10 @@ so `grep '^>>'` gives just the driver's view. Then Read the PNG and look at it.
 | `search <term>` | type into the search field and press Enter (server-side search for AIA projects and LOINs, empty = all). A term holding an ID (or a link with one) fetches that LOIN or project, puts it on top of the list and checks it at once; follow with `idle`. |
 | `ids <file>` | read a local IDS file or ZIP and check it, as `Load IDS` does after its file dialog; it lands on top of the list. Follow with `idle`. |
 | `loins [n\|text]` | list the first n entries (default 20) or the ones whose label contains text, with indices. Projects from a search show as `AIA-Projekt: <name>` above the LOINs; anything by ID or file as `<title>, Version <v> (<source>)`. `select AIA-Projekt` picks the first project. |
-| `select <i\|text>` | select a LOIN by index or name substring |
+| `select <i\|text>` | select one entry by index or name substring (replaces the selection). Selecting describes the entry in the report panel; for a LOIN that downloads its IDS, so follow with `idle`. |
+| `add <i\|text>` | add an entry to the selection, to check several at once |
+| `filter <which> <text>` | choose a catalogue filter value: `which` is `fachmodell`, `phase` or `anwendungsfall`, `text` a part of the value (`filter phase LPH 5`) or `alle` |
+| `showall on\|off` | tick or untick "alle anzeigen, auch nicht passende" |
 | `click <label>` | fire a button by its text, e.g. `Validate LOIN`, `Filter` |
 | `tabs` / `tab <i\|text>` | list the element tabs in the middle pane / select one and print its lines |
 | `dump` | control tree: types, texts, prompts, item counts |
@@ -129,6 +132,12 @@ JAVA_TOOL_OPTIONS="-Dstdout.encoding=UTF-8" ./gradlew -q --console=plain :hackat
   `--loin`; any other search term finds AIA projects and LOINs.
 - With several specifications (an AIA project), a tally line comes first:
   `36 Spezifikation(en) für IFC4: 36 nicht erfüllt`.
+- `--suggest` checks nothing and downloads no requirements: it lists the catalogue's LOINs whose
+  object type occurs in the model, best first, each line starting with the ID for `--loin`.
+  `--discipline`, `--phase` and `--purpose` filter by a part of the value; they also narrow the
+  LOINs a search checks. Quote values with spaces inside `--args`:
+  `--args="--suggest --phase 'LPH 5' --discipline Ingenieurbau"`. Without quotes Gradle splits
+  them, and `5` becomes a search term.
 - Without `--loin`, `--ids` and a search term, it searches for "Kappe". The search term may have
   several words.
 - Exit code 1: the model or any of the requirements couldn't be read or checked (unknown ID, no
@@ -157,7 +166,7 @@ From `bim-portal/Java_client/`:
 ./gradlew --console=plain :hackathon-template:test
 ```
 
-152 tests as of 2026-11-21; only `BasicExampleIntegrationTest` is skipped (an `assumeTrue`
+170 tests as of 2026-11-21; only `BasicExampleIntegrationTest` is skipped (an `assumeTrue`
 guard: it needs credentials). Without the Apstex JARs the `test/fx` tests are not built, and
 without the downloaded sample models (`./gradlew :hackathon-template:downloadTestModels`) the
 tests that need them are skipped with a message. Results are in
@@ -193,6 +202,10 @@ tests that need them are skipped with a message. Results are in
 - **An ID the portal doesn't know takes about 7 s** before the report says so: the ID is looked
   up among the project list's and the catalogue's version record IDs first. Use `idle 60` after
   `search <id>`.
+- **The list shows only LOINs that fit the model** (their object type occurs in it), sorted by
+  fit, with the AIA projects above them. `showall on` shows the rest; when none fits, all are
+  shown anyway. `loins` labels end with the fit, e.g. `- 6 Element(e) mit 'Kappe' in der
+  Klassifizierung`; `select` by a part of the name still works.
 - **AIA projects are IFC4 in their combined file.** The railway project ("Beispiel-AIA Neubau
   Eisenbahnbrücke") has nothing for the bundled IFC2X3 model; use
   `CHECKMATE_IFC=$PWD/bim-portal/Java_client/hackathon-template/test-models/ifc4/Infra-Bridge.ifc`

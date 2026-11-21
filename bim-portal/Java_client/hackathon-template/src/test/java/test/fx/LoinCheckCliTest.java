@@ -3,6 +3,7 @@ package test.fx;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.bimportal.hackathon.catalogue.CatalogueFilter;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import test.fx.LoinCheckCli.Arguments;
@@ -78,6 +79,37 @@ class LoinCheckCliTest {
 
     assertThat(arguments.portalIds()).containsExactly("https://via.bund.de/bim/loin/" + KAPPE);
     assertThat(arguments.search()).isNull();
+  }
+
+  @Test
+  void suggestsFromTheWholeCatalogueUnlessATermIsGiven() {
+    Arguments whole = Arguments.parse("--suggest");
+    Arguments kappe = Arguments.parse("--suggest", "Kappe");
+
+    assertThat(whole.suggest()).isTrue();
+    assertThat(whole.search()).isEmpty();
+    assertThat(whole.needsPortal()).isTrue();
+    assertThat(kappe.search()).isEqualTo("Kappe");
+  }
+
+  @Test
+  void takesTheCatalogueFilters() {
+    Arguments arguments =
+        Arguments.parse(
+            "--suggest",
+            "--phase",
+            "LPH 5",
+            "--discipline",
+            "Ingenieurbau",
+            "--purpose",
+            "Abnahme");
+
+    assertThat(arguments.filter())
+        .isEqualTo(new CatalogueFilter("Ingenieurbau", "LPH 5", "Abnahme"));
+    assertThat(Arguments.parse("Kappe").filter().isAny()).isTrue();
+    assertThatThrownBy(() -> Arguments.parse("--phase"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("--phase");
   }
 
   @Test

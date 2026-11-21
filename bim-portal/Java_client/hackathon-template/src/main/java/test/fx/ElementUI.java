@@ -5,6 +5,11 @@ import com.apstex.ifctoolbox.ifc.IfcPropertySet;
 import com.apstex.ifctoolbox.ifc.IfcPropertySetDefinition;
 import com.apstex.ifctoolbox.ifc.IfcRelDefines;
 import com.apstex.step.core.ClassInterface;
+import com.bimportal.hackathon.catalogue.CatalogueEntry;
+import com.bimportal.hackathon.catalogue.CatalogueFilter;
+import com.bimportal.hackathon.catalogue.LoinDescription;
+import com.bimportal.hackathon.catalogue.ModelFit;
+import com.bimportal.hackathon.catalogue.ModelFit.Ranked;
 import com.bimportal.hackathon.ids.CheckResult;
 import com.bimportal.hackathon.ids.CheckResult.Finding;
 import com.bimportal.hackathon.ids.CheckResult.NearMiss;
@@ -26,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import test.fx.RequirementSource.Loaded;
@@ -34,13 +40,17 @@ import test.fx.RequirementSource.PortalProject;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
@@ -56,6 +66,10 @@ public class ElementUI extends VBox {
    */
   private static final int MAX_ELEMENT_TABS = 20;
 
+  private static final String ALL_DISCIPLINES = "alle Fachmodelle";
+  private static final String ALL_PHASES = "alle Leistungsphasen";
+  private static final String ALL_PURPOSES = "alle Anwendungsfälle";
+
   /**
    * The model the LOIN check runs against. Replaced as a whole when another one is loaded; a check
    * already running keeps the one it started with.
@@ -65,6 +79,36 @@ public class ElementUI extends VBox {
   /** What the model can be checked against: LOINs from a search, IDS files, LOINs by ID. */
   private final ListView<RequirementSource> loinView = new ListView<>();
 
+  /** The LOINs of the last search - the whole catalogue for an empty term - with their metadata. */
+  private List<CatalogueEntry> catalogue = List.of();
+
+  /** The AIA projects of the last search. */
+  private List<PortalProject> projects = List.of();
+
+  /** How the catalogue's LOINs fit the model; computed again when another model is loaded. */
+  private ModelFit fit;
+
+  /**
+   * Requirements downloaded in this session, by GUID: a LOIN that was looked at is not downloaded
+   * again for its check. Only what is looked at or checked is ever downloaded.
+   */
+  private final Map<UUID, IdsDocument> downloaded = new ConcurrentHashMap<>();
+
+  private final ComboBox<String> disciplineFilter = filterBox(ALL_DISCIPLINES);
+  private final ComboBox<String> phaseFilter = filterBox(ALL_PHASES);
+  private final ComboBox<String> purposeFilter = filterBox(ALL_PURPOSES);
+  private final CheckBox showAll = new CheckBox("alle anzeigen, auch nicht passende");
+  private final Label catalogueInfo = new Label();
+
+  /** True while the filters' choices are replaced, which must not refresh the list each time. */
+  private boolean offeringFilters;
+
+  /**
+   * Counts checks. A description still loading when a check starts is not shown over the check's
+   * report.
+   */
+  private long checks;
+
   private final TabPane tabPane = new TabPane();
 
   private final TextArea reportArea = new TextArea();
@@ -72,6 +116,7 @@ public class ElementUI extends VBox {
   public ElementUI(LoadedModel model) {
     super();
     this.model = model;
+    this.fit = ModelFit.of(model.elements());
     this.setSpacing(10);
     this.setFillWidth(true);
     this.buildGUI();
@@ -166,6 +211,8 @@ public class ElementUI extends VBox {
               protected void updateItem(RequirementSource item, boolean empty) {
                 super.updateItem(item, empty);
                 setText(empty || item == null ? null : item.label());
+                // The list is narrow; the fit after the name is often cut off.
+                setTooltip(empty || item == null ? null : new Tooltip(item.label()));
               }
             });
     loinView.setOnMouseClicked(
@@ -174,9 +221,42 @@ public class ElementUI extends VBox {
             validateSelected();
           }
         });
+    // Several LOINs can be checked together (Ctrl/Shift); the one clicked last is described.
+    loinView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+    loinView
+        .getSelectionModel()
+        .selectedItemProperty()
+        .addListener(
+            (observable, previous, item) -> {
+              if (item != null) {
+                describe(item);
+              }
+            });
     VBox.setVgrow(loinView, Priority.ALWAYS);
 
-    VBox loinBox = new VBox(10, new Label("LOINs"), loinSearchField, loinView);
+    // Choosing from the catalogue works on its metadata alone; nothing is downloaded for it.
+    for (ComboBox<String> filter : List.of(disciplineFilter, phaseFilter, purposeFilter)) {
+      filter.setOnAction(
+          e -> {
+            if (!offeringFilters) {
+              refreshList();
+            }
+          });
+    }
+    showAll.setOnAction(e -> refreshList());
+    catalogueInfo.setWrapText(true);
+
+    VBox loinBox =
+        new VBox(
+            6,
+            new Label("LOINs"),
+            loinSearchField,
+            disciplineFilter,
+            phaseFilter,
+            purposeFilter,
+            showAll,
+            catalogueInfo,
+            loinView);
     loinBox.setPrefWidth(320);
     loinBox.setMinWidth(280);
     HBox.setHgrow(loinBox, Priority.ALWAYS);
@@ -223,9 +303,10 @@ public class ElementUI extends VBox {
     reportArea.setMinHeight(140);
     reportArea.setText(
         modelLine()
-            + "\nLOIN links auswählen und 'Validate LOIN' drücken (oder doppelklicken):"
-            + "\nin der Mitte stehen dann die Elemente, um die es geht, hier das Ergebnis."
-            + "\nEine LOIN-ID im Suchfeld oder 'Load IDS' prüft sofort.");
+            + "\nLinks filtern: zuerst stehen die LOINs, deren Objekttyp im Modell vorkommt."
+            + "\nEin Klick beschreibt eine LOIN, 'Validate LOIN' (oder Doppelklick) prüft die"
+            + " ausgewählten (mehrere mit Strg/Umschalt)."
+            + "\nEine ID im Suchfeld oder 'Load IDS' prüft sofort.");
 
     VBox reportBox = new VBox(5, new Label("LOIN-PRÜFUNG"), reportArea);
     VBox.setVgrow(reportArea, Priority.ALWAYS);
@@ -289,7 +370,7 @@ public class ElementUI extends VBox {
   }
 
   /** What a search found: AIA projects and LOINs. */
-  private record Found(List<PortalProject> projects, List<PortalLoin> loins) {}
+  private record Found(List<PortalProject> projects, List<CatalogueEntry> loins) {}
 
   /**
    * Look AIA projects and LOINs up in the BIM Portal and offer them for checking, projects first:
@@ -311,14 +392,13 @@ public class ElementUI extends VBox {
                             .map(PortalProject::of)
                             .toList(),
                         PortalRequirements.search(client, term).stream()
-                            .map(PortalLoin::of)
+                            .map(CatalogueEntry::of)
                             .toList())),
         found -> {
-          List<RequirementSource> items = new ArrayList<>();
-          loinView.getItems().stream().filter(Loaded.class::isInstance).forEach(items::add);
-          items.addAll(found.projects());
-          items.addAll(found.loins());
-          loinView.setItems(FXCollections.observableArrayList(items));
+          catalogue = found.loins();
+          projects = found.projects();
+          offerFilterValues();
+          refreshList();
           reportArea.setText(
               modelLine()
                   + "\n"
@@ -327,8 +407,143 @@ public class ElementUI extends VBox {
                   + found.projects().size()
                   + " AIA-Projekt(e)"
                   + (all ? " im Portal" : " zu '" + term + "'")
-                  + " - eins auswählen und prüfen.");
+                  + " - filtern, anklicken für eine Beschreibung, auswählen und prüfen.");
         });
+  }
+
+  /**
+   * Fill the list: what was read by ID or from a file, then the AIA projects, then the catalogue's
+   * LOINs that pass the filters. LOINs whose object type occurs in the model come first; the rest
+   * only on request, or when none fits.
+   */
+  private void refreshList() {
+    CatalogueFilter filter =
+        new CatalogueFilter(chosen(disciplineFilter), chosen(phaseFilter), chosen(purposeFilter));
+    List<CatalogueEntry> filtered = filter.apply(catalogue);
+    List<Ranked> ranked = fit.rank(filtered);
+    long fitting = ranked.stream().filter(r -> r.fit().fits()).count();
+    boolean everything = showAll.isSelected() || fitting == 0;
+
+    List<RequirementSource> items = new ArrayList<>();
+    loinView.getItems().stream().filter(Loaded.class::isInstance).forEach(items::add);
+    items.addAll(projects);
+    ranked.stream()
+        .filter(r -> everything || r.fit().fits())
+        .map(r -> new PortalLoin(r.entry(), r.fit()))
+        .forEach(items::add);
+    loinView.setItems(FXCollections.observableArrayList(items));
+
+    catalogueInfo.setText(
+        catalogue.size()
+            + " LOIN(s)"
+            + (filter.isAny() ? "" : ", " + filtered.size() + " nach Filter")
+            + ", "
+            + fitting
+            + " passend zum Modell"
+            + (fitting == 0 && !filtered.isEmpty() ? " - darum alle angezeigt" : ""));
+  }
+
+  /** Offer the values the loaded LOINs carry, keeping what was chosen where it still exists. */
+  private void offerFilterValues() {
+    offeringFilters = true;
+    try {
+      offer(disciplineFilter, ALL_DISCIPLINES, CatalogueEntry::disciplines);
+      offer(phaseFilter, ALL_PHASES, CatalogueEntry::phases);
+      offer(purposeFilter, ALL_PURPOSES, CatalogueEntry::purposes);
+    } finally {
+      offeringFilters = false;
+    }
+  }
+
+  private void offer(
+      ComboBox<String> filter, String all, Function<CatalogueEntry, List<String>> dimension) {
+    String chosen = filter.getValue();
+    List<String> values = new ArrayList<>();
+    values.add(all);
+    values.addAll(CatalogueFilter.values(catalogue, dimension));
+    filter.setItems(FXCollections.observableArrayList(values));
+    filter.setValue(values.contains(chosen) ? chosen : all);
+  }
+
+  private static ComboBox<String> filterBox(String all) {
+    ComboBox<String> filter = new ComboBox<>(FXCollections.observableArrayList(all));
+    filter.setValue(all);
+    filter.setMaxWidth(Double.MAX_VALUE);
+    return filter;
+  }
+
+  /** The value chosen in a filter; null for its "alle ..." entry. */
+  private static String chosen(ComboBox<String> filter) {
+    String value = filter.getValue();
+    return value == null || value.startsWith("alle ") ? null : value;
+  }
+
+  /**
+   * Show what a list entry is about in the report panel. A LOIN or project is downloaded for this
+   * once; its check uses the same download.
+   */
+  private void describe(RequirementSource source) {
+    LoadedModel against = model;
+    long checksBefore = checks;
+    switch (source) {
+      case Loaded loaded ->
+          show(LoinDescription.describe(loaded.document(), against.schema(), against.elements()));
+      case PortalLoin loin -> {
+        IdsDocument known = downloaded.get(loin.guid());
+        show(describe(loin, known, against));
+        if (known == null) {
+          inBackground(
+              () -> requirements(loin),
+              document -> {
+                if (checks == checksBefore
+                    && loinView.getSelectionModel().getSelectedItem() == loin) {
+                  show(describe(loin, document, against));
+                }
+              });
+        }
+      }
+      case PortalProject project -> {
+        reportArea.setText(project.label() + "\nAnforderungen werden geladen ...");
+        inBackground(
+            () -> requirements(project),
+            document -> {
+              if (checks == checksBefore
+                  && loinView.getSelectionModel().getSelectedItem() == project) {
+                show(LoinDescription.describe(document, against.schema(), against.elements()));
+              }
+            });
+      }
+    }
+  }
+
+  /** A catalogue LOIN's description; the requirements part once they are downloaded. */
+  private static List<String> describe(
+      PortalLoin loin, IdsDocument requirements, LoadedModel against) {
+    return LoinDescription.describe(
+        loin.entry(), loin.fit(), requirements, against.schema(), against.elements());
+  }
+
+  private void show(List<String> lines) {
+    reportArea.setText(String.join("\n", lines));
+  }
+
+  /**
+   * The requirements of a list entry, downloaded once per session. Called off the FX thread; two
+   * calls for the same LOIN at once share one download.
+   */
+  private IdsDocument requirements(RequirementSource source) {
+    return switch (source) {
+      case Loaded loaded -> loaded.document();
+      case PortalLoin loin ->
+          downloaded.computeIfAbsent(
+              loin.guid(),
+              guid -> withPortal(client -> PortalRequirements.loin(client, guid, loin.name())));
+      case PortalProject project ->
+          downloaded.computeIfAbsent(
+              project.guid(),
+              guid ->
+                  withPortal(client -> PortalRequirements.project(client, guid, project.name())));
+    };
   }
 
   /** Fetch a LOIN or an AIA project by its ID and check the model against it. */
@@ -366,7 +581,7 @@ public class ElementUI extends VBox {
         .getItems()
         .removeIf(item -> item instanceof Loaded loaded && loaded.label().equals(source.label()));
     loinView.getItems().add(0, source);
-    loinView.getSelectionModel().select(0);
+    loinView.getSelectionModel().clearAndSelect(0);
     loinView.scrollTo(0);
     validateSelected();
   }
@@ -427,22 +642,35 @@ public class ElementUI extends VBox {
         () -> LoadedModel.read(source),
         loaded -> {
           model = loaded;
+          fit = ModelFit.of(loaded.elements());
           tabPane.getTabs().clear();
+          refreshList();
           reportArea.setText(
               modelLine()
-                  + "\nLOIN links auswählen und 'Validate LOIN' drücken (oder doppelklicken).");
+                  + "\nDie LOINs links sind neu nach Passung zu diesem Modell sortiert."
+                  + "\nAuswählen und 'Validate LOIN' drücken (oder doppelklicken).");
         });
   }
 
-  /** Check the model against the selected entry; show the report and the elements it is about. */
+  /**
+   * Check the model against every selected entry; show the report and the elements it is about.
+   */
   private void validateSelected() {
-    RequirementSource selected = loinView.getSelectionModel().getSelectedItem();
-    if (selected == null) {
+    List<RequirementSource> selected = List.copyOf(loinView.getSelectionModel().getSelectedItems());
+    if (selected.isEmpty()) {
       reportArea.setText("Keine LOIN ausgewählt.");
       return;
     }
+    checks++;
     LoadedModel checked = model;
-    reportArea.setText("Prüfe " + checked.name() + " gegen '" + selected.label() + "' ...");
+    reportArea.setText(
+        "Prüfe "
+            + checked.name()
+            + " gegen "
+            + (selected.size() == 1
+                ? "'" + selected.get(0).label() + "'"
+                : selected.size() + " ausgewählte Einträge")
+            + " ...");
 
     inBackground(
         () -> check(selected, checked),
@@ -463,45 +691,51 @@ public class ElementUI extends VBox {
   private record Checked(String report, List<CheckResult> results) {}
 
   /**
-   * Run one entry of the list against the model.
+   * Run the selected entries against the model.
    *
-   * <p>Called off the FX thread: for a LOIN or project from a search this downloads its IDS from
-   * the portal, and every check walks every element. With several specifications, as an AIA project
-   * has, the report starts with one line per specification.
+   * <p>Called off the FX thread: what was not looked at yet is downloaded from the portal now, and
+   * every check walks every element. With several specifications - several LOINs, or an AIA
+   * project - the report starts with one line per specification.
    */
-  private Checked check(RequirementSource source, LoadedModel against) {
-    try {
-      IdsDocument requirements =
-          switch (source) {
-            case Loaded loaded -> loaded.document();
-            case PortalLoin loin ->
-                withPortal(client -> PortalRequirements.loin(client, loin.guid(), loin.name()));
-            case PortalProject project ->
-                withPortal(
-                    client -> PortalRequirements.project(client, project.guid(), project.name()));
-          };
-      List<CheckResult> results = requirements.check(against.schema(), against.elements());
-
-      List<String> lines = new ArrayList<>();
-      lines.add("Anforderungen: " + requirements.describe());
-      if (results.size() > 1) {
-        lines.add(CheckResult.tally(results, against.schema()));
-        results.forEach(result -> lines.add("   " + result.overviewLine()));
+  private Checked check(List<RequirementSource> sources, LoadedModel against) {
+    List<CheckResult> all = new ArrayList<>();
+    List<String> details = new ArrayList<>();
+    for (RequirementSource source : sources) {
+      if (!details.isEmpty()) {
+        details.add("");
       }
-      for (CheckResult result : results) {
+      try {
+        IdsDocument requirements = requirements(source);
+        List<CheckResult> results = requirements.check(against.schema(), against.elements());
+        all.addAll(results);
+        details.add("Anforderungen: " + requirements.describe());
         if (results.size() > 1) {
-          lines.add("");
+          details.add(CheckResult.tally(results, against.schema()));
+          results.forEach(result -> details.add("   " + result.overviewLine()));
         }
-        lines.addAll(result.report());
+        for (CheckResult result : results) {
+          if (results.size() > 1) {
+            details.add("");
+          }
+          details.addAll(result.report());
+        }
+      } catch (RuntimeException e) {
+        // No IDS for a LOIN, or none for this schema, is an ordinary outcome here - it belongs
+        // in the report rather than in a stack trace. RequirementsException messages name the
+        // source.
+        details.add(
+            e instanceof RequirementsException ? e.getMessage() : source.label() + ": " + e);
       }
-      return new Checked(String.join("\n", lines), results);
-    } catch (RuntimeException e) {
-      // No IDS for a LOIN, or none for this schema, is an ordinary outcome here - it belongs in
-      // the report rather than in a stack trace. RequirementsException messages name the source.
-      String message =
-          e instanceof RequirementsException ? e.getMessage() : source.label() + ": " + e;
-      return new Checked(message, List.of());
     }
+
+    List<String> lines = new ArrayList<>();
+    if (sources.size() > 1 && !all.isEmpty()) {
+      lines.add(sources.size() + " Einträge geprüft - " + CheckResult.tally(all, against.schema()));
+      all.forEach(result -> lines.add("   " + result.overviewLine()));
+      lines.add("");
+    }
+    lines.addAll(details);
+    return new Checked(String.join("\n", lines), all);
   }
 
   /**

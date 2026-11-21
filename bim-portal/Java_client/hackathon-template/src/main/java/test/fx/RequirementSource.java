@@ -1,7 +1,8 @@
 package test.fx;
 
 import com.bimportal.client.model.SimpleAiaProjectPublicDto;
-import com.bimportal.client.model.SimpleLoinPublicDto;
+import com.bimportal.hackathon.catalogue.CatalogueEntry;
+import com.bimportal.hackathon.catalogue.ModelFit.Fit;
 import com.bimportal.hackathon.ids.IdsDocument;
 import java.util.UUID;
 
@@ -18,16 +19,24 @@ sealed interface RequirementSource {
   /** How the entry reads in the list. */
   String label();
 
-  /** A LOIN from a portal search; its IDS is fetched when it is checked. */
-  record PortalLoin(UUID guid, String name) implements RequirementSource {
+  /**
+   * A LOIN from the portal's catalogue; its IDS is downloaded when it is looked at or checked.
+   *
+   * @param fit how its object type fits the loaded model, shown after the name
+   */
+  record PortalLoin(CatalogueEntry entry, Fit fit) implements RequirementSource {
 
-    static PortalLoin of(SimpleLoinPublicDto loin) {
-      return new PortalLoin(loin.getGuid(), loin.getName());
+    UUID guid() {
+      return entry.guid();
+    }
+
+    String name() {
+      return entry.name();
     }
 
     @Override
     public String label() {
-      return name;
+      return fit.fits() ? entry.name() + "  -  " + fit.describe() : entry.name();
     }
   }
 
