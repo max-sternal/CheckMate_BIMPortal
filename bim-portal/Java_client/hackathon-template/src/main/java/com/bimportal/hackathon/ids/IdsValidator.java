@@ -5,6 +5,7 @@ import com.bimportal.hackathon.ids.CheckResult.FacetMatch;
 import com.bimportal.hackathon.ids.CheckResult.Finding;
 import com.bimportal.hackathon.ids.CheckResult.NearMiss;
 import com.bimportal.hackathon.ids.CheckResult.RelatedTypes;
+import com.bimportal.hackathon.ids.CheckResult.SimilarNames;
 import com.bimportal.hackathon.ids.CheckResult.Status;
 import com.bimportal.hackathon.ids.IdsSpecification.Cardinality;
 import com.bimportal.hackathon.ids.IdsSpecification.EntityRequirement;
@@ -64,7 +65,9 @@ public final class IdsValidator {
     boolean viaType = schema != null && "IFC2X3".equals(IdsSpecification.baseSchema(schema));
 
     List<ModelElement> applicable =
-        model.stream().filter(element -> applies(specification, element, false, viaType)).toList();
+        model.stream()
+            .filter(element -> applies(specification, element, Leniency.STRICT, viaType))
+            .toList();
 
     List<Finding> findings = new ArrayList<>();
     for (ModelElement element : applicable) {
@@ -80,7 +83,20 @@ public final class IdsValidator {
         applicable.size(),
         findings,
         applicable.isEmpty() ? diagnose(specification, model, viaType) : Diagnosis.NONE,
-        relatedTypes(specification, model, applicable, viaType));
+        relatedTypes(specification, model, applicable, viaType),
+        similarNames(specification, model, applicable, viaType));
+  }
+
+  /**
+   * How strictly the applicability is read. The verdict is always strict; the lenient readings
+   * only find the elements the hints name.
+   */
+  private enum Leniency {
+    STRICT,
+    /** Also accept a data type of the same family: {@code IfcText} for {@code IFCLABEL}. */
+    RELATED_TYPES,
+    /** Also accept a property name written differently: {@code pset_test/status}. */
+    SIMILAR_NAMES
   }
 
   /**
@@ -129,13 +145,13 @@ public final class IdsValidator {
    * value and data type. One definition of "this facet holds", shared with the diagnosis and the
    * hint, so the reason a report gives can never drift away from the selection it explains.
    *
-   * @param relatedTypesAccepted true only for the hint: also accept a related data type
+   * @param leniency {@link Leniency#STRICT} for the verdict; the others only for the hints
    * @param viaType IFC2X3: the type object's entity counts too
    */
   private static boolean applies(
       IdsSpecification specification,
       ModelElement element,
-      boolean relatedTypesAccepted,
+      Leniency leniency,
       boolean viaType) {
     EntityRequirement entity = specification.applicableEntity();
     if (entity != null && !entityMatches(entity, element, viaType)) {
@@ -144,11 +160,14 @@ public final class IdsValidator {
 
     for (PropertyRequirement facet : specification.applicability()) {
       Optional<ModelProperty> found = element.findWithAliases(facet.key());
+      if (found.isEmpty() && leniency == Leniency.SIMILAR_NAMES) {
+        found = element.findSimilar(facet.key()).map(ModelElement.Similar::property);
+      }
       boolean holds =
           found.isPresent()
               && valueMatches(facet, found.get())
               && (typeMatches(facet, found.get())
-                  || (relatedTypesAccepted && typeRelated(facet, found.get())));
+                  || (leniency == Leniency.RELATED_TYPES && typeRelated(facet, found.get())));
       if (!holds) {
         return false;
       }
@@ -179,7 +198,7 @@ public final class IdsValidator {
     List<ModelElement> keptOut =
         model.stream()
             .filter(element -> !selected.contains(element))
-            .filter(element -> applies(specification, element, true, viaType))
+            .filter(element -> applies(specification, element, Leniency.RELATED_TYPES, viaType))
             .toList();
     if (keptOut.isEmpty()) {
       return RelatedTypes.NONE;
@@ -198,6 +217,48 @@ public final class IdsValidator {
     }
     return new RelatedTypes(
         keptOut.stream().map(ModelElement::id).toList(), List.copyOf(differences));
+  }
+
+  /**
+   * The elements a differently written property name kept out, for the hint. Like {@link
+   * #relatedTypes}: computed whatever the verdict was.
+   */
+  private static SimilarNames similarNames(
+      IdsSpecification specification,
+      Collection<ModelElement> model,
+      List<ModelElement> applicable,
+      boolean viaType) {
+
+    if (specification.applicability().isEmpty()) {
+      return SimilarNames.NONE;
+    }
+    Set<ModelElement> selected = Collections.newSetFromMap(new IdentityHashMap<>());
+    selected.addAll(applicable);
+
+    List<ModelElement> keptOut =
+        model.stream()
+            .filter(element -> !selected.contains(element))
+            .filter(element -> applies(specification, element, Leniency.SIMILAR_NAMES, viaType))
+            .toList();
+    if (keptOut.isEmpty()) {
+      return SimilarNames.NONE;
+    }
+
+    Set<String> spellings = new TreeSet<>();
+    for (ModelElement element : keptOut) {
+      for (PropertyRequirement facet : specification.applicability()) {
+        if (element.findWithAliases(facet.key()).isEmpty()) {
+          element
+              .findSimilar(facet.key())
+              .ifPresent(
+                  similar ->
+                      spellings.add(
+                          "'" + similar.property().key() + "' statt '" + facet.key() + "'"));
+        }
+      }
+    }
+    return new SimilarNames(
+        keptOut.stream().map(ModelElement::id).toList(), List.copyOf(spellings));
   }
 
   /**
@@ -231,10 +292,21 @@ public final class IdsValidator {
       int addressFound = 0;
       int valueButNotType = 0;
       Set<String> typeDifferences = new TreeSet<>();
+      int otherSpelling = 0;
+      String otherSpellingNote = null;
 
       for (ModelElement element : model) {
         Optional<ModelProperty> found = element.findWithAliases(facet.key());
         if (found.isEmpty()) {
+          Optional<ModelElement.Similar> similar = element.findSimilar(facet.key());
+          if (similar.isPresent()) {
+            otherSpelling++;
+            if (otherSpellingNote == null) {
+              otherSpellingNote =
+                  "'" + similar.get().property().key() + "' (" + similar.get().spelling().label()
+                      + ")";
+            }
+          }
           continue;
         }
         ModelProperty property = found.get();
@@ -250,12 +322,15 @@ public final class IdsValidator {
         }
       }
       facets.add(
-          new FacetMatch(
+          FacetMatch.property(
               facet.describe(),
               matched,
               addressFound,
               valueButNotType,
-              String.join(", ", typeDifferences)));
+              String.join(", ", typeDifferences),
+              otherSpelling == 0
+                  ? ""
+                  : otherSpelling + " Element(e) mit " + otherSpellingNote));
     }
 
     return new Diagnosis(facets, nearMisses(specification, model));
@@ -343,7 +418,10 @@ public final class IdsValidator {
     for (PropertyRequirement facet : facets) {
       Optional<ModelProperty> found = element.findWithAliases(facet.key());
       if (found.isEmpty()) {
-        divergences.add(facet.key() + ": Merkmal fehlt");
+        divergences.add(
+            facet.key()
+                + ": Merkmal fehlt"
+                + element.findSimilar(facet.key()).map(s -> ", " + s.note()).orElse(""));
         continue;
       }
 
@@ -478,8 +556,11 @@ public final class IdsValidator {
           PropertyAliases.candidates(requirement.key()).stream()
               .map(PropertyKey::toString)
               .collect(Collectors.joining(", "));
+      String similar =
+          element.findSimilar(requirement.key()).map(s -> " - " + s.note()).orElse("");
       return Optional.of(
-          finding(element, requirement, Status.MISSING, "nicht gefunden unter " + searched));
+          finding(
+              element, requirement, Status.MISSING, "nicht gefunden unter " + searched + similar));
     }
 
     ModelProperty property = found.get();
@@ -529,7 +610,10 @@ public final class IdsValidator {
       ModelElement element, PropertyRequirement requirement, Optional<ModelProperty> found) {
 
     if (found.isEmpty()) {
-      return finding(element, requirement, Status.FULFILLED, "nicht vorhanden, wie gefordert");
+      String similar =
+          element.findSimilar(requirement.key()).map(s -> " - " + s.note()).orElse("");
+      return finding(
+          element, requirement, Status.FULFILLED, "nicht vorhanden, wie gefordert" + similar);
     }
 
     ModelProperty property = found.get();

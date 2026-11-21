@@ -17,6 +17,11 @@ import com.apstex.ifctoolbox.ifc.IfcQuantityLength;
 import com.apstex.ifctoolbox.ifc.IfcQuantityVolume;
 import com.apstex.ifctoolbox.ifc.IfcRelDefinesByProperties;
 
+/**
+ * Text for the GUI's class filter tabs, from the original template ({@link
+ * ElementUI#createObjectTab}): element info and its property sets, IFC2X3 only. The LOIN check
+ * reads properties through {@link IfcModelElements} instead.
+ */
 public class PropertyUtils {
 
   /** Append basic info of an IfcBuildingElement to the provided StringBuilder. */

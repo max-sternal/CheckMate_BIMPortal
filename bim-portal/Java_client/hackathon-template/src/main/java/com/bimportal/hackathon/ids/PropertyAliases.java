@@ -8,6 +8,16 @@ import java.util.Map;
 /**
  * Translates the property addresses a BIM Portal LOIN asks for into the ones a model actually uses.
  *
+ * <p><b>TODO (open decision, docs/STATUS.md): this mapping is hard-coded for one modelling
+ * convention.</b> The three entries below come from the BIM.Hamburg bridge models bundled with the
+ * project ({@code Pset_Objektinformation/_IDEbene1..3}). They are not a general rule: no spelling
+ * rule can tell that {@code Klassifizierung/Objekttyp} and {@code _IDEbene3} mean the same, and
+ * other models, using other conventions, get no mapping at all. IDS itself knows no aliases, so
+ * ifctester reports these properties as missing. Until it is decided how mappings are supplied - a
+ * file per project or convention, passed with the model, instead of code - the report states every
+ * use of an alias ("als Pset_Objektinformation/_IDEbene3"), so a result that depends on it can be
+ * told apart.
+ *
  * <p>Without this layer a LOIN check on the BIM.Hamburg bridge models reports nothing at all. The
  * portal requires {@code Klassifizierung/Objektgruppe|Objektklasse|Objekttyp}; the models carry none
  * of those names - they put a three-level classification into {@code

@@ -6,6 +6,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
 
+/**
+ * Starts the CheckMate window: loads the model {@code CHECKMATE_IFC} (or {@code -Dcheckmate.ifc})
+ * names, or the bundled bridge model, and opens {@link ElementUI}. Gradle task {@code runGui}.
+ */
 public class App extends Application {
   public static void main(String[] args) {
     launch(args);

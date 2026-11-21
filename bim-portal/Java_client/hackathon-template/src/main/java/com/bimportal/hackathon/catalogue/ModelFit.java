@@ -2,6 +2,7 @@ package com.bimportal.hackathon.catalogue;
 
 import com.bimportal.hackathon.ids.ModelElement;
 import com.bimportal.hackathon.ids.ModelElement.ModelProperty;
+import com.bimportal.hackathon.ids.PropertyKey;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -232,11 +233,9 @@ public final class ModelFit {
     }
   }
 
-  /** Lower case, umlauts written out, letters and digits only. */
+  /** Lower case, umlauts written out, letters and digits only - as for property names. */
   static String normalize(String text) {
-    String lower = text.toLowerCase(Locale.GERMAN);
-    lower = lower.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss");
-    return lower.replaceAll("[^a-z0-9]", "");
+    return PropertyKey.loose(text);
   }
 
   private static void index(Map<String, Set<String>> index, String word, ModelElement element) {

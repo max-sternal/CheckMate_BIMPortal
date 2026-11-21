@@ -24,7 +24,7 @@ What is being worked on and what is still open. One line per item. Reference cod
 
 ### Documentation
 
-8. There is no README at the repo root.
+8. Done (2026-11-21): the repo root has a README with a map of the repo, the required software and a quick start.
 9. `bim-portal/README.md` and `bim-portal/Java_client/README.md` are the hackathon starter kit's docs. They point to the `pb40development/bim-portal` repo and to a `bim-portal-client-suite` folder that doesn't exist.
 10. `bim-portal/doku/README.md` is empty.
 11. `.github/copilot-instructions.md` stops before CheckMate: it doesn't mention `ids/`, `test/fx`, the Apstex JARs or `runGui`.
@@ -32,6 +32,10 @@ What is being worked on and what is still open. One line per item. Reference cod
 ### Repository
 
 12. Done (2026-11-20): `bim-portal/.gitignore` still ignores `*.xml` and `*.ids`, except under `hackathon-template/src/test/resources/`, so test files are tracked.
+
+### Open decisions
+
+14. **TODO, to be decided: the hard-coded property name mapping.** `PropertyAliases` (`hackathon-template/src/main/java/com/bimportal/hackathon/ids/PropertyAliases.java`) maps the portal's `Klassifizierung/Objektgruppe|Objektklasse|Objekttyp` to `Pset_Objektinformation/_IDEbene1..3`. That is the convention of the BIM.Hamburg bridge models bundled with the project, written into the code for them. It is not a rule: no spelling rule can tell that these names mean the same, other models with other conventions get no mapping, and IDS knows no aliases (ifctester reports these properties as missing). The report states every use of an alias ("als Pset_Objektinformation/_IDEbene3"). To decide: whether mappings stay at all, and if so how they are supplied - e.g. a mapping file per project or convention, passed with the model - instead of code.
 
 ### Code structure
 

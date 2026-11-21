@@ -66,6 +66,88 @@ class IdsConformanceTest {
     assertThat(geprueft.status()).isEqualTo(Status.MISSING);
   }
 
+  // Property names: exactly as asked, other spellings only named
+
+  @Test
+  void tellsHowANameIsWrittenDifferently() {
+    PropertyKey wanted = new PropertyKey("Bauteilinformation", "Feldnummer");
+
+    assertThat(wanted.spellingOf(new PropertyKey("Bauteilinformation", "Feldnummer")))
+        .isEqualTo(PropertyKey.Spelling.SAME);
+    assertThat(wanted.spellingOf(new PropertyKey("bauteilinformation", "FeldNummer")))
+        .isEqualTo(PropertyKey.Spelling.CASE_ONLY);
+    assertThat(wanted.spellingOf(new PropertyKey("Bauteil_Information", "Feld-Nummer")))
+        .isEqualTo(PropertyKey.Spelling.SIMILAR);
+    assertThat(wanted.spellingOf(new PropertyKey("Bauteilinformation", "_Feldnummer")))
+        .isEqualTo(PropertyKey.Spelling.SIMILAR);
+    assertThat(new PropertyKey("Maße", "Länge").spellingOf(new PropertyKey("Masse", "Laenge")))
+        .isEqualTo(PropertyKey.Spelling.SIMILAR);
+    assertThat(wanted.spellingOf(new PropertyKey("Bauteilinformation", "Feldnr")))
+        .isEqualTo(PropertyKey.Spelling.DIFFERENT);
+  }
+
+  @Test
+  void aPropertyNamedInOtherCaseIsMissingButNamed() {
+    Finding finding =
+        only(check("Status", null, null, property("pset_test", "Status", "neu", LABEL)));
+
+    assertThat(finding.status()).isEqualTo(Status.MISSING);
+    assertThat(finding.detail())
+        .isEqualTo(
+            "nicht gefunden unter Pset_Test/Status - vorhanden als 'pset_test/Status'"
+                + " (nur Groß-/Kleinschreibung weicht ab)");
+  }
+
+  @Test
+  void aSimilarlyWrittenPropertyDoesNotSelectButIsNamed() {
+    PropertyRequirement typ =
+        new PropertyRequirement(
+            new PropertyKey("Klassifizierung", "Objekttyp"), null, "Kappe", Cardinality.REQUIRED);
+    IdsSpecification kappen =
+        new IdsSpecification("Kappen", "IFC4", List.of(typ), null, List.of(), null);
+    ModelElement kappe =
+        new ModelElement(
+            "k",
+            "Kappe",
+            "IfcBeam",
+            List.of(property("Klassifizierung", "Objekt_Typ", "Kappe", LABEL)));
+
+    CheckResult result = IdsValidator.check(kappen, List.of(kappe), "IFC4");
+
+    assertThat(result.notApplicable()).isTrue();
+    assertThat(result.diagnosis().facets())
+        .extracting(FacetMatch::line)
+        .containsExactly(
+            "Klassifizierung/Objekttyp = 'Kappe' trifft 0 - Merkmal im Modell nicht vorhanden;"
+                + " 1 Element(e) mit 'Klassifizierung/Objekt_Typ' (ähnliche Schreibweise)");
+    assertThat(result.notes())
+        .containsExactly(
+            "Hinweis: 1 weitere(s) Element(e) wären anwendbar, wenn ihre Merkmalsnamen genau so"
+                + " geschrieben wären wie gefordert ('Klassifizierung/Objekt_Typ' statt"
+                + " 'Klassifizierung/Objekttyp')");
+    assertThat(result.diagnosis().nearMisses()).isEmpty();
+  }
+
+  @Test
+  void aProhibitedPropertyInOtherSpellingIsAbsentButNamed() {
+    PropertyRequirement verboten =
+        new PropertyRequirement(
+            new PropertyKey("Pset_Test", "Status"), null, null, Cardinality.PROHIBITED);
+    IdsSpecification specification =
+        new IdsSpecification("Test", "IFC4", List.of(), null, List.of(verboten), null);
+    ModelElement element =
+        new ModelElement(
+            "e", "Element", "IfcWall", List.of(property("Pset_Test", "STATUS", "x", LABEL)));
+
+    Finding finding = only(IdsValidator.check(specification, List.of(element)));
+
+    assertThat(finding.status()).isEqualTo(Status.FULFILLED);
+    assertThat(finding.detail())
+        .isEqualTo(
+            "nicht vorhanden, wie gefordert - vorhanden als 'Pset_Test/STATUS'"
+                + " (nur Groß-/Kleinschreibung weicht ab)");
+  }
+
   // IFC2X3: the entity through the type object
 
   @Test

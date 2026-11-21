@@ -68,6 +68,19 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
+/**
+ * The CheckMate window.
+ *
+ * <p>Left the requirements: a search over the portal's AIA projects and LOINs (or an ID), the
+ * catalogue filters, and the list sorted by fit to the model. In the middle the elements a check is
+ * about, one tab each. Below the summary table and the report. Buttons load a model from a file or
+ * a link, or an IDS file.
+ *
+ * <p>Everything slow - the portal, downloads, the check - runs off the FX thread ({@code
+ * inBackground}); the check itself comes from the {@code ids} and {@code report} packages, so this
+ * class only collects input and shows results. The class filter at the top and {@link
+ * #createObjectTab} are left from the original template (STATUS #4, docs/WORKFLOW.md).
+ */
 public class ElementUI extends VBox {
 
   /**

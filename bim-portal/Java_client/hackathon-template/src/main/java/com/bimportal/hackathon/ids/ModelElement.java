@@ -77,7 +77,7 @@ public record ModelElement(
     }
   }
 
-  /** Look a property up by its exact address, ignoring case. */
+  /** Look a property up by its exact address, case included. */
   public Optional<ModelProperty> find(PropertyKey key) {
     return properties.stream().filter(property -> property.key().matches(key)).findFirst();
   }
@@ -87,6 +87,34 @@ public record ModelElement(
    *
    * @see PropertyAliases
    */
+  /**
+   * A property found only under another spelling of the address - or of one of its aliases. Never
+   * meets a requirement; it tells the report what to fix.
+   *
+   * @param spelling how it is written differently
+   */
+  public record Similar(ModelProperty property, PropertyKey.Spelling spelling) {
+
+    /** {@code vorhanden als 'pset_test/status' (nur Groß-/Kleinschreibung weicht ab)} */
+    public String note() {
+      return "vorhanden als '" + property.key() + "' (" + spelling.label() + ")";
+    }
+  }
+
+  /** Look for a property written differently from the address and its aliases. */
+  public Optional<Similar> findSimilar(PropertyKey key) {
+    for (PropertyKey candidate : PropertyAliases.candidates(key)) {
+      for (ModelProperty property : properties) {
+        PropertyKey.Spelling spelling = candidate.spellingOf(property.key());
+        if (spelling == PropertyKey.Spelling.CASE_ONLY
+            || spelling == PropertyKey.Spelling.SIMILAR) {
+          return Optional.of(new Similar(property, spelling));
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
   public Optional<ModelProperty> findWithAliases(PropertyKey key) {
     for (PropertyKey candidate : PropertyAliases.candidates(key)) {
       Optional<ModelProperty> found = find(candidate);

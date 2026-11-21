@@ -15,6 +15,8 @@ import java.util.Map;
  * @param diagnosis why nothing was selected, when nothing was; {@link Diagnosis#NONE} otherwise
  * @param relatedTypes elements turned down only because of a related data type; {@link
  *     RelatedTypes#NONE} when there are none
+ * @param similarNames elements turned down only because a property name is spelled differently;
+ *     {@link SimilarNames#NONE} when there are none
  */
 public record CheckResult(
     IdsSpecification specification,
@@ -22,7 +24,26 @@ public record CheckResult(
     int applicableElements,
     List<Finding> findings,
     Diagnosis diagnosis,
-    RelatedTypes relatedTypes) {
+    RelatedTypes relatedTypes,
+    SimilarNames similarNames) {
+
+  /** A result without elements turned down for a spelling. */
+  public CheckResult(
+      IdsSpecification specification,
+      int examinedElements,
+      int applicableElements,
+      List<Finding> findings,
+      Diagnosis diagnosis,
+      RelatedTypes relatedTypes) {
+    this(
+        specification,
+        examinedElements,
+        applicableElements,
+        findings,
+        diagnosis,
+        relatedTypes,
+        SimilarNames.NONE);
+  }
 
   /** What a single requirement came to on a single element. */
   public enum Status {
@@ -142,7 +163,8 @@ public record CheckResult(
       int addressFound,
       int valueButNotType,
       String typeDifferences,
-      boolean entity) {
+      boolean entity,
+      String otherSpellings) {
 
     /** A property facet. */
     public FacetMatch(
@@ -151,7 +173,30 @@ public record CheckResult(
         int addressFound,
         int valueButNotType,
         String typeDifferences) {
-      this(facet, matchedElements, addressFound, valueButNotType, typeDifferences, false);
+      this(facet, matchedElements, addressFound, valueButNotType, typeDifferences, false, "");
+    }
+
+    /**
+     * A property facet some elements carry under another spelling.
+     *
+     * @param otherSpellings e.g. {@code 3 Element(e) mit 'pset_test/status' (nur
+     *     Groß-/Kleinschreibung weicht ab)}; empty when there are none
+     */
+    public static FacetMatch property(
+        String facet,
+        int matchedElements,
+        int addressFound,
+        int valueButNotType,
+        String typeDifferences,
+        String otherSpellings) {
+      return new FacetMatch(
+          facet,
+          matchedElements,
+          addressFound,
+          valueButNotType,
+          typeDifferences,
+          false,
+          otherSpellings);
     }
 
     /**
@@ -164,10 +209,17 @@ public record CheckResult(
      */
     public static FacetMatch entity(
         String facet, int matchedElements, int ofEntity, String predefinedTypeMismatch) {
-      return new FacetMatch(facet, matchedElements, ofEntity, 0, predefinedTypeMismatch, true);
+      return new FacetMatch(
+          facet, matchedElements, ofEntity, 0, predefinedTypeMismatch, true, "");
     }
 
     public String line() {
+      String line = propertyLine();
+      boolean noOtherSpellings = otherSpellings == null || otherSpellings.isEmpty();
+      return noOtherSpellings ? line : line + "; " + otherSpellings;
+    }
+
+    private String propertyLine() {
       if (entity) {
         if (matchedElements > 0) {
           return facet + " trifft " + matchedElements + " Element(e)";
@@ -256,6 +308,31 @@ public record CheckResult(
           + " weitere(s) Element(e) wären anwendbar,"
           + " wenn verwandte Datentypen akzeptiert würden ("
           + String.join(", ", typeDifferences)
+          + ")";
+    }
+  }
+
+  /**
+   * Elements the applicability turned down only because a property name is written differently
+   * from the one asked for - in case, umlauts or separators. IDS compares names exactly, so they
+   * are not checked; the hint names them so the model can be fixed.
+   *
+   * @param spellings how the names differ, e.g. {@code 'pset_test/status' statt 'Pset_Test/Status'}
+   */
+  public record SimilarNames(List<String> elementIds, List<String> spellings) {
+
+    public static final SimilarNames NONE = new SimilarNames(List.of(), List.of());
+
+    public boolean isEmpty() {
+      return elementIds.isEmpty();
+    }
+
+    public String line() {
+      return "Hinweis: "
+          + elementIds.size()
+          + " weitere(s) Element(e) wären anwendbar, wenn ihre Merkmalsnamen genau so geschrieben"
+          + " wären wie gefordert ("
+          + String.join(", ", spellings)
           + ")";
     }
   }
@@ -384,6 +461,9 @@ public record CheckResult(
     List<String> notes = new ArrayList<>();
     if (!relatedTypes.isEmpty()) {
       notes.add(relatedTypes.line());
+    }
+    if (similarNames != null && !similarNames.isEmpty()) {
+      notes.add(similarNames.line());
     }
     specification
         .unsupported()

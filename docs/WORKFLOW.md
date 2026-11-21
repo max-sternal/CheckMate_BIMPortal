@@ -112,8 +112,15 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
   XML Schema writes them. A property without a value counts as missing.
 - In IFC2X3 an element also has the entity of its type object: an `IfcBuildingElementProxy` typed
   by an `IfcBeamType` passes an `IFCBEAM` facet.
+- Property set and property names are compared exactly, including case, as in IDS. A property
+  written differently - only in case, or with umlauts written out, other separators or a leading
+  underscore (`pset_slabcommon`, `Feld-Nummer`, `_Feldnummer`, `Laenge`) - is never accepted, but
+  named so it can be fixed: in the finding ("vorhanden als 'pset_test/Status' (nur
+  Groß-/Kleinschreibung weicht ab)"), in the diagnosis, and in a hint naming the elements it kept
+  out of the applicability.
 - Model-specific property names are mapped to the ones the LOIN asks for. The report says when a
-  mapped name was used.
+  mapped name was used. **This mapping is hard-coded for one modelling convention and an open
+  decision (STATUS #14).**
 - When nothing applies, the result is "nicht prüfbar" with a diagnosis: how many elements each
   condition hits, and which elements came closest. It is never reported as passed.
 - Main classes: [`IdsValidator`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/IdsValidator.java),
@@ -246,7 +253,8 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 
 - [x] Applicability (all conditions must hold), and one finding per element and requirement.
 - [x] Diagnosis when nothing applies: hits per condition and the closest elements.
-- [x] Mapping of the BIM.Hamburg classification (`Pset_Objektinformation/_IDEbene1..3`).
+- [ ] **TODO, open decision (STATUS #14):** mapping of the BIM.Hamburg classification (`Pset_Objektinformation/_IDEbene1..3`) - works, but hard-coded for that one convention.
+- [x] Property set and property names compared exactly; other spellings (case, umlauts, separators, leading underscore) are named in the finding, the diagnosis and a hint, never accepted.
 - [x] Values by data type, as ifctester: text exactly (a case-only difference is named), integers exactly as numbers (`42` = `42.0`), reals and measures within a relative tolerance of 1e-6, booleans `true`/`1`/`false`/`0`. A number stored as `IfcLabel` is text.
 - [x] Data types strict, as in IDS, in the applicability and the requirements, with a hint naming the elements a related type would let through (section 5).
 - [x] A prohibited property is met when it is missing or has another value or type.
@@ -256,7 +264,6 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [x] The diagnosis of an entity facet says how many elements have the entity and which PredefinedTypes they carry instead, e.g. "2 Element(e) dieser Entity, keines mit benutzerdefiniertem Typ (gefunden: WINDOW 1, ohne 1)", or "kein Element dieser Entity im Modell".
 - [x] Elements in the order of the file (by STEP line), so two reports on the same model read the same.
 - [ ] Values with a unit are compared as stored; ifctester converts them to SI units first (a model in millimetres against an IDS in metres).
-- [ ] Property set and property names are compared ignoring case; ifctester compares them exactly. Kept for now because authoring tools are inconsistent about it; a strict comparison with a hint, as for data types, would match IDS.
 
 ### Results
 
@@ -297,6 +304,8 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
   applicability test on downloaded candidates is dropped.
 - 2026-11-21, values: compared by data type as ifctester does, text including case. Where only
   the case differs, the finding says so, the same way the data type hint explains a strict verdict.
+- 2026-11-21, property names: exactly as asked, as in IDS. Other spellings are shown so they can
+  be fixed, not accepted. The alias mapping stays until a decision (STATUS #14).
 - 2026-11-21, exit codes: 3 when a specification is not met, 4 when nothing is violated but not
   everything is confirmed. "Nicht prüfbar" is never 0, in line with the rule that it is never
   reported as passed. Read errors (1) take precedence, since the report is then incomplete.

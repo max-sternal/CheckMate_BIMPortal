@@ -109,6 +109,9 @@ public final class LoinDescription {
     if (!result.relatedTypes().isEmpty()) {
       lines.add(result.relatedTypes().line());
     }
+    if (!result.similarNames().isEmpty()) {
+      lines.add(result.similarNames().line());
+    }
     if (!specification.unsupported().isEmpty()) {
       lines.add("Enthält Teile, die CheckMate nicht auswertet; die Prüfung nennt sie.");
     }

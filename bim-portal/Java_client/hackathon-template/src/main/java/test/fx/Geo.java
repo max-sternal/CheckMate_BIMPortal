@@ -5,6 +5,10 @@ import com.apstex.ifctoolbox.ifc.IfcRepresentation;
 import com.apstex.ifctoolbox.ifc.IfcShapeRepresentation;
 import com.apstex.ifctoolbox.ifcmodel.IfcModel;
 
+/**
+ * A stand-alone example from the original template: prints the shape representation types of the
+ * bundled model's products. Not used by CheckMate.
+ */
 public class Geo {
 
   public static void main(String[] args) throws Exception {
