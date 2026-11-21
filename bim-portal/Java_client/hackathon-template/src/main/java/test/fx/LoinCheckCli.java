@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 
 /**
  * Runs the LOIN check without a GUI: checks an IFC model against LOINs and AIA projects named by
- * ID, local IDS files and AIA exports, or what a portal search finds, and reports each.
+ * ID, local IDS files and AIA project ZIPs, or what a portal search finds, and reports each.
  *
  * <p>Headless on purpose - this is the path that works in a container, and the one to reach for
  * when a report has to be reproducible rather than clicked together.
@@ -33,15 +33,15 @@ import java.util.function.Supplier;
  *
  * <p>Without {@code --model}, the model {@code CHECKMATE_IFC} names is checked, or the bundled one.
  * {@code --loin} and {@code --aia} both take any ID from the portal, a LOIN's or an AIA project's;
- * the two names are only for reading. {@code --ids} takes an IDS file or a ZIP of them, such as an
- * AIA project's export. Without any of these and without a search term, the search term is
- * "Kappe". A search term holding an ID counts as {@code --loin}, as in the GUI; any other finds
- * AIA projects and LOINs. A relative path is relative to {@code hackathon-template/}, where Gradle
- * runs the task.
+ * the two names are only for reading. {@code --ids} takes an IDS file or a ZIP of them, such as
+ * an AIA project's ZIP downloaded from the portal. Without any of these and without a search term,
+ * the search term is "Kappe". A search term holding an ID counts as {@code --loin}, as in the GUI;
+ * any other finds AIA projects and LOINs. A relative path is relative to {@code
+ * hackathon-template/}, where Gradle runs the task.
  *
  * <p>Exit code 1 when the model or any of the requirements cannot be read or checked (no such
- * LOIN or project, no IDS export, a file that is not IDS, no specification for the model's
- * schema); the other requirements are still checked. Exit code 2 for arguments it does not
+ * LOIN or project, no IDS file to download, a file that is not IDS, no specification for the
+ * model's schema); the other requirements are still checked. Exit code 2 for arguments it does not
  * understand. Requirements that are not met do not change the exit code yet.
  */
 public final class LoinCheckCli {

@@ -22,12 +22,14 @@ import org.slf4j.LoggerFactory;
  * <p>The portal is the source of the "Soll": rather than reassembling requirements from the
  * property and property-group endpoints, this asks for them as IDS - the buildingSMART format
  * meant for exactly this. That keeps the semantics the portal's rather than ours, and leaves the
- * door open to running the same file through an external IDS validator. A LOIN exports as one IDS
- * file, an AIA project as a ZIP of them (see {@link IdsArchive}).
+ * door open to running the same file through an external IDS validator. A LOIN comes as one IDS
+ * file, an AIA project as a ZIP of them (see {@link IdsArchive}). Nothing is written to the
+ * portal: the client calls these downloads "exports" ({@code exportLoinIds}, {@code
+ * exportProjectIds}) because that is the portal's name for them.
  *
  * <p>The portal keeps two IDs for each LOIN and each project: the {@code guid}, which stays the
- * same across versions and is what the exports ask for, and the {@code id} of each version's
- * record. Only the first works for an export, so an ID no export knows is looked up among the
+ * same across versions and is what the downloads ask for, and the {@code id} of each version's
+ * record. Only the first works for a download, so an ID no download knows is looked up among the
  * catalogues' {@code id}s before giving up.
  */
 public final class PortalRequirements {
@@ -90,8 +92,8 @@ public final class PortalRequirements {
    * Requirements by any ID the portal hands out: a LOIN's or an AIA project's, its GUID or the ID
    * of one of its versions.
    *
-   * <p>Tried in order of cost: the two exports answer within seconds, while looking an ID up in the
-   * LOIN catalogue takes about 7 s, and only happens when nothing else knew the ID.
+   * <p>Tried in order of cost: the two downloads answer within seconds, while looking an ID up in
+   * the LOIN catalogue takes about 7 s, and only happens when nothing else knew the ID.
    *
    * @throws RequirementsException when the portal knows nothing by that ID, or holds no IDS for it
    */
@@ -124,30 +126,31 @@ public final class PortalRequirements {
   }
 
   /**
-   * A LOIN's requirements by its GUID: its IDS export.
+   * A LOIN's requirements by its GUID: its IDS file, downloaded.
    *
    * @param name what the LOIN is called, for the error message
-   * @throws RequirementsException when the portal holds no IDS export for it
+   * @throws RequirementsException when the portal has no IDS file for it
    */
   public static IdsDocument loin(EnhancedBimPortalClient client, UUID guid, String name) {
     byte[] ids =
         client
             .exportLoinIds(guid)
-            .orElseThrow(() -> noExport("die LOIN '" + name + "'", guid));
+            .orElseThrow(() -> noIdsFile("die LOIN '" + name + "'", guid));
     return IdsParser.read(ids, loinSource(guid));
   }
 
   /**
-   * An AIA project's requirements by its GUID: every LOIN of the project, from its IDS export.
+   * An AIA project's requirements by its GUID: every LOIN of the project, from its IDS files,
+   * downloaded as one ZIP.
    *
    * @param name what the project is called, for the error message
-   * @throws RequirementsException when the portal holds no IDS export for it
+   * @throws RequirementsException when the portal has no IDS files for it
    */
   public static IdsDocument project(EnhancedBimPortalClient client, UUID guid, String name) {
     byte[] archive =
         client
             .exportProjectIds(guid)
-            .orElseThrow(() -> noExport("das AIA-Projekt '" + name + "'", guid));
+            .orElseThrow(() -> noIdsFile("das AIA-Projekt '" + name + "'", guid));
     return IdsParser.read(archive, projectSource(guid));
   }
 
@@ -203,8 +206,8 @@ public final class PortalRequirements {
     return "BIM Portal, AIA-Projekt " + guid;
   }
 
-  private static RequirementsException noExport(String what, UUID guid) {
+  private static RequirementsException noIdsFile(String what, UUID guid) {
     return new RequirementsException(
-        "Das BIM Portal liefert für " + what + " keinen IDS-Export (" + guid + ").");
+        "Das BIM Portal bietet für " + what + " keine IDS-Datei zum Herunterladen (" + guid + ").");
   }
 }

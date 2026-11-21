@@ -110,8 +110,8 @@ class LocalIdsTest {
         "/ids/portal/aia-neubau-eisenbahnbruecke.zip",
         "/ids/portal/aia-strasse-demonstrator.zip"
       })
-  void evaluatesEverythingThePortalWrites(String export) throws Exception {
-    assertThat(specifications(export))
+  void evaluatesEverythingThePortalWrites(String download) throws Exception {
+    assertThat(specifications(download))
         .allSatisfy(specification -> assertThat(specification.unsupported().isEmpty()).isTrue());
   }
 
@@ -233,7 +233,7 @@ class LocalIdsTest {
 
   @Test
   void anXmlFileThatIsNotIdsIsAnError() throws Exception {
-    // The portal's other export, loinXML, is XML too - and easily picked by mistake.
+    // The portal's other download format, LOIN-XML, is XML too - and easily picked by mistake.
     Path file = Files.writeString(folder.resolve("loin.xml"), "<loin><name>Kappe</name></loin>");
 
     assertThatThrownBy(() -> IdsParser.read(file))

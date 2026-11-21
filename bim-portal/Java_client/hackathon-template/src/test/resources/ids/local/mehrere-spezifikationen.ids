@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Hand-written for CheckMate's tests, not a portal export: an IDS 1.0 file the way other tools
-  write them. Valid against the IDS 1.0 XSD (checked with ifctester 0.9, see README.md).
+  Hand-written for CheckMate's tests, not downloaded from the portal: an IDS 1.0 file the way
+  other tools write them. Valid against the IDS 1.0 XSD (checked with ifctester 0.9, see README.md).
 
   1 Platten          IFC2X3 IFC4  - several schemas in one specification
   2 Waende           IFC4         - entity as xs:enumeration; a value restriction and an attribute

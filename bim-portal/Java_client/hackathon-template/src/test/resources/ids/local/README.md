@@ -1,7 +1,8 @@
 # Hand-written IDS files used as test files
 
-Unlike the portal exports in [`../portal/`](../portal/README.md), these files are written by hand,
-the way other tools write IDS. They test what only matters for local IDS files.
+Unlike the files downloaded from the portal in [`../portal/`](../portal/README.md), these files
+are written by hand, the way other tools write IDS. They test what only matters for local IDS
+files.
 
 `mehrere-spezifikationen.ids` (title "CheckMate Testanforderungen", version 1.2):
 

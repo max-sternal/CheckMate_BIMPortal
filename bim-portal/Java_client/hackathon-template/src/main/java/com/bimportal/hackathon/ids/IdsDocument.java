@@ -9,10 +9,10 @@ import java.util.List;
  * <p>Whatever the requirements come from - a LOIN in the portal, a local IDS file - they end up as
  * one of these, so the check does not care about the source.
  *
- * @param title the IDS {@code <info><title>}; for a portal export the LOIN's name. Null when the
- *     file has none.
- * @param version the IDS {@code <info><version>}; for a portal export the LOIN's version. Null when
- *     the file has none.
+ * @param title the IDS {@code <info><title>}; in a LOIN's IDS file from the portal the LOIN's
+ *     name. Null when the file has none.
+ * @param version the IDS {@code <info><version>}; in a LOIN's IDS file from the portal the LOIN's
+ *     version. Null when the file has none.
  * @param source where it came from, for reports: e.g. {@code BIM Portal, LOIN be959b9d-...} or the
  *     file name
  */
@@ -42,8 +42,8 @@ public record IdsDocument(
   /**
    * The specifications written for a model's schema, in file order.
    *
-   * <p>A portal export holds one per schema. Other IDS files may hold several for the same schema,
-   * and IDS checks each of them, so this is a list and not a pick.
+   * <p>A LOIN's IDS file from the portal holds one per schema. Other IDS files may hold several
+   * for the same schema, and IDS checks each of them, so this is a list and not a pick.
    */
   public List<IdsSpecification> forSchema(String schema) {
     return specifications.stream().filter(specification -> specification.covers(schema)).toList();

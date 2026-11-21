@@ -13,10 +13,10 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
 /**
- * IDS files in a ZIP archive, read as one document: the BIM Portal's export of an AIA project, or
- * any ZIP of IDS files.
+ * IDS files in a ZIP archive, read as one document: the ZIP the BIM Portal provides for an AIA
+ * project, or any ZIP of IDS files.
  *
- * <p>The portal's project export holds {@code IDS/AIA_<project>_<guid>_<version>.ids}, one file
+ * <p>The portal's project ZIP holds {@code IDS/AIA_<project>_<guid>_<version>.ids}, one file
  * with every LOIN of the project, and for some projects also {@code IDS/LOIN_<name>_<guid>_...ids},
  * one per LOIN. They overlap, but not completely: in the road projects the combined file holds the
  * IFC4 specifications only, while each LOIN's own file holds IFC2X3, IFC4 and IFC4X3_ADD2 (measured

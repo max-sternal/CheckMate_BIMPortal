@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Test files and model elements for the {@code ids} tests.
  *
- * <p>The IDS files are real BIM Portal exports, see
+ * <p>The IDS files are real downloads from the BIM Portal, see
  * {@code src/test/resources/ids/portal/README.md}. Model elements are built by hand, so the check
  * is tested without an IFC file or the Apstex JARs.
  */

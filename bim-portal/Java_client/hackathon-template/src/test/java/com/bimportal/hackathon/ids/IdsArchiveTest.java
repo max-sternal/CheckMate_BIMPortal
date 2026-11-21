@@ -18,9 +18,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * ZIP archives of IDS files: the BIM Portal's AIA project exports, and ZIPs made by hand.
+ * ZIP archives of IDS files: the ZIPs the BIM Portal provides for AIA projects, and ZIPs made by
+ * hand.
  *
- * <p>The two exports are real, see {@code src/test/resources/ids/portal/README.md}.
+ * <p>The two project ZIPs are real, see {@code src/test/resources/ids/portal/README.md}.
  */
 class IdsArchiveTest {
 
@@ -33,7 +34,7 @@ class IdsArchiveTest {
   @TempDir Path folder;
 
   @Test
-  void readsAnAiaExportWithTheProjectsTitleAndVersion() throws Exception {
+  void readsAnAiaProjectZipWithTheProjectsTitleAndVersion() throws Exception {
     IdsDocument railway = IdsParser.read(bytes(RAILWAY), "Bahn");
 
     assertThat(railway.label()).isEqualTo("Beispiel-AIA Neubau Eisenbahnbrücke, Version 1.1");
@@ -120,9 +121,9 @@ class IdsArchiveTest {
   void anIdsFileInTheZipThatIsNotIdsIsAnErrorNamingIt() throws Exception {
     byte[] zip = zip(Map.of("IDS/kaputt.ids", "<loin/>".getBytes(StandardCharsets.UTF_8)));
 
-    assertThatThrownBy(() -> IdsParser.read(zip, "export.zip"))
+    assertThatThrownBy(() -> IdsParser.read(zip, "projekt.zip"))
         .isInstanceOf(RequirementsException.class)
-        .hasMessageContaining("export.zip: IDS/kaputt.ids ist keine IDS-Datei");
+        .hasMessageContaining("projekt.zip: IDS/kaputt.ids ist keine IDS-Datei");
   }
 
   @Test

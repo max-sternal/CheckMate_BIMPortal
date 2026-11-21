@@ -11,12 +11,12 @@ import java.util.regex.Pattern;
  * One {@code <specification>} block of an IDS file: which elements it applies to, and what those
  * elements have to carry.
  *
- * <p>The BIM Portal exports one block per IFC schema version (IFC4, IFC4X3_ADD2, IFC2X3) with the
+ * <p>The BIM Portal writes one block per IFC schema version (IFC4, IFC4X3_ADD2, IFC2X3) with the
  * same content but different entity names, so a check has to pick the blocks matching the model -
  * see {@link #covers} and {@link IdsDocument#forSchema}. Other IDS files may list several schemas
  * in one block.
  *
- * <p>Note how the portal lays its exports out: {@code applicability} selects elements purely by
+ * <p>Note how the portal lays its IDS files out: {@code applicability} selects elements purely by
  * their classification properties, and the entity type is an {@code requirements} entry rather than
  * a selector. Both lists are honoured here regardless, so a hand-written IDS also works.
  */
@@ -58,7 +58,7 @@ public record IdsSpecification(
   }
 
   /**
-   * The GUID of the LOIN this specification was exported from. The portal writes the {@code
+   * The GUID of the LOIN this specification was written for. The portal writes the {@code
    * identifier} as {@code "<LOIN guid> <n>"}, where n only counts the specifications within one
    * file, so the same LOIN and schema have a different n in an AIA project's combined file than in
    * the LOIN's own file.

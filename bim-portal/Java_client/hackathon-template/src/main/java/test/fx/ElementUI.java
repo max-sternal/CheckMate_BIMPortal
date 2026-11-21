@@ -347,7 +347,7 @@ public class ElementUI extends VBox {
         .getExtensionFilters()
         .addAll(
             new FileChooser.ExtensionFilter(
-                "IDS-Dateien und AIA-Exporte", "*.ids", "*.xml", "*.zip"),
+                "IDS-Dateien und AIA-Projekte (ZIP)", "*.ids", "*.xml", "*.zip"),
             new FileChooser.ExtensionFilter("Alle Dateien", "*.*"));
     File file = chooser.showOpenDialog(getScene().getWindow());
     if (file != null) {
@@ -465,8 +465,8 @@ public class ElementUI extends VBox {
   /**
    * Run one entry of the list against the model.
    *
-   * <p>Called off the FX thread: for a LOIN or project from a search this exports its IDS from the
-   * portal, and every check walks every element. With several specifications, as an AIA project
+   * <p>Called off the FX thread: for a LOIN or project from a search this downloads its IDS from
+   * the portal, and every check walks every element. With several specifications, as an AIA project
    * has, the report starts with one line per specification.
    */
   private Checked check(RequirementSource source, LoadedModel against) {

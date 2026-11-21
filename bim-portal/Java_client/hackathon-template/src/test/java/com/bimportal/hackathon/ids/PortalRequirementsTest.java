@@ -32,7 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 /**
  * LOINs and AIA projects from the portal, by ID and by search, with the portal mocked.
  *
- * <p>The AIA export is a real one, see {@code src/test/resources/ids/portal/README.md}.
+ * <p>The AIA project ZIP is a real one, see {@code src/test/resources/ids/portal/README.md}.
  *
  * <p>The point of the error cases: each of them would otherwise end as an empty report, which reads
  * like a pass.
@@ -40,10 +40,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class PortalRequirementsTest {
 
-  /** Ueberbau &gt; Kappe, LPH 8-9: the GUID the export answers to... */
+  /** Ueberbau &gt; Kappe, LPH 8-9: the GUID the download answers to... */
   private static final UUID GUID = UUID.fromString("be959b9d-daef-5315-9aba-f60b6ad54ccb");
 
-  /** ...and the ID of its version record in the catalogue, which the export does not know. */
+  /** ...and the ID of its version record in the catalogue, which the download does not know. */
   private static final UUID RECORD_ID = UUID.fromString("dd5675ce-408f-4c34-8618-7d543f2a76d4");
 
   /** Beispiel-AIA Neubau Eisenbahnbrücke: its GUID, and the ID of its version record. */
@@ -52,7 +52,7 @@ class PortalRequirementsTest {
   private static final UUID PROJECT_RECORD_ID =
       UUID.fromString("987ec218-1f1f-44b3-b09c-061f989747a1");
 
-  private static final String RAILWAY_EXPORT = "/ids/portal/aia-neubau-eisenbahnbruecke.zip";
+  private static final String RAILWAY_ZIP = "/ids/portal/aia-neubau-eisenbahnbruecke.zip";
 
   private static final List<ModelElement> MODEL =
       List.of(
@@ -95,7 +95,7 @@ class PortalRequirementsTest {
   // Requirements by ID
 
   @Test
-  void readsTheExportOfALoinWithItsNameAndVersion() throws Exception {
+  void readsTheIdsFileOfALoinWithItsNameAndVersion() throws Exception {
     when(client.exportLoinIds(GUID)).thenReturn(Optional.of(bytes(KAPPE_LPH_8_9)));
 
     IdsDocument document = PortalRequirements.requirements(client, "LOIN " + GUID);
@@ -143,7 +143,7 @@ class PortalRequirementsTest {
   @Test
   void readsAnAiaProjectByItsGuid() throws Exception {
     when(client.exportLoinIds(PROJECT)).thenReturn(Optional.empty());
-    when(client.exportProjectIds(PROJECT)).thenReturn(Optional.of(bytes(RAILWAY_EXPORT)));
+    when(client.exportProjectIds(PROJECT)).thenReturn(Optional.of(bytes(RAILWAY_ZIP)));
 
     IdsDocument document = PortalRequirements.requirements(client, PROJECT);
 
@@ -158,7 +158,7 @@ class PortalRequirementsTest {
     when(client.exportProjectIds(PROJECT_RECORD_ID)).thenReturn(Optional.empty());
     when(client.searchProjects(any()))
         .thenReturn(List.of(new SimpleAiaProjectPublicDto().id(PROJECT_RECORD_ID).guid(PROJECT)));
-    when(client.exportProjectIds(PROJECT)).thenReturn(Optional.of(bytes(RAILWAY_EXPORT)));
+    when(client.exportProjectIds(PROJECT)).thenReturn(Optional.of(bytes(RAILWAY_ZIP)));
 
     IdsDocument document = PortalRequirements.requirements(client, PROJECT_RECORD_ID);
 
@@ -168,12 +168,13 @@ class PortalRequirementsTest {
   }
 
   @Test
-  void aProjectWithoutExportIsAnError() {
+  void aProjectWithoutIdsFilesIsAnError() {
     when(client.exportProjectIds(PROJECT)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> PortalRequirements.project(client, PROJECT, "Eisenbahnbrücke"))
         .isInstanceOf(RequirementsException.class)
-        .hasMessageContaining("das AIA-Projekt 'Eisenbahnbrücke' keinen IDS-Export");
+        .hasMessageContaining(
+            "das AIA-Projekt 'Eisenbahnbrücke' keine IDS-Datei zum Herunterladen");
   }
 
   @Test
@@ -186,14 +187,14 @@ class PortalRequirementsTest {
   }
 
   @Test
-  void aLoinWithoutExportIsAnError() {
+  void aLoinWithoutIdsFileIsAnError() {
     when(client.exportLoinIds(RECORD_ID)).thenReturn(Optional.empty());
     when(client.searchLoins(any())).thenReturn(List.of(catalogueEntry()));
     when(client.exportLoinIds(GUID)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> PortalRequirements.requirements(client, RECORD_ID))
         .isInstanceOf(RequirementsException.class)
-        .hasMessageContaining("keinen IDS-Export")
+        .hasMessageContaining("keine IDS-Datei zum Herunterladen")
         .hasMessageContaining("Ueberbau > Kappe");
   }
 
@@ -206,7 +207,7 @@ class PortalRequirementsTest {
   }
 
   @Test
-  void anExportThatIsNotIdsIsAnError() {
+  void aDownloadThatIsNotIdsIsAnError() {
     byte[] errorPage = "<html><body>Wartung</body></html>".getBytes(StandardCharsets.UTF_8);
     when(client.exportLoinIds(GUID)).thenReturn(Optional.of(errorPage));
 
@@ -216,7 +217,7 @@ class PortalRequirementsTest {
   }
 
   @Test
-  void anExportWithoutSpecificationIsAnError() {
+  void aDownloadWithoutSpecificationIsAnError() {
     byte[] empty =
         "<ids xmlns=\"http://standards.buildingsmart.org/IDS\"><specifications/></ids>"
             .getBytes(StandardCharsets.UTF_8);
@@ -230,7 +231,7 @@ class PortalRequirementsTest {
   }
 
   @Test
-  void anExportThatDoesNotCoverTheModelSchemaIsAnError() throws Exception {
+  void aDownloadThatDoesNotCoverTheModelSchemaIsAnError() throws Exception {
     when(client.exportLoinIds(GUID)).thenReturn(Optional.of(bytes(KAPPE_LPH_8_9)));
 
     IdsDocument document = PortalRequirements.requirements(client, GUID);

@@ -18,7 +18,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.xml.sax.SAXParseException;
 
-/** Reads real BIM Portal exports; see {@code src/test/resources/ids/portal/README.md}. */
+/** Reads real IDS files from the BIM Portal, see {@code src/test/resources/ids/portal/}. */
 class IdsParserTest {
 
   @Test

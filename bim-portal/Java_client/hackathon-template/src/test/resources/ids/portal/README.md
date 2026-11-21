@@ -1,4 +1,4 @@
-# BIM Portal IDS exports used as test files
+# IDS files downloaded from the BIM Portal, used as test files
 
 Downloaded unchanged on 2026-11-20 from the public BIM Portal (`https://via.bund.de/bim`) through
 `GET /aia/api/v1/public/loin/{guid}/IDS`.
@@ -9,7 +9,7 @@ Downloaded unchanged on 2026-11-20 from the public BIM Portal (`https://via.bund
 | `ueberbau-schaft-lph1-9.ids` | Ueberbau > Schaft (Ingenieurbau): LPH 1-9 | `faae463a-6938-54cf-b1d6-e8944ed983a5` | 4.1 |
 | `fenster.ids` | Fenster | `c0f5ba14-6f36-4b10-a328-bec7f0bd2e4a` | 1.1 |
 
-AIA project exports, downloaded unchanged on 2026-11-21 through
+AIA project ZIPs, downloaded unchanged on 2026-11-21 through
 `GET /aia/api/v1/public/aiaProject/{guid}/IDS`:
 
 | File | AIA project | GUID | Version |

@@ -5,7 +5,7 @@ description: Build, run and drive the CheckMate JavaFX GUI (checks an IFC model 
 
 CheckMate is the JavaFX app `test.fx.App` in `hackathon-template`. It loads a bundled IFC
 bridge model, lists AIA projects and LOINs from the BIM Portal and checks the model against the
-selected one, a LOIN or project given by its ID, or a local IDS file or AIA export (ZIP).
+selected one, a LOIN or project given by its ID, or a local IDS file or project ZIP.
 **Drive it with `.claude/skills/run-checkmate/drive.sh`**: it compiles the module and starts
 `CheckMateDriver.java`, which launches the real `test.fx.App` in its own JVM and then runs
 commands against the scene graph (search, select, click, read the report, screenshot).
@@ -37,7 +37,7 @@ cp "<nextcloud>/BIM_Deutschland_Hackathon/bim-portal/Java_client/hackathon-templ
 ```
 
 - **No credentials needed.** Without a `.env` the client runs in public mode: published LOINs only.
-- Network access to the BIM Portal (LOIN search + IDS export happen live).
+- Network access to the BIM Portal (the LOIN search and the IDS downloads happen live).
 
 ## Run (agent path): drive.sh
 
@@ -110,7 +110,7 @@ then starts with the bundled model. The dialog blocks the driver, so check the p
 
 ## Run: headless LOIN check (no window)
 
-The same check as the button, for LOINs and AIA projects by ID, local IDS files and AIA exports,
+The same check as the button, for LOINs and AIA projects by ID, local IDS files and project ZIPs,
 or everything a search term finds. Takes about 13 s. Run it from `bim-portal/Java_client/`:
 
 ```bash
@@ -125,14 +125,14 @@ JAVA_TOOL_OPTIONS="-Dstdout.encoding=UTF-8" ./gradlew -q --console=plain :hackat
   `hackathon-template/`.
 - `--loin` and `--aia` take an ID of a LOIN or an AIA project, or any text holding one (a link
   copied from the portal); both accept either kind. `--ids` takes a local IDS file or a ZIP of
-  them, such as an AIA export. All three may be repeated. A search term holding an ID counts as
+  them, such as an AIA project's ZIP. All three may be repeated. A search term holding an ID counts as
   `--loin`; any other search term finds AIA projects and LOINs.
 - With several specifications (an AIA project), a tally line comes first:
   `36 Spezifikation(en) für IFC4: 36 nicht erfüllt`.
 - Without `--loin`, `--ids` and a search term, it searches for "Kappe". The search term may have
   several words.
 - Exit code 1: the model or any of the requirements couldn't be read or checked (unknown ID, no
-  IDS export, not an IDS file, no specification for the model's schema); the others are still
+  IDS file to download, not an IDS file, no specification for the model's schema); the others are still
   checked. Exit code 2: an unknown argument. Failed requirements don't change the exit code yet.
 - Gradle prints `Execution failed for task ':hackathon-template:runLoinCheck'` and `BUILD FAILED`
   on a non-zero exit code. That is the exit code, not a build problem.

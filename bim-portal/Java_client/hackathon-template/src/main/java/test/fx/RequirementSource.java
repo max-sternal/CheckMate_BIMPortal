@@ -44,7 +44,7 @@ sealed interface RequirementSource {
     }
   }
 
-  /** Requirements already read: a local IDS file or AIA export, or a LOIN or project by its ID. */
+  /** Requirements already read: a local IDS file or project ZIP, or a LOIN or project by ID. */
   record Loaded(IdsDocument document) implements RequirementSource {
 
     @Override

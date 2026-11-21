@@ -29,7 +29,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
- * Reads buildingSMART IDS 1.0 files: the BIM Portal's exports, and local IDS files.
+ * Reads buildingSMART IDS 1.0 files: the ones downloaded from the BIM Portal, and local ones.
  *
  * <p>What is evaluated: {@code entity} facets with name and {@code predefinedType}, and {@code
  * property} facets with property set, name, data type, a fixed value and {@code cardinality}. Names
@@ -51,7 +51,7 @@ public final class IdsParser {
   private IdsParser() {}
 
   /**
-   * Read an IDS file, or a ZIP archive of IDS files such as an AIA project's export (see {@link
+   * Read an IDS file, or a ZIP archive of IDS files such as an AIA project's (see {@link
    * IdsArchive}).
    *
    * @throws RequirementsException when the file is missing, unreadable or not IDS
