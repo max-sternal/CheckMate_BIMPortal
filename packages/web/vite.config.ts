@@ -16,28 +16,20 @@ if (existsSync(demoIfcSrc) && !existsSync(demoIfcDest)) {
 export default defineConfig({
   base: './',
   esbuild: {
-    target: 'es2022',
+    target: 'esnext',
   },
   worker: {
     format: 'es',
   },
   optimizeDeps: {
     esbuildOptions: {
-      target: 'es2022',
+      target: 'esnext',
     },
-    exclude: [
-      '@ifc-lite/wasm',
-      '@ifc-lite/geometry',
-      '@ifc-lite/ids',
-      '@ifc-lite/parser',
-      '@ifc-lite/data',
-      '@ifc-lite/rules',
-      '@ifc-lite/bcf',
-      '@ifc-lite/renderer',
-    ],
+    include: ['jszip', 'decimal.js', 'fflate'],
+    exclude: ['@ifc-lite/wasm', '@ifc-lite/geometry'],
   },
   build: {
     outDir: 'dist',
-    target: 'es2022',
+    target: 'esnext',
   },
 });
