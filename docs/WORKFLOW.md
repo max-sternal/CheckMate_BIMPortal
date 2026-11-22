@@ -191,8 +191,9 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
 - Install: `./gradlew :hackathon-template:installMcp` (from `bim-portal/Java_client/`) writes
   `hackathon-template/build/install/checkmate-mcp/`, with the start script
   `bin/checkmate-mcp.bat` (Windows) or `bin/checkmate-mcp` and every JAR in `lib/`. Run it again
-  after code changes. It needs the Apstex JARs and Java 21 (`JAVA_HOME` or `java` on the path), no
-  JavaFX at runtime. It can't run through Gradle, which writes to stdout too.
+  after code changes. It needs the Apstex JARs and Java 21, no JavaFX at runtime; the start
+  script takes the Java in `JAVA_HOME`, else the first `java` on the path. It can't run through
+  Gradle, which writes to stdout too.
 - Tools (answers in German, as the CLI writes them):
 
   | Tool | What it does | Arguments |
@@ -214,23 +215,41 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
   project has about 500,000; it is cut at a line end, and the verdict line is kept. The default
   brief report of the 36 specifications of an AIA project has about 16,000 characters.
 - Logs go to stderr, which AI apps keep as the server's log. stdout carries only the protocol.
-- Connecting an AI app (paths shortened; use the full path of the start script):
-  - Claude Desktop, in `claude_desktop_config.json`:
+- Connecting an AI app. Use the full path of the start script (shortened here). On Windows the app
+  starts the `.bat` through `cmd /c`; it can't start a `.bat` file itself.
+  - Claude Desktop: Settings → Developer → Edit Config opens `claude_desktop_config.json` (the
+    Microsoft Store install keeps it elsewhere than `%APPDATA%\Claude\`, so open it this way).
+    Add to it:
     ```json
     { "mcpServers": { "checkmate": {
-        "command": "C:\\...\\hackathon-template\\build\\install\\checkmate-mcp\\bin\\checkmate-mcp.bat",
-        "env": { "JAVA_HOME": "C:\\...\\zulu21-jdk-fx", "CHECKMATE_IFC": "C:\\...\\model.ifc" } } } }
+        "command": "cmd",
+        "args": ["/c", "C:\\...\\hackathon-template\\build\\install\\checkmate-mcp\\bin\\checkmate-mcp.bat"],
+        "env": { "JAVA_HOME": "C:\\...\\zulu21-jdk-fx" } } } }
     ```
-    `env` is optional: `JAVA_HOME` when it is not set for the whole system, `CHECKMATE_IFC` for
-    the model to start with.
-  - Claude Code: `claude mcp add checkmate -- C:/.../bin/checkmate-mcp.bat`.
+    `JAVA_HOME` belongs in `env` even when it is set in Windows: the app passes the server its
+    `PATH` but not `JAVA_HOME`, and if an older `java` comes first on the path, the server stops
+    with `UnsupportedClassVersionError`. `"CHECKMATE_IFC": "C:\\...\\model.ifc"` in `env` sets the
+    model to start with. Then quit the app completely (tray icon → Quit) and start it again; the
+    server is listed under Settings → Developer.
+  - Claude Code, in a terminal in the folder where Claude Code sessions start (the repo root):
+    `claude mcp add checkmate -- cmd /c "C:\...\bin\checkmate-mcp.bat"`. This registers the
+    server for that folder only; `--scope user` registers it for every folder. Not
+    `--scope project`: it writes the machine's path into `.mcp.json` in the repo. Claude Code passes
+    the server its own environment, so a `JAVA_HOME` set in Windows is enough; otherwise add
+    `-e JAVA_HOME=C:\...\zulu21-jdk-fx`. `claude mcp list` shows whether it connects; a new
+    session lists it under `/mcp`.
   - Ollama: Ollama runs models but does not speak MCP itself; an MCP host in between does, e.g.
-    `ollmcp` (`pip install mcp-client-for-ollama`) with the same `mcpServers` file, or Open WebUI.
+    `ollmcp` (`pip install mcp-client-for-ollama`) with the same `mcpServers` entry, or Open WebUI.
     The model must support tool calls (e.g. Qwen 3, Llama 3.1). Small models have small context
     windows, so keep `examples` low.
-- Known limits: tried so far with a script that speaks the protocol (initialize, tools/list, every
-  tool, errors), not yet with an AI app (STATUS #16). Tools only: no MCP resources or prompts, no
-  progress messages during a long check. Paths are read on the machine the server runs on.
+- When the server doesn't start, read its log first. Claude Desktop writes it to
+  `mcp-server-checkmate.log` in its `logs` folder (`%APPDATA%\Claude\logs\`, for the Store install
+  `%LOCALAPPDATA%\Packages\Claude_<id>\LocalCache\Local\Claude\logs\`), including what the server
+  writes to stderr.
+- Known limits: tried with Claude Desktop and Claude Code on Windows and with a script that speaks
+  the protocol (every tool, errors); not yet with Ollama (STATUS #16). Tools only: no MCP resources
+  or prompts, no progress messages during a long check. Paths are read on the machine the server
+  runs on.
 - Main classes: [`CheckMateMcpServer`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/mcp/CheckMateMcpServer.java)
   (tools, parameters, transport), [`CheckMateTools`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/mcp/CheckMateTools.java)
   (what each tool does, on `CheckService`, tested without the protocol).
@@ -360,7 +379,8 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [x] Window size: the GUI opens at 1280x900 (STATUS #5). Many element tabs no longer squeeze the LOIN list.
 - [ ] GUI cleanup: "BIM Portal" button (STATUS #4), chat placeholder (STATUS #3), the leftover class filter. The class filter's tabs still read IFC2X3 only and through the unreliable inverse relations (`ElementUI.createObjectTab`).
 - [x] MCP server for AI apps: stdio, seven tools on `CheckService`, `installMcp` (section 2.7).
-- [ ] Try the MCP server with an AI app: Claude Desktop or Code, and Ollama through an MCP host (STATUS #16).
+- [x] Connect the MCP server to Claude Desktop and Claude Code (Windows).
+- [ ] Try the MCP server with Ollama through an MCP host (STATUS #16).
 - [x] Tests for the `ids` package ([`src/test/java/com/bimportal/hackathon/ids/`](../bim-portal/Java_client/hackathon-template/src/test/java/com/bimportal/hackathon/ids)), with real IDS files from the portal as test files ([`src/test/resources/ids/portal/`](../bim-portal/Java_client/hackathon-template/src/test/resources/ids/portal/README.md)).
 - [x] Tests for reading IFC ([`src/test/java/test/fx/`](../bim-portal/Java_client/hackathon-template/src/test/java/test/fx)): small case files of our own per schema ([`make_ifc_fixtures.py`](../bim-portal/Java_client/hackathon-template/src/test/python/make_ifc_fixtures.py)), the bundled model, and sample models that `gradlew :hackathon-template:downloadTestModels` fetches into the ignored `test-models/` (about 5 MB, list in [`samples.properties`](../bim-portal/Java_client/hackathon-template/src/test/resources/ifc/samples.properties)).
 - [x] Missing prerequisites are reported, not failed: without the Apstex JARs the IFC tests are not built, without the sample models they are skipped, and `PrerequisitesTest` says in each case what to add and where.

@@ -79,8 +79,26 @@ From `bim-portal/Java_client/`:
 
 The model is the bundled bridge model unless `CHECKMATE_IFC` names a file or a link, or `--model`
 does. CLI options and exit codes: [`LoinCheckCli`](bim-portal/Java_client/hackathon-template/src/main/java/test/fx/LoinCheckCli.java)
-and `docs/WORKFLOW.md`, section 2.5. Connecting the MCP server to Claude or to Ollama:
-section 2.7.
+and `docs/WORKFLOW.md`, section 2.5.
+
+## Using CheckMate from an AI app
+
+With the MCP server, an AI app such as Claude Desktop or Claude Code checks a model for you: ask
+"Welche LOINs passen zum Modell?" or "Prüfe das Modell gegen die LOIN
+be959b9d-daef-5315-9aba-f60b6ad54ccb", and the AI calls CheckMate and explains the report.
+
+1. Build it: `./gradlew :hackathon-template:installMcp`, again after code changes. The start script
+   is `bim-portal/Java_client/hackathon-template/build/install/checkmate-mcp/bin/checkmate-mcp.bat`.
+2. Register it with its full path. On Windows `cmd /c` starts the `.bat`:
+   - Claude Code, in a terminal at the repo root:
+     `claude mcp add checkmate -- cmd /c "C:\...\checkmate-mcp.bat"`
+   - Claude Desktop: Settings → Developer → Edit Config, add the `checkmate` entry from section 2.7
+     with `JAVA_HOME` (the JDK 21) in `env`, then quit the app from the tray and start it again.
+3. Check: `claude mcp list` shows `checkmate` as connected; Claude Desktop lists it under
+   Settings → Developer.
+
+Ollama, the tools, and what to do when the server doesn't start:
+[`docs/WORKFLOW.md`](docs/WORKFLOW.md), section 2.7.
 
 ## Open decisions
 

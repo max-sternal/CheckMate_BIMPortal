@@ -41,7 +41,7 @@ What is being worked on and what is still open. One line per item. Reference cod
 
 ### MCP server
 
-16. Tried only with a test script that speaks the protocol, not yet with an AI app: Claude Desktop or Code, and Ollama through an MCP host such as `ollmcp` (WORKFLOW 2.7).
+16. Claude Desktop and Claude Code (Windows) start the server and list its tools (2026-11-22); Claude Desktop only with `JAVA_HOME` in the config's `env` (WORKFLOW 2.7). Not yet tried with Ollama through an MCP host such as `ollmcp`.
 17. The MCP SDK is built for Jackson 2.21; the project pins Jackson to 2.15.2 (`build.gradle.kts`), so Gradle hands the SDK 2.15.2. Every message CheckMate uses works and is tested; if an AI app's message ever fails to parse, raise Jackson first.
 
 ### Code structure
