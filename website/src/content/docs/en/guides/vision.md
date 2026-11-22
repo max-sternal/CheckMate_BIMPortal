@@ -5,7 +5,11 @@ description: CheckMate in the context of the German BIM Portal, open standards a
 
 ## A tool for information requirements
 
+Requirements for safety, accessibility, the environment and documentation matter. CheckMate aims to make working with them easier: **speed up bureaucracy instead of dismantling it**, through traceable digital checks rather than lower standards.
+
 Clients define the information they need at particular points in a project. The German BIM Portal provides, among other things, properties, levels of information need (LOIN) and client information requirements (AIA).
+
+Planners need to keep track of the requirements that apply to their projects; reviewers compare them with the delivered models. CheckMate aims to support both, so that the volume of information does not leave them in checkmate.
 
 CheckMate compares IFC models with machine-readable requirements in IDS format. Requirements can come from the BIM Portal or local IDS files. The tool supports checks of individual information requirements; it does not replace professional judgement, a complete AIA review or the application of a standard.
 

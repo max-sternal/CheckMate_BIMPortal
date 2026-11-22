@@ -1,9 +1,9 @@
 ---
 title: CheckMate
-description: IFC-Modelle anhand von Informationsanforderungen aus dem BIM-Portal oder lokalen IDS-Dateien prüfen.
+description: CheckMate unterstützt Planende und Prüfende beim Abgleich von IFC-Modellen und Informationsanforderungen.
 template: splash
 hero:
-  tagline: Informationsanforderungen nachvollziehbar mit IFC-Modellen abgleichen.
+  tagline: Bürokratie-Beschleunigung statt Bürokratie-Abbau – weniger Überforderung, mehr Klarheit bei der BIM-Prüfung.
   image:
     file: ../../assets/checkmate-logo.png
     alt: CheckMate Logo
@@ -21,21 +21,27 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-CheckMate entstand beim [BIM-Portal-Hackathon 2025](https://www.bimdeutschland.de/veranstaltungen/hackathon-2025). Das unabhängige Projekt unterstützt die Prüfung von IFC-Modellen gegen Informationsanforderungen aus dem [BIM-Portal des Bundes](https://www.bimdeutschland.de/bim-portal) oder aus lokalen IDS-Dateien.
+## Warum CheckMate?
+
+Modelle, Merkmale und Informationsanforderungen sollen beim Planen und Prüfen helfen – nicht Planer:innen und Prüfer:innen **„schachmatt“** setzen. CheckMate ist als Partner im Prüfprozess gedacht: Es bringt Anforderungen und IFC-Modelle zusammen und macht Prüfergebnisse nachvollziehbar.
+
+Die Idee: **Bürokratie beschleunigen, ohne Standards abzubauen.** Klare, maschinenlesbare Anforderungen und digitale Werkzeuge unterstützen Menschen dabei, sich auf die fachliche Bewertung zu konzentrieren.
+
+CheckMate entstand beim [BIM-Portal-Hackathon 2025](https://www.bimdeutschland.de/veranstaltungen/hackathon-2025). Das unabhängige Projekt verarbeitet Anforderungen aus dem [BIM-Portal des Bundes](https://www.bimdeutschland.de/bim-portal) oder aus lokalen IDS-Dateien.
 
 <CardGrid>
   <Card title="Offene Austauschformate" icon="open-book">
-    IFC beschreibt das Modell; buildingSMART IDS beschreibt maschinenlesbare Anforderungen. Lokale IDS-Dateien können unabhängig vom BIM-Portal genutzt werden.
+    IFC beschreibt das Modell, buildingSMART IDS die maschinenlesbaren Anforderungen. Lokale IDS-Dateien lassen sich auch unabhängig vom BIM-Portal nutzen.
   </Card>
   <Card title="Eine Prüfung, mehrere Zugänge" icon="laptop">
-    Die JavaFX-Oberfläche, die Kommandozeile und der MCP-Server verwenden denselben Prüfkern.
+    Die JavaFX-Oberfläche, die Kommandozeile und der MCP-Server verwenden denselben regelbasierten Prüfkern.
   </Card>
-  <Card title="Ergebnisse richtig einordnen" icon="approve-check-circle">
-    CheckMate prüft unterstützte IDS-Anforderungen. Nicht alle Facetten werden ausgewertet; die fachliche Beurteilung bleibt beim Menschen.
+  <Card title="Mensch und KI im Zusammenspiel" icon="approve-check-circle">
+    Eine KI-Anwendung kann über MCP Prüfungen aufrufen und Ergebnisse erläutern. Die Prüfung erfolgt in CheckMate; die fachliche Entscheidung bleibt beim Menschen.
   </Card>
-  <Card title="Quelloffen mit Abhängigkeiten" icon="puzzle">
-    Der CheckMate-Code steht unter Apache 2.0. Version 0.3.1 benötigt zum Einlesen von IFC zusätzlich die proprietäre APSTEX IFC Toolbox.
+  <Card title="Offen und nachvollziehbar" icon="puzzle">
+    CheckMate ist quelloffen unter Apache 2.0. Version 0.3.1 benötigt zum IFC-Einlesen zusätzlich die proprietäre APSTEX IFC Toolbox.
   </Card>
 </CardGrid>
 
-Die [technische Übersicht](/CheckMate_BIMPortal/architecture/overview/) beschreibt Aufbau und Abhängigkeiten; [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/) erläutert den Prüfumfang und seine Grenzen.
+Nicht alle IDS-Anforderungen werden ausgewertet. [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/) erläutert den Prüfumfang und seine Grenzen; die [technische Übersicht](/CheckMate_BIMPortal/architecture/overview/) beschreibt Aufbau und Abhängigkeiten.

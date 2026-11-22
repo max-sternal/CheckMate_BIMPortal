@@ -5,7 +5,11 @@ description: CheckMate im Kontext von BIM-Portal, offenen Standards und Informat
 
 ## Ein Werkzeug für Informationsanforderungen
 
+Anforderungen an Sicherheit, Barrierefreiheit, Umwelt und Dokumentation sind wichtig. CheckMate möchte die Arbeit mit ihnen erleichtern: **Bürokratie-Beschleunigung statt Bürokratie-Abbau** – durch nachvollziehbare digitale Prüfungen, nicht durch niedrigere Standards.
+
 Auftraggeber definieren, welche Informationen sie zu bestimmten Zeitpunkten für ein Projekt benötigen. Das BIM-Portal stellt dafür unter anderem Merkmale, Informationsbedarfstiefen (Level of Information Need, LOIN) und Auftraggeber-Informationsanforderungen (AIA) bereit.
+
+Planer:innen müssen die passenden Anforderungen für ihr Projekt im Blick behalten; Prüfer:innen vergleichen sie mit den gelieferten Modellen. CheckMate soll beide dabei unterstützen, damit die Menge an Informationen sie nicht „schachmatt“ setzt.
 
 CheckMate gleicht IFC-Modelle mit maschinenlesbaren Anforderungen im IDS-Format ab. Anforderungen können aus dem BIM-Portal oder aus lokalen IDS-Dateien stammen. Das Werkzeug unterstützt die Prüfung einzelner Informationen; es ersetzt weder die fachliche Bewertung noch die vollständige Prüfung einer AIA oder die Anwendung einer Norm.
 
