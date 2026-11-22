@@ -10,7 +10,7 @@ export default defineConfig({
 		starlight({
 			title: 'CheckMate',
 			description:
-				'Open-Source LOIN- & IDS-Prüfwerkzeug für das BIM-Portal des Bundes — deterministische IFC-Prüfung mit KI-/MCP-Unterstützung.',
+				'CheckMate prüft IFC-Modelle anhand von IDS-Anforderungen aus dem BIM-Portal oder lokalen Dateien.',
 			logo: {
 				src: './src/assets/checkmate-logo.png',
 				alt: 'CheckMate Logo',
@@ -44,8 +44,8 @@ export default defineConfig({
 					translations: { en: 'Getting Started' },
 					items: [
 						{
-							label: 'Vision & Idee',
-							translations: { en: 'Vision & Mission' },
+							label: 'Einordnung & Grundlagen',
+							translations: { en: 'Context & Foundations' },
 							slug: 'guides/vision',
 						},
 						{
@@ -70,24 +70,24 @@ export default defineConfig({
 							slug: 'architecture/overview',
 						},
 						{
-							label: 'IFC-Parsing & IDS 1.0',
-							translations: { en: 'IFC Parsing & IDS 1.0' },
+							label: 'IFC & IDS',
+							translations: { en: 'IFC & IDS' },
 							slug: 'architecture/ifc-ids-checking',
 						},
 					],
 				},
 				{
-					label: 'KI & MCP-Anschluss',
-					translations: { en: 'AI & MCP Integration' },
+					label: 'MCP-Schnittstelle',
+					translations: { en: 'MCP Interface' },
 					items: [
 						{
-							label: 'MCP-Server & MCP Apps',
-							translations: { en: 'MCP Server & MCP Apps' },
+							label: 'MCP-Server',
+							translations: { en: 'MCP Server' },
 							slug: 'mcp/overview',
 						},
 						{
-							label: 'Clients: Claude, OpenCode, Ollama & Strata',
-							translations: { en: 'Clients: Claude, OpenCode, Ollama & Strata' },
+							label: 'Client einrichten',
+							translations: { en: 'Set Up a Client' },
 							slug: 'mcp/clients',
 						},
 					],
@@ -102,8 +102,8 @@ export default defineConfig({
 							slug: 'project/contributors',
 						},
 						{
-							label: 'Status & Roadmap',
-							translations: { en: 'Status & Roadmap' },
+							label: 'Projektstatus',
+							translations: { en: 'Project Status' },
 							slug: 'project/roadmap',
 						},
 					],

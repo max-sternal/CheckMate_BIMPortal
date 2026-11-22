@@ -1,34 +1,38 @@
 ---
-title: Vision & Mission
-description: Accelerating bureaucracy instead of lowering standards — how CheckMate supports public authorities, clients, and planners with LOIN compliance.
+title: Context & foundations
+description: CheckMate in the context of the German BIM Portal, open standards and information requirements.
 ---
 
-## Background: Accelerating Bureaucracy Without Compromising Standards
+## A tool for information requirements
 
-Requirements for climate protection, structural safety, accessibility, lifecycle documentation, and digital compliance in public construction are growing for good reasons. The answer is **not** to cut standards, safety, or environmental protection, but to **accelerate verification processes** through clear, machine-readable requirements and reliable checking tools.
+Clients define the information they need at particular points in a project. The German BIM Portal provides, among other things, properties, levels of information need (LOIN) and client information requirements (AIA).
 
-The **German Federal BIM Portal** (`via.bund.de/bim`) already publishes more than **1,500 public LOINs** (Level of Information Need) and full **AIA projects** in the open buildingSMART **IDS 1.0** standard. Yet in day-to-day practice a bottleneck remains:
+CheckMate compares IFC models with machine-readable requirements in IDS format. Requirements can come from the BIM Portal or local IDS files. The tool supports checks of individual information requirements; it does not replace professional judgement, a complete AIA review or the application of a standard.
 
-- **Planners** have to navigate thousands of properties and object templates to identify which requirements apply to a given asset and project phase.
-- **Reviewers in public authorities and client organizations** face large IFC models with hundreds or thousands of elements and must assess reliably whether required information is complete, correctly typed, and compliant.
+The application performs the rule-based check. An AI application can optionally use MCP to run checks and explain results. The check result and any AI explanation should be considered separately; sensitive data must be handled according to the applicable rules.
 
-## The CheckMate Approach: Determinism + AI Assistance
+## Federal initiative and BIM Portal
 
-> CheckMate prevents planners and reviewers from being put in "checkmate" by a flood of data and requirements — acting as an independent, swappable, and secure **Mate** in the checking workflow of the future.
+- [BIM Deutschland – BIM Portal](https://www.bimdeutschland.de/bim-portal): background and access to the federal portal's modules.
+- [BIM Deutschland – client information requirements](https://www.bimdeutschland.de/bim-wissen/auftraggeber-informationsanforderungen): AIA, LOIN and sample requirements.
+- [BIM Portal user manual, version 4 (2025)](https://www.bimdeutschland.de/fileadmin/media/Bilder/Neue_Website_2024/Veranstaltungen/BIMD_VAS/25-06-20_BIM-Portal_Benutzerhandbuch_V4.pdf): the portal's structure and operation.
+- [Digital Design and Construction Roadmap](https://www.bmv.de/SharedDocs/DE/Publikationen/G/stufenplan-digitales-bauen.pdf?__blob=publicationFile) and [BIM Master Plan for federal trunk roads](https://www.bimdeutschland.de/fileadmin/media/Downloads/Download-Liste/Strasse/BIM_Masterplan_Bundesfernstrassen_barrierefrei.pdf): federal strategies; more material is available from [BIM Deutschland – downloads](https://www.bimdeutschland.de/bim-wissen/downloads).
+- [BIM Portal REST API documentation](https://bimdeutschland.github.io/BIM-Portal-REST-API-Dokumentation/): the portal's interface and data.
+- [2025 BIM Portal Hackathon](https://www.bimdeutschland.de/veranstaltungen/hackathon-2025) and [starter kit by planen-bauen 4.0](https://github.com/pb40development/bim-portal): CheckMate's origins; see also [planen-bauen 4.0](https://planen-bauen40.de/).
 
-CheckMate strictly separates two concerns:
+## Standards and open specifications
 
-1. **Deterministic, auditable rule checking in code:**
-   - An AI model never guesses whether a requirement passes.
-   - The core engine checks IFC models strictly against IDS 1.0 (matching `ifctester`), reports datatype and spelling mismatches explicitly, and honestly marks inapplicable or partially evaluated specifications as **"nicht prüfbar" (not checkable)** or **"erfüllt (soweit ausgewertet)"** — never silently reporting a pass.
-2. **Human-machine integration via open standards (MCP):**
-   - Over the **Model Context Protocol (MCP)**, any AI assistant — whether running locally on your own hardware via **Ollama** / **Strata** with **Qwen**, through open cloud models like **Mistral**, or inside hosts like **Antigravity**, **OpenCode**, and **Claude** — can query models, rank fitting LOINs, trigger checks, and explain deterministic findings in plain language.
-   - Final decisions remain 100% with humans, and the AI model stays completely interchangeable.
+These documents provide context. Their inclusion **does not claim that CheckMate fully implements or demonstrates compliance with any standard**. See [IFC and IDS](/CheckMate_BIMPortal/en/architecture/ifc-ids-checking/) for the implemented checking scope.
 
-## Origin & Project Status
+| Document | Relevance |
+|---|---|
+| [ISO 7817-1:2024](https://www.iso.org/standard/82914.html) / [DIN EN ISO 7817-1](https://www.dinmedia.de/en/standard/din-en-iso-7817-1/382382712) | Concepts and principles for level of information need; the German edition replaces DIN EN 17412-1. |
+| [ISO/DIS 7817-3](https://www.iso.org/standard/89077.html) | Draft data model and schema for level of information need; still under development. |
+| [DIN EN ISO 19650-1](https://www.dinmedia.de/en/standard/din-en-iso-19650-1/299953244) / [ISO 19650-1](https://www.iso.org/standard/68078.html) and [ISO 19650-2](https://www.iso.org/standard/68080.html) | Principles and information management during the delivery phase. |
+| [ISO 29481-1:2025](https://www.iso.org/standard/88515.html) | Methodology for describing information exchange and processes (Information Delivery Manual). |
+| [ISO 23386](https://www.iso.org/standard/75401.html) and [ISO 23387](https://www.iso.org/standard/75403.html) | Description and maintenance of properties and data templates for construction objects. |
+| [ISO 16739-1:2024](https://www.iso.org/standard/84123.html) and [buildingSMART IFC](https://technical.buildingsmart.org/standards/ifc/ifc-schema-specifications/) | Open IFC data schema; IFC 4.3 ADD2 corresponds to ISO 16739-1:2024. |
+| [VDI 2552 Part 1](https://www.vdi.de/en/home/vdi-standards/details/vdi-2552-blatt-1-building-information-modeling-fundamentals) and [Part 10](https://www.vdi.de/en/home/vdi-standards/details/vdi-2552-blatt-10-building-information-modeling-employers-information-requirements-eir-and-bim-execution-plan-bep) | BIM fundamentals, client information requirements and BIM execution plans. |
+| [buildingSMART IDS](https://technical.buildingsmart.org/projects/information-delivery-specification-ids/) | Open specification for machine-readable information requirements for IFC models. |
 
-CheckMate is a **private open-source project** licensed under **Apache License 2.0**, originating from the **BIM Portal Hackathon in Berlin (September 2025)** by employees and alumni of **TU Berlin**.
-
-Long-term perspectives beyond checking:
-- Supporting authorities and clients with **LOIN / IDS authoring and maintenance**.
-- Adding **geometric and documentation LOIN checks (ISO 7817-2)** as well as **BCF issue reporting** and **3D visualization** in CheckMate Lite (`0.4`).
+Links lead to official descriptions; standards and VDI guidelines may require purchase. The editions and requirements agreed for the individual project remain authoritative.

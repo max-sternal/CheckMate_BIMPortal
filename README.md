@@ -2,11 +2,14 @@
 
 CheckMate checks an IFC model against the requirements of the German federal
 [BIM Portal](https://via.bund.de/bim): LOINs, whole AIA projects, or any IDS file. For each element
-it says whether the requirements are met, and if not, why. It downloads the requirements as IDS
-(buildingSMART's Information Delivery Specification) and follows IDS 1.0 the way ifctester does.
+it reports the results and any requirements it does not evaluate. Requirements can be downloaded
+as IDS (buildingSMART's Information Delivery Specification) or supplied locally. The checker
+supports a subset of IDS 1.0; selected results are compared with ifctester.
 
-Three front ends share one check: a JavaFX GUI, a command line (CLI), and an MCP server so an AI
-app (Claude, or a local model through Ollama) can answer questions about a model.
+Three front ends share one check: a JavaFX GUI, a command line (CLI), and an MCP server for
+compatible AI applications. The [documentation](https://max-sternal.github.io/CheckMate_BIMPortal/)
+describes setup, the checking scope, its limitations, and the project's BIM context in German and
+English.
 
 ## What's where
 

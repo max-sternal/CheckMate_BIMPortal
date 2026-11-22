@@ -1,34 +1,38 @@
 ---
-title: Vision & Idee
-description: Bürokratie-Beschleunigung statt Bürokratie-Abbau — wie CheckMate Behörden, Auftraggeber und Planende bei LOIN-Prüfungen unterstützt.
+title: Einordnung & Grundlagen
+description: CheckMate im Kontext von BIM-Portal, offenen Standards und Informationsanforderungen.
 ---
 
-## Ausgangslage: Warum „Bürokratie-Beschleunigung“?
+## Ein Werkzeug für Informationsanforderungen
 
-Im öffentlichen Bauwesen steigen Anforderungen an Klimaschutz, Sicherheit, Barrierefreiheit, Lebenszyklusdaten und digitale Nachweispflichten — aus gutem Grund. Die Antwort auf komplexe Prüfprozesse darf daher nicht **Bürokratie-Abbau auf Kosten von Standards, Sicherheit oder Umweltschutz** sein, sondern **Bürokratie-Beschleunigung durch klare, maschinenlesbare Anforderungen und verlässliche Prüfwerkzeuge**.
+Auftraggeber definieren, welche Informationen sie zu bestimmten Zeitpunkten für ein Projekt benötigen. Das BIM-Portal stellt dafür unter anderem Merkmale, Informationsbedarfstiefen (Level of Information Need, LOIN) und Auftraggeber-Informationsanforderungen (AIA) bereit.
 
-Mit dem **BIM-Portal des Bundes** (`via.bund.de/bim`) stehen heute über **1.500 öffentliche LOINs** (Level of Information Need) und komplette **AIA-Projekte** im offenen buildingSMART-Standard **IDS 1.0** bereit. In der Praxis entsteht dennoch ein Engpass:
+CheckMate gleicht IFC-Modelle mit maschinenlesbaren Anforderungen im IDS-Format ab. Anforderungen können aus dem BIM-Portal oder aus lokalen IDS-Dateien stammen. Das Werkzeug unterstützt die Prüfung einzelner Informationen; es ersetzt weder die fachliche Bewertung noch die vollständige Prüfung einer AIA oder die Anwendung einer Norm.
 
-- **Planer:innen** müssen aus tausenden Merkmalen und Objektvorlagen herausfinden, welche Anforderungen für ein konkretes Bauwerk und eine Leistungsphase gelten.
-- **Prüfer:innen in Behörden und bei Auftraggebern** stehen vor großen IFC-Modellen mit hunderten bis tausenden Bauteilen und müssen belastbar beurteilen, ob die geforderten Informationen vollständig, typgerecht und korrekt vorliegen.
+Die regelbasierte Prüfung erfolgt im Programm. Eine KI-Anwendung kann über die optionale MCP-Schnittstelle Prüfungen aufrufen und Ergebnisse erläutern. Das Prüfergebnis und eine KI-Erklärung sind getrennt zu betrachten; sensible Daten dürfen nur entsprechend den geltenden Vorgaben verarbeitet werden.
 
-## Der CheckMate-Ansatz: Determinismus + KI-Begleitung
+## Bundesinitiative und BIM-Portal
 
-> CheckMate verhindert, dass Planende und Prüfende durch eine Flut von Daten und Anforderungen „Schachmatt“ gesetzt werden — und agiert als unabhängiger, austauschbarer und sicherer **Mate (Partner)** im Prüfprozess.
+- [BIM Deutschland – BIM-Portal](https://www.bimdeutschland.de/bim-portal): Einordnung und Zugang zu den Modulen des Bundes.
+- [BIM Deutschland – Auftraggeber-Informationsanforderungen](https://www.bimdeutschland.de/bim-wissen/auftraggeber-informationsanforderungen): AIA, LOIN und Muster-AIA.
+- [BIM-Portal-Benutzerhandbuch, Version 4 (2025)](https://www.bimdeutschland.de/fileadmin/media/Bilder/Neue_Website_2024/Veranstaltungen/BIMD_VAS/25-06-20_BIM-Portal_Benutzerhandbuch_V4.pdf): Aufbau und Bedienung des Portals.
+- [Stufenplan Digitales Planen und Bauen](https://www.bmv.de/SharedDocs/DE/Publikationen/G/stufenplan-digitales-bauen.pdf?__blob=publicationFile) und [Masterplan BIM Bundesfernstraßen](https://www.bimdeutschland.de/fileadmin/media/Downloads/Download-Liste/Strasse/BIM_Masterplan_Bundesfernstrassen_barrierefrei.pdf): Strategien des Bundes; weitere Unterlagen unter [BIM Deutschland – Downloads](https://www.bimdeutschland.de/bim-wissen/downloads).
+- [BIM-Portal REST-API-Dokumentation](https://bimdeutschland.github.io/BIM-Portal-REST-API-Dokumentation/): Schnittstelle und Daten des Portals.
+- [BIM-Portal-Hackathon 2025](https://www.bimdeutschland.de/veranstaltungen/hackathon-2025) und [Starterkit von planen-bauen 4.0](https://github.com/pb40development/bim-portal): Ursprung von CheckMate; siehe auch [planen-bauen 4.0](https://planen-bauen40.de/).
 
-Dafür trennt CheckMate zwei Verantwortlichkeiten strikt voneinander:
+## Normen und offene Standards
 
-1. **Deterministische, nachvollziehbare Prüfung im Code:**
-   - Ein KI-Modell „rät“ niemals, ob eine Anforderung erfüllt ist.
-   - Der Prüfkern vergleicht das IFC-Modell streng nach IDS 1.0 (wie `ifctester`), benennt Datentyp- oder Schreibweisenabweichungen explizit und meldet nicht anwendbare oder nur teilweise auswertbare Spezifikationen ehrlich als **„nicht prüfbar“** bzw. **„erfüllt (soweit ausgewertet)“** — niemals stillschweigend als „bestanden“.
-2. **Mensch-Maschine-Integration über offene Schnittstellen (MCP):**
-   - Über das **Model Context Protocol (MCP)** kann eine KI (ob lokal auf eigener Hardware via **Ollama** / **Strata** mit **Qwen**, über offene Cloud-Modelle wie **Mistral** oder in Clients wie **Antigravity**, **OpenCode** und **Claude**) Fragen stellen, passende LOINs vorschlagen, Prüfungen anstoßen und die deterministischen Befunde verständlich für Menschen aufbereiten.
-   - Die Entscheidung und Verantwortung bleibt dabei vollständig beim Menschen — und das KI-Modell bleibt jederzeit austauschbar.
+Die folgenden Dokumente erläutern den fachlichen Zusammenhang. Ihre Nennung ist **keine Aussage, dass CheckMate die jeweilige Norm vollständig umsetzt oder eine Normkonformität nachweist**. Der Prüfumfang steht unter [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/).
 
-## Herkunft & Status des Projekts
+| Dokument | Bezug |
+|---|---|
+| [DIN EN ISO 7817-1:2024-11](https://www.dinmedia.de/de/norm/din-en-iso-7817-1/382382712) | Konzepte und Grundsätze der Informationsbedarfstiefe; ersetzt DIN EN 17412-1. |
+| [ISO/DIS 7817-3](https://www.iso.org/standard/89077.html) | Entwurf für Datenmodell und Schema der Informationsbedarfstiefe; noch in Entwicklung. |
+| [DIN EN ISO 19650-1](https://www.dinmedia.de/en/standard/din-en-iso-19650-1/299953244) / [ISO 19650-1](https://www.iso.org/standard/68078.html) und [ISO 19650-2](https://www.iso.org/standard/68080.html) | Grundsätze und Informationsmanagement in der Bereitstellungsphase. |
+| [ISO 29481-1:2025](https://www.iso.org/standard/88515.html) | Methodik zur Beschreibung von Informationsaustausch und Prozessen (Information Delivery Manual). |
+| [ISO 23386](https://www.iso.org/standard/75401.html) und [ISO 23387](https://www.iso.org/standard/75403.html) | Beschreibung und Pflege von Merkmalen sowie Datenvorlagen für Bauobjekte. |
+| [ISO 16739-1:2024](https://www.iso.org/standard/84123.html) und [buildingSMART IFC](https://technical.buildingsmart.org/standards/ifc/ifc-schema-specifications/) | Offenes IFC-Datenschema; IFC 4.3 ADD2 entspricht ISO 16739-1:2024. |
+| [VDI 2552 Blatt 1](https://www.vdi.de/en/home/vdi-standards/details/vdi-2552-blatt-1-building-information-modeling-grundlagen) und [Blatt 10](https://www.vdi.de/en/home/vdi-standards/details/vdi-2552-blatt-10-building-information-modeling-auftraggeber-informations-anforderungen-aia-und-bim-abwicklungsplaene-bap) | BIM-Grundlagen sowie AIA und BIM-Abwicklungspläne. |
+| [buildingSMART IDS](https://technical.buildingsmart.org/projects/information-delivery-specification-ids/) | Offene Spezifikation für maschinenlesbare Informationsanforderungen an IFC-Modelle. |
 
-CheckMate ist ein **privates Open-Source-Projekt** unter **Apache License 2.0**, entstanden auf Basis des **BIM-Portal-Hackathons im September 2025 in Berlin** durch Mitarbeitende und Alumni der **TU Berlin**.
-
-Langfristige Perspektiven über das reine Prüfen hinaus:
-- Unterstützung bei der **Erstellung und Pflege von LOINs / IDS-Anforderungen** für Behörden und Auftraggeber.
-- Erweiterung um **geometrische und dokumentationsbezogene LOIN-Aspekte (ISO 7817-2)** sowie **BCF-Prüfberichte** und **3D-Visualisierung** in CheckMate Lite (`0.4`).
+Die Links führen zu den offiziellen Beschreibungen; Normtexte und VDI-Richtlinien können kostenpflichtig sein. Maßgeblich sind jeweils die für das konkrete Projekt vereinbarten Ausgaben und Anforderungen.

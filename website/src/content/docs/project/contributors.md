@@ -5,11 +5,11 @@ description: Herkunft, Verantwortlichkeiten, Unterstützung, Lizenzen und transp
 
 ## Projekt & Herkunft
 
-**CheckMate** ist ein **privates Open-Source-Projekt** unter der **Apache License 2.0**. Es entstand aus der Einreichung von *Team CheckMate* beim **BIM-Portal-Hackathon Berlin** am 22. und 23. September 2025 und wird gemeinschaftlich weiterentwickelt.
+**CheckMate** ist ein **privates Open-Source-Projekt** unter der **Apache License 2.0**. Es entstand aus der Einreichung von *Team CheckMate* beim [BIM-Portal-Hackathon Berlin](https://www.bimdeutschland.de/veranstaltungen/hackathon-2025) am 22. und 23. September 2025 und wird gemeinschaftlich weiterentwickelt.
 
 :::note[Abgrenzung & Trägerschaft]
 - CheckMate ist **kein offizielles Produkt des Bundes oder der TU Berlin**.
-- API-Client, Starterkit und Referenzmaterial stammen aus dem öffentlichen Hackathon-Starterkit von *planen-bauen 4.0* / BIM Deutschland.
+- API-Client und Starterkit stammen aus dem [öffentlichen Hackathon-Starterkit](https://github.com/pb40development/bim-portal) von *planen-bauen 4.0* / BIM Deutschland.
 :::
 
 ## Team & Verantwortlichkeiten

@@ -1,68 +1,40 @@
 ---
-title: System Architecture
-description: Structure of CheckMate 0.3.x (Java core + 3 front ends) and target architecture for 0.3.2 & 0.4 (CheckMate Lite on IFClite).
+title: System architecture
+description: Components and interfaces of CheckMate 0.3.1.
 ---
 
-## Guiding Principle: One Core for Every Front End
+## Data flow
 
-In CheckMate `0.3.x`, **IFC reading**, **validation logic**, and **presentation** are strictly separated. The GUI, CLI, and MCP server contain no checking logic of their own — they gather input, invoke `CheckService`, and render the returned `CheckReport`.
+CheckMate processes an IFC model and requirements from the BIM Portal or a local IDS file. The shared checking core produces a report for the graphical interface, command line or MCP server.
 
 ```text
-                    ┌──────────────────────────────────────────┐
-                    │    German Federal BIM Portal (REST API)  │
-                    │  LOIN Catalogue · AIA Projects · IDS 1.0 │
-                    └────────────────────┬─────────────────────┘
-                                         │ (anonymous / optional JWT)
-                                         ▼
-┌─────────────────────┐      ┌───────────────────────┐      ┌──────────────────────┐
-│  IFC / ifcZIP / URL │ ───► │   IFC Reader Layer    │ ───► │  ModelElement[]      │
-│  (IFC2X3 / 4 / 4X3) │      │  0.3.1: APSTEX        │      │  (library-agnostic)  │
-└─────────────────────┘      │  0.3.2: Open-Source   │      └──────────┬───────────┘
-                             └───────────────────────┘                 │
-                                                                       ▼
-                             ┌─────────────────────────────────────────────────────┐
-                             │             Pure-Java Checking Core                 │
-                             │  ids/ · catalogue/ · check/ (CheckService) · report/│
-                             └──────┬──────────────────┬──────────────────┬────────┘
-                                    │                  │                  │
-                                    ▼                  ▼                  ▼
-                             ┌────────────┐    ┌─────────────┐    ┌───────────────┐
-                             │ JavaFX GUI │    │ Headless CLI│    │  MCP Server   │
-                             │ (ElementUI)│    │ (Text/JSON) │    │ (7 Tools)     │
-                             └────────────┘    └─────────────┘    └───────────────┘
+IFC file / URL -- APSTEX reader -- ModelElement ----+
+                                                    +-- CheckService -- CheckReport
+BIM Portal / local IDS file ----- IDS parser -------+       |             |
+                                                        GUI / CLI / MCP
 ```
 
-## Module & Package Layout (`0.3.1`)
+No AI model is required for checking or reporting. The MCP server is an optional interface to the same functions.
 
-All CheckMate code resides in the Gradle module `bim-portal/Java_client/hackathon-template/`:
+## Components
 
-| Package | Responsibility | Dependencies |
-|---|---|---|
-| `com.bimportal.hackathon.ids` | IDS 1.0 parser (`IdsParser`), ZIP archives (`IdsArchive`), validator (`IdsValidator`), `DataTypes`, `Values`, `PropertyKey`, `PropertyAliases`, `PortalRequirements`, `ModelElement` | No IFC library, no JavaFX |
-| `com.bimportal.hackathon.catalogue` | Metadata filtering (`CatalogueFilter`), model-fit ranking (`ModelFit`) across 1,568 LOINs, LOIN preview (`LoinDescription`) | No IFC library, no JavaFX |
-| `com.bimportal.hackathon.check` | Unified orchestration (`CheckService`), requirement sources (`Source`), per-session download cache | No IFC library, no JavaFX |
-| `com.bimportal.hackathon.report` | Report model (`CheckReport`), exit codes, text formatter (`ReportText`), stable JSON (`ReportJson`) | No IFC library, no JavaFX |
-| `com.bimportal.hackathon.mcp` | Official MCP Java SDK server (`CheckMateMcpServer`, `CheckMateTools`) over `stdio` | Currently imports `test.fx.LoadedModel` |
-| `test.fx` *(rename planned)* | JavaFX GUI (`App`, `ElementUI`), CLI (`LoinCheckCli`), IFC loading (`IfcResources`, `ModelLinks`, `IfcModelElements`, `LoadedModel`) | APSTEX IFC Toolbox (+ JDK FX for GUI) |
+CheckMate code lives in the Gradle module `bim-portal/Java_client/hackathon-template/`.
 
-Also in the repository:
-- `bim-portal/Java_client/bim-portal-enhanced/`: Enhanced BIM Portal REST client (anonymous access, paging, exports).
-- `bim-portal/Java_client/openapi-generated/`: OpenAPI-generated Feign client (patched with `NON_NULL` serialization & `LenientStringDeserializer`).
-- `bim-portal/Python_client/`: Unmodified Python starter client from the hackathon template.
+| Package | Responsibility |
+|---|---|
+| `com.bimportal.hackathon.ids` | Read IDS and check supported requirements; internal model representation. |
+| `com.bimportal.hackathon.catalogue` | Search portal LOINs by metadata and rank them for a model. |
+| `com.bimportal.hackathon.check` | Load requirements and coordinate checks through `CheckService`. |
+| `com.bimportal.hackathon.report` | Results and text/JSON reports. |
+| `com.bimportal.hackathon.mcp` | MCP tools and server over `stdio`. |
+| `test.fx` | JavaFX interface, CLI and IFC loading with APSTEX. |
 
----
+The checking core uses neither JavaFX nor the APSTEX IFC library. IFC loading and the MCP server still depend on `test.fx` in `0.3.1`, however: replacing the reader is **not yet available as a ready-made plug-in**.
 
-## Evolution Path: `0.3.2` → `0.4` (*CheckMate Lite*)
+The `bim-portal-enhanced` and `openapi-generated` modules provide the Java connection to the portal API. The Python client also originates from the [hackathon starter kit](https://github.com/pb40development/bim-portal) and is not part of CheckMate's checking core.
 
-### Step 1: `0.3.2` (Java Architecture Without APSTEX)
-- Move `LoadedModel` and a clean `IfcModelReader` interface into `check/`, removing the compile-time JavaFX requirement for the MCP server.
-- Replace APSTEX with an open-source IFC reader verified against the existing Java tests and `IfcOpenShell`.
-- Upgrade the MCP server with **Streamable HTTP**, **tool annotations**, and **`structuredContent`** (backed by `ReportJson`).
+## Interfaces and limits
 
-### Step 2: `0.4` — *CheckMate Lite* (No Java, Built on `IFClite`)
-The long-term target unifies CLI, MCP server, web app, and Antigravity MCP App in one open-source stack:
+IFC and IDS are open exchange formats; the portal is one requirements source alongside local IDS files. These formats allow different tools to be used but do not guarantee identical results or full interoperability. Supported facets and limitations are described in [IFC and IDS](/CheckMate_BIMPortal/en/architecture/ifc-ids-checking/).
 
-- **IFC Foundation:** [`IFClite`](https://ifclite.dev/) (`MPL-2.0`, Rust + WASM + TypeScript) — full schema coverage for **IFC2X3, IFC4, IFC4X3, and IFC5 (IFCX)** including relationships, spatial hierarchy, exact geometry, `@ifc-lite/bcf`, and `@ifc-lite/lens` (3D colorizing by check verdict).
-- **BIM Portal Client:** Lightweight TypeScript `fetch` client for the required REST endpoints.
-- **Checking & Catalogue Core:** Porting CheckMate's battle-tested domain logic (`ModelFit`, AIA ZIP merging, strict German/English diagnostics & near-misses), validated by a **new TypeScript test suite** against the same **`IfcOpenShell` / `ifctester` reference**.
-- **Delivery Modes:** Headless Node.js (CLI & MCP server), browser/WebGPU (Antigravity MCP App `ui://` — sensitive models stay inside the browser tab!), and optional Tauri desktop builds for offline public-sector workstations.
+For current classes and open decisions, see the [repository](https://github.com/max-sternal/CheckMate_BIMPortal/tree/0.3.1) and [`docs/STATUS.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.1/docs/STATUS.md).

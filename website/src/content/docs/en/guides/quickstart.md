@@ -1,77 +1,55 @@
 ---
-title: Quick Start (Version 0.3.1)
-description: Build, test, and run CheckMate 0.3.1 via CLI, GUI, or MCP server — with and without APSTEX JARs.
+title: Quick start (0.3.1)
+description: Prerequisites, setup and execution of CheckMate.
 ---
 
-This guide covers the current working release on branch **`0.3.1`** (Java 21 + Gradle 8.14).
+This guide describes branch `0.3.1`. The Gradle Wrapper downloads Gradle and required dependencies when needed.
 
 ## Prerequisites
 
-### Always required
-- **JDK 21** (for the JavaFX GUI, use a JDK-FX distribution such as **Azul Zulu 21 JDK FX** as `JAVA_HOME`; any JDK 21 suffices for core tests).
-- **Network access** to the German Federal BIM Portal (`https://via.bund.de/bim`). **No account required** — CheckMate reads all published LOINs and AIA projects anonymously.
-- **Gradle is bundled** via the wrapper (`gradlew` / `gradlew.bat` in `bim-portal/Java_client/`).
+- JDK 21. To build and run the GUI, CLI and MCP server with APSTEX, use a JDK with JavaFX, such as Azul Zulu 21 JDK FX. A JDK 21 without JavaFX is sufficient for core tests without APSTEX.
+- To read IFC: place `com.apstex.ifctoolbox*.jar` and `com.apstex.stepparser*.jar` in `bim-portal/Java_client/hackathon-template/lib/`. These proprietary libraries are not included in the repository; ask the project team or [APSTEX](https://www.apstex.com/) about availability.
+- For portal requirements: network access to the [BIM Portal](https://via.bund.de/bim). Publicly visible content can be retrieved without signing in.
 
-### For full IFC loading in `0.3.1` (GUI, CLI, MCP server)
-- **APSTEX IFC Toolbox JARs** (`com.apstex.ifctoolbox*.jar` and `com.apstex.stepparser*.jar`) placed in:
-  ```text
-  bim-portal/Java_client/hackathon-template/lib/
-  ```
-  :::note[Availability of APSTEX JARs]
-  The APSTEX library was provided for the BIM Portal Hackathon and cannot be redistributed in Git due to licensing. You may request access from the team or directly from APSTEX.
-  **Without these JARs**, Gradle still automatically compiles and runs all **148 core & IDS conformance tests**. Versions **`0.3.2`** and **`0.4` (*CheckMate Lite*)** remove this dependency completely.
-  :::
+Without APSTEX, the build excludes the GUI, CLI, MCP server and IFC-reading tests. The checking core and its tests can still be built and run.
 
-### Optional
-- **Private portal credentials:** Copy `bim-portal/Java_client/.env_example` to `.env` and set `BIM_PORTAL_USERNAME` and `BIM_PORTAL_PASSWORD` (never commit `.env`).
-- **Additional sample IFC models (~5 MB):** `./gradlew :hackathon-template:downloadTestModels`
-- **Python 3 + `ifcopenshell` + `ifctester`:** Only needed to regenerate IFC test fixtures (`src/test/python/make_ifc_fixtures.py`) or compare results directly against `ifctester`.
-
----
-
-## Quick Start Commands
-
-Run all commands from `bim-portal/Java_client/` (on Windows use `.\gradlew.bat` instead of `./gradlew`):
+## Setup and execution
 
 ```bash
+git clone https://github.com/max-sternal/CheckMate_BIMPortal.git
+cd CheckMate_BIMPortal
+git switch 0.3.1
 cd bim-portal/Java_client
 
-# 1. Run tests (148 core tests run without APSTEX; ~217 tests with APSTEX + sample models)
+# Tests
 ./gradlew :hackathon-template:test
 
-# 2. Launch the JavaFX desktop GUI (requires JDK 21 FX + APSTEX)
+# Desktop interface (requires a JDK with JavaFX and APSTEX)
 ./gradlew :hackathon-template:runGui
 
-# 3. Headless CLI: check against a specific BIM Portal LOIN
+# Check an IFC model against a local IDS file
 ./gradlew :hackathon-template:runLoinCheck \
-  --args="--loin be959b9d-daef-5315-9aba-f60b6ad54ccb"
+  --args="--model /path/to/model.ifc --ids /path/to/requirements.ids"
 
-# 4. Headless CLI: suggest fitting LOINs for phase LPH 5 (metadata only)
+# Check a LOIN from the portal
 ./gradlew :hackathon-template:runLoinCheck \
-  --args="--suggest --phase 'LPH 5'"
-
-# 5. Custom model (local file, GitHub link, or .ifczip) + JSON report
-./gradlew :hackathon-template:runLoinCheck \
-  --args="--model /path/to/model.ifc --aia <AIA-GUID> --json build/report.json"
-
-# 6. Build and install the MCP server for AI clients
-./gradlew :hackathon-template:installMcp
+  --args="--model /path/to/model.ifc --loin <LOIN-ID> --json build/report.json"
 ```
 
----
+On Windows, use `.\gradlew.bat` instead of `./gradlew` and adjust file paths. Without `--model` or the `CHECKMATE_IFC` environment variable, the bundled sample model is used. The CLI also supports `--aia` for a portal project and `--suggest` for catalogue selection; see [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.1/docs/WORKFLOW.md).
 
-## CLI Exit Codes
+For non-public portal content, copy `bim-portal/Java_client/.env_example` to `.env` and add credentials. Never commit credentials.
 
-The headless CLI `LoinCheckCli` returns deterministic exit codes (also exposed as `exitCode` in JSON output):
+The [MCP guide](/CheckMate_BIMPortal/en/mcp/clients/) explains how to set up the server.
 
-| Exit Code | Meaning |
+## CLI results
+
+| Code | Meaning |
 |---|---|
-| `0` | All evaluated specifications **passed** |
+| `0` | All evaluated specifications passed |
 | `1` | Model or requirements could not be read or checked |
-| `2` | Unknown CLI argument |
-| `3` | At least one specification **failed** |
-| `4` | No violation found, but not everything confirmed (**not applicable**, partly evaluated, or nothing checked) |
+| `2` | Invalid command-line arguments |
+| `3` | At least one specification failed |
+| `4` | No violation, but not everything was confirmed or nothing was checked |
 
-:::tip[Note on Gradle exit codes]
-When invoked via `./gradlew`, Gradle maps any non-zero process exit code to `1`. The true CheckMate exit code appears in Gradle's log line, the final line of the text report, and the JSON `exitCode` field.
-:::
+When invoked through Gradle, a nonzero exit code is reported externally as `1`. The CheckMate code appears in the text report and in the JSON `exitCode` field. Take any unevaluated requirements in the report into account.
