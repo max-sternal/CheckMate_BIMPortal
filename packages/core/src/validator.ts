@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import {
   parseIDS,
   validateIDS,
@@ -8,7 +7,6 @@ import {
   type IDSDocument,
   type IDSSpecification,
   type IDSFacet,
-  type IDSPropertyFacet,
   type IDSConstraint,
   type IFCDataAccessor,
   type PropertyValueResult,
@@ -42,7 +40,35 @@ import {
   PropertyMapping,
   type PropertyKey,
 } from './mapping.js';
-import { LoadedModel, type ModelElement, type ModelInfo } from './model.js';
+import {
+  describeFit,
+  LoadedModel,
+  type Fit,
+  type ModelInfo,
+} from './model.js';
+
+function readLocalBytesSync(filePath: string): Uint8Array {
+  const fsMod =
+    typeof process !== 'undefined' && typeof process.getBuiltinModule === 'function'
+      ? (process.getBuiltinModule('node:fs') as { readFileSync: (p: string) => Buffer } | undefined)
+      : undefined;
+  if (fsMod && typeof fsMod.readFileSync === 'function') {
+    const buf = fsMod.readFileSync(filePath);
+    return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+  }
+  throw new Error(`Lokaler Dateizugriff wird im Browser nicht unterstützt (${filePath})`);
+}
+
+function readLocalTextSync(filePath: string): string {
+  const fsMod =
+    typeof process !== 'undefined' && typeof process.getBuiltinModule === 'function'
+      ? (process.getBuiltinModule('node:fs') as { readFileSync: (p: string, enc: string) => string } | undefined)
+      : undefined;
+  if (fsMod && typeof fsMod.readFileSync === 'function') {
+    return fsMod.readFileSync(filePath, 'utf-8');
+  }
+  throw new Error(`Lokaler Dateizugriff wird im Browser nicht unterstützt (${filePath})`);
+}
 
 /**
  * Decorator around IFClite's `IFCDataAccessor` that resolves property aliases
@@ -398,6 +424,7 @@ export class CheckReport {
 export type CheckSource =
   | { kind: 'portal'; idOrLink: string }
   | { kind: 'idsFile'; path: string }
+  | { kind: 'idsBytes'; name: string; bytes: Uint8Array }
   | { kind: 'idsXml'; name: string; xml: string }
   | { kind: 'rulesFile'; path: string }
   | { kind: 'rulesJson'; name: string; ruleSet: RuleSetFile };
@@ -723,17 +750,19 @@ export class CheckService {
     switch (source.kind) {
       case 'idsXml':
         return { name: source.name, document: parseIDS(source.xml) };
+      case 'idsBytes': {
+        const unpacked = unpackIdsBytes(source.bytes, source.name);
+        const doc = mergeAndDeduplicateIdsDocuments(unpacked, source.name);
+        return { name: doc.info.title || source.name, document: doc };
+      }
       case 'idsFile': {
-        let bytes: Buffer;
+        let bytes: Uint8Array;
         try {
-          bytes = readFileSync(source.path);
+          bytes = readLocalBytesSync(source.path);
         } catch {
           throw new Error(`IDS-Datei nicht gefunden: ${source.path}`);
         }
-        const unpacked = unpackIdsBytes(
-          new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength),
-          source.path
-        );
+        const unpacked = unpackIdsBytes(bytes, source.path);
         const doc = mergeAndDeduplicateIdsDocuments(unpacked, source.path);
         return { name: doc.info.title || source.path, document: doc };
       }
@@ -1015,7 +1044,7 @@ export class CheckService {
         return await this.validateRuleSet(source.name, source.ruleSet, model);
       }
       if (source.kind === 'rulesFile') {
-        const raw = readFileSync(source.path, 'utf-8');
+        const raw = readLocalTextSync(source.path);
         const ruleSet = JSON.parse(raw) as RuleSetFile;
         return await this.validateRuleSet(ruleSet.name || source.path, ruleSet, model);
       }
@@ -1103,20 +1132,205 @@ export class CheckService {
   }
 }
 
+const LOIN_DESC_SHOWN = 5;
+
+function firstFew(values: readonly string[], shown = LOIN_DESC_SHOWN): string {
+  if (values.length <= shown) {
+    return values.join(', ');
+  }
+  return `${values.slice(0, shown).join(', ')}, ... (${values.length})`;
+}
+
+function shortEntities(entities: string): string {
+  const alternatives = entities.split('|').map((s) => s.trim()).filter(Boolean);
+  if (alternatives.length <= 3) {
+    return entities;
+  }
+  return `${alternatives.slice(0, 3).join(' | ')} ... (${alternatives.length} Entities)`;
+}
+
+function beforeColon(phase: string): string {
+  const colon = phase.indexOf(':');
+  return colon < 0 ? phase : phase.slice(0, colon);
+}
+
+/**
+ * Rich German description of a LOIN or IDS requirement set against the loaded model,
+ * matching CheckMate 0.3.2's `LoinDescription.java`:
+ * - Catalogue metadata (`Name - Version - Organisation`, `ID`, `Objekttyp | Fachmodell | Bauart`, `Leistungsphasen`, `Anwendungsfälle`)
+ * - `Passt zum Modell: ...` (`ModelFit`)
+ * - Per specification for the model's schema: `Wählt aus: ...`, `Verlangt: ...`, `Im Modell: X von Y Elementen anwendbar`, plus `relatedTypes` and `similarNames` hints.
+ */
+export class LoinDescription {
+  static async describeCatalogueEntry(
+    entry: CatalogueEntry,
+    fit: Fit,
+    document: IDSDocument | null,
+    model: LoadedModel,
+    service: CheckService
+  ): Promise<string[]> {
+    const lines: string[] = [];
+    lines.push(`${entry.name} - Version ${entry.version} - ${entry.organisation}`);
+    lines.push(`ID: ${entry.guid}`);
+    lines.push(
+      `Objekttyp: ${entry.objectTypes.join(', ')} | Fachmodell: ${entry.disciplines.join(', ')} | Bauart: ${entry.constructionTypes.join(', ')}`
+    );
+    const phases = entry.phases.map(beforeColon);
+    lines.push(`Leistungsphasen: ${phases.join(', ')}`);
+    lines.push(`Anwendungsfälle (${entry.purposes.length}): ${firstFew(entry.purposes)}`);
+    lines.push(
+      fit.kind !== 'NONE'
+        ? `Passt zum Modell: ${describeFit(fit)}`
+        : 'Kein Objekttyp dieser LOIN im Modell gefunden.'
+    );
+
+    if (!document) {
+      lines.push('Anforderungen werden geladen ...');
+    } else {
+      const reqLines = await LoinDescription.requirementLines(document, model, service);
+      lines.push(...reqLines);
+    }
+    return lines;
+  }
+
+  static async describeDocument(
+    name: string,
+    document: IDSDocument,
+    model: LoadedModel,
+    service: CheckService
+  ): Promise<string[]> {
+    const lines: string[] = [];
+    const title = document.info.title || name;
+    const allVers = Array.from(
+      new Set(document.specifications.flatMap((s) => specIfcVersions(s)))
+    );
+    lines.push(
+      `${title} - ${document.specifications.length} Spezifikation(en)${allVers.length > 0 ? ` (${allVers.join(', ')})` : ''}`
+    );
+    const reqLines = await LoinDescription.requirementLines(document, model, service);
+    lines.push(...reqLines);
+    return lines;
+  }
+
+  static async requirementLines(
+    document: IDSDocument,
+    model: LoadedModel,
+    service: CheckService
+  ): Promise<string[]> {
+    const lines: string[] = [];
+    const matchingSpecs = document.specifications.filter((s) => {
+      const vers = specIfcVersions(s);
+      return (
+        vers.length === 0 ||
+        vers.some((v) => v.toUpperCase().startsWith(model.schema.toUpperCase()))
+      );
+    });
+
+    if (matchingSpecs.length === 0) {
+      const available = Array.from(
+        new Set(document.specifications.flatMap((s) => specIfcVersions(s)))
+      );
+      lines.push(
+        `Keine Anforderungen für ${model.rawSchema} - vorhanden: [${available.join(', ')}]`
+      );
+      return lines;
+    }
+
+    const run = await service.validateIdsDocument(
+      document.info.title || 'IDS',
+      document,
+      model
+    );
+
+    if (matchingSpecs.length > 1) {
+      lines.push(`${matchingSpecs.length} Spezifikationen für ${model.rawSchema}:`);
+      for (let i = 0; i < matchingSpecs.length; i++) {
+        const spec = matchingSpecs[i];
+        const res = run.results[i];
+        if (res) {
+          lines.push(
+            `   ${res.specificationLabel} - ${res.applicableElements} von ${res.examinedElements} Elementen anwendbar`
+          );
+          lines.push(`      Wählt aus: ${LoinDescription.selects(spec)}`);
+          lines.push(`      Verlangt: ${LoinDescription.asks(spec)}`);
+        }
+      }
+      return lines;
+    }
+
+    const spec = matchingSpecs[0];
+    const res = run.results[0];
+    lines.push(`Wählt aus: ${LoinDescription.selects(spec)}`);
+    lines.push(`Verlangt: ${LoinDescription.asks(spec)}`);
+    if (res) {
+      lines.push(
+        `Im Modell: ${res.applicableElements} von ${res.examinedElements} Elementen anwendbar`
+      );
+      for (const hint of res.hints) {
+        lines.push(hint);
+      }
+    }
+    return lines;
+  }
+
+  static selects(spec: IDSSpecification): string {
+    const facets = spec.applicability.facets;
+    if (facets.length === 0) return 'alle Elemente';
+    return facets.map(describeFacet).join(', ');
+  }
+
+  static asks(spec: IDSSpecification): string {
+    const reqs = spec.requirements.requirements;
+    const entityReq = reqs.find((r) => r.facet.type === 'entity');
+    const propReqs = reqs.filter((r) => r.facet.type !== 'entity');
+
+    let entityPart = '';
+    if (entityReq && entityReq.facet.type === 'entity') {
+      const rawEnt = facetString(entityReq.facet.name);
+      const predef = entityReq.facet.predefinedType
+        ? ` mit PredefinedType ${facetString(entityReq.facet.predefinedType)}`
+        : '';
+      entityPart = `IFC-Entity ${shortEntities(rawEnt)}${predef}; `;
+    }
+    const propDescs = propReqs.map((r) => describeFacet(r.facet));
+    return `${entityPart}${propDescs.length} Merkmal(e): ${firstFew(propDescs)}`;
+  }
+}
+
 export class ReportText {
   static verdictLine(report: CheckReport): string {
     return `Ergebnis: ${report.verdict()} (Exit-Code ${report.exitCode()})`;
   }
 
-  static brief(run: CheckRun, examples = 3): string[] {
+  static tally(results: readonly SpecCheckResult[], schema: string): string {
+    const counts = new Map<Verdict, number>();
+    for (const r of results) {
+      counts.set(r.verdict, (counts.get(r.verdict) ?? 0) + 1);
+    }
+    const order: Verdict[] = ['PASSED', 'PARTLY_EVALUATED', 'FAILED', 'NOT_APPLICABLE'];
+    const parts: string[] = [];
+    for (const v of order) {
+      const c = counts.get(v);
+      if (c) parts.push(`${c} ${verdictLabel(v)}`);
+    }
+    return `${results.length} Spezifikation(en) für ${schema}: ${parts.join(', ')}`;
+  }
+
+  static brief(run: CheckRun, examples = 3, schema = 'IFC2X3'): string[] {
     const lines: string[] = [];
     if (run.error) {
       lines.push(`Anforderungen: ${run.name} - Fehler: ${run.error}`);
       return lines;
     }
     lines.push(`Anforderungen: ${run.name}`);
+    if (run.results.length > 1) {
+      lines.push(ReportText.tally(run.results, schema));
+    }
     for (const res of run.results) {
       lines.push(`  ${res.overviewLine()}`);
+      for (const h of res.hints) {
+        lines.push(`   ${h}`);
+      }
       if (res.verdict === 'NOT_APPLICABLE') {
         lines.push(...res.diagnosis.lines());
       } else if (examples > 0) {
@@ -1127,21 +1341,41 @@ export class ReportText {
         if (unmet.length > examples) {
           lines.push(`    ... und ${unmet.length - examples} weitere Abweichung(en)`);
         }
+        if (res.verdict === 'PASSED') {
+          lines.push('    alle Anforderungen erfüllt');
+        }
       }
     }
     return lines;
   }
 
   static full(report: CheckReport): string[] {
-    const lines: string[] = [...report.header(), ''];
+    const lines: string[] = [...report.header()];
+    const allResults = report.results();
+    if (report.runs.length > 1 && allResults.length > 0) {
+      lines.push(`${report.runs.length} Einträge geprüft - ${report.verdict()}`);
+      for (const r of allResults) {
+        lines.push(`   ${r.overviewLine()}`);
+      }
+    }
+    lines.push('');
     for (const run of report.runs) {
       if (run.error) {
         lines.push(`Anforderungen: ${run.name} - Fehler: ${run.error}`);
         continue;
       }
       lines.push(`Anforderungen: ${run.name}`);
+      if (run.results.length > 1) {
+        lines.push(ReportText.tally(run.results, report.model.rawSchema));
+        for (const r of run.results) {
+          lines.push(`   ${r.overviewLine()}`);
+        }
+      }
       for (const res of run.results) {
         lines.push(`  ${res.overviewLine()}`);
+        for (const h of res.hints) {
+          lines.push(`   ${h}`);
+        }
         if (res.verdict === 'NOT_APPLICABLE') {
           lines.push(...res.diagnosis.lines());
         } else {

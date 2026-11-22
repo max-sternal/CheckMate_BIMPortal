@@ -36,3 +36,6 @@ website/.astro/
 
 **/node_modules/
 packages/web/public/*.ifc
+packages/web/public/fixtures/
+packages/web/dist/
+

@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { basename, dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   parseAuto,
   isQueryableObjectType,
@@ -11,11 +8,28 @@ import { createDataAccessor, narrowSchemaVersion } from '@ifc-lite/ids/bridge';
 import type { IFCDataAccessor, IFCVersion } from '@ifc-lite/ids';
 import {
   createPropertyKey,
-  formatPropertyKey,
   looseNormalize,
-  PropertyMapping,
   type PropertyKey,
 } from './mapping.js';
+
+function fileBaseName(pathOrUrl: string): string {
+  const cleaned = pathOrUrl.replace(/\\/g, '/').replace(/\/+$/, '');
+  const idx = cleaned.lastIndexOf('/');
+  return idx >= 0 ? cleaned.slice(idx + 1) : cleaned;
+}
+
+function readLocalBytesSync(filePath: string): Uint8Array {
+  const fsMod =
+    typeof process !== 'undefined' &&
+    typeof process.getBuiltinModule === 'function'
+      ? (process.getBuiltinModule('node:fs') as { readFileSync: (p: string) => Buffer } | undefined)
+      : undefined;
+  if (fsMod && typeof fsMod.readFileSync === 'function') {
+    const buf = fsMod.readFileSync(filePath);
+    return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+  }
+  throw new Error(`Lokaler Dateizugriff wird im Browser nicht unterstützt (${filePath})`);
+}
 
 export interface ModelProperty {
   readonly key: PropertyKey;
@@ -115,13 +129,24 @@ export class LoadedModel {
   }
 
   static bundledPath(): string {
-    const dir = dirname(fileURLToPath(import.meta.url));
-    return resolve(dir, '../../../resources/models/bruecke-tbw1-mit-merkmalen.ifc');
+    const pathMod =
+      typeof process !== 'undefined' && typeof process.getBuiltinModule === 'function'
+        ? (process.getBuiltinModule('node:path') as { dirname: (p: string) => string; resolve: (...p: string[]) => string } | undefined)
+        : undefined;
+    const urlMod =
+      typeof process !== 'undefined' && typeof process.getBuiltinModule === 'function'
+        ? (process.getBuiltinModule('node:url') as { fileURLToPath: (u: string) => string } | undefined)
+        : undefined;
+    if (pathMod && urlMod) {
+      const dir = pathMod.dirname(urlMod.fileURLToPath(import.meta.url));
+      return pathMod.resolve(dir, '../../../resources/models/bruecke-tbw1-mit-merkmalen.ifc');
+    }
+    return './bruecke-tbw1-mit-merkmalen.ifc';
   }
 
   static async configured(): Promise<LoadedModel> {
     const envPath =
-      typeof process !== 'undefined' ? process.env.CHECKMATE_MODEL : undefined;
+      typeof process !== 'undefined' && process.env ? process.env.CHECKMATE_MODEL : undefined;
     if (envPath && envPath.trim()) {
       return LoadedModel.read(envPath.trim());
     }
@@ -130,27 +155,23 @@ export class LoadedModel {
 
   static async read(source: string): Promise<LoadedModel> {
     const resolved = resolveModelUrl(source);
-    if (/^https?:\/\//i.test(resolved)) {
+    if (/^https?:\/\//i.test(resolved) || typeof window !== 'undefined') {
       const res = await fetch(resolved);
       if (!res.ok) {
         throw new Error(`IFC-Link konnte nicht geladen werden (${resolved}: HTTP ${res.status})`);
       }
       const ab = await res.arrayBuffer();
-      const urlPath = new URL(resolved).pathname;
-      const name = basename(urlPath) || 'remote.ifc';
+      const name = fileBaseName(resolved.split('?')[0]) || 'remote.ifc';
       return LoadedModel.fromBytes(new Uint8Array(ab), name);
     }
 
-    let bytes: Buffer;
+    let bytes: Uint8Array;
     try {
-      bytes = readFileSync(resolved);
+      bytes = readLocalBytesSync(resolved);
     } catch {
       throw new Error(`IFC-Datei nicht gefunden: ${source}`);
     }
-    return LoadedModel.fromBytes(
-      new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength),
-      basename(resolved)
-    );
+    return LoadedModel.fromBytes(bytes, fileBaseName(resolved));
   }
 
   static async fromBytes(bytes: Uint8Array, name = 'model.ifc'): Promise<LoadedModel> {

@@ -3,107 +3,656 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CheckMate 0.4 — Online 3D Viewer &amp; BIM-Portal LOIN/AIA Checker (IFClite)</title>
+<title>CheckMate 0.4 — 3D IFC &amp; BIM-Portal LOIN/AIA Workbench (IFClite + MCP Parity)</title>
 <style>
   :root {
-    --bg: #0f1117;
-    --bg2: #181b24;
-    --bg3: #222734;
+    --bg: #0c0e14;
+    --bg2: #141822;
+    --bg3: #1d2230;
+    --bg4: #262c3f;
     --fg: #f3f4f6;
     --fg2: #9ca3af;
-    --line: #2e3446;
+    --line: #2a3145;
     --accent: #3b82f6;
+    --accent-hover: #2563eb;
     --ok: #22c55e;
     --bad: #ef4444;
     --warn: #eab308;
+    --na: #6b7280;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.45 system-ui, -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-  header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--line); gap: 12px; flex-wrap: wrap; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
-  .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 600; }
-  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  button, label.btn, select, input {
-    background: var(--bg3); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font: inherit; font-size: 12px;
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 12.5px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
-  button, label.btn { cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
-  button:hover, label.btn:hover { border-color: var(--accent); }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    gap: 10px;
+    flex-wrap: wrap;
+    z-index: 10;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 14.5px;
+  }
+  .pill {
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .status-pill {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    color: var(--fg2);
+  }
+  .toolbar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  button, label.btn, select, input, textarea {
+    background: var(--bg3);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font: inherit;
+    font-size: 12px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  button, label.btn {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+  }
+  button:hover, label.btn:hover, select:hover {
+    border-color: var(--accent);
+    background: var(--bg4);
+  }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  button.primary:hover {
+    background: var(--accent-hover);
+  }
+  button.success {
+    background: #15803d;
+    border-color: #22c55e;
+    color: #fff;
+    font-weight: 600;
+  }
+  button.warn {
+    background: #b45309;
+    border-color: #f59e0b;
+    color: #fff;
+    font-weight: 600;
+  }
   input[type="file"] { display: none; }
-  main { flex: 1; display: grid; grid-template-columns: 1.35fr 1fr; overflow: hidden; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; grid-template-rows: 50% 50%; } }
-  .viewport { position: relative; background: #0a0c10; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
-  .viewport-overlay { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; z-index: 2; }
-  .legend, .cam-tools { pointer-events: auto; background: rgba(15,17,23,0.82); backdrop-filter: blur(6px); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; display: flex; gap: 10px; align-items: center; font-size: 12px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
-  canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    overflow: hidden;
+  }
+  @media (max-width: 1024px) {
+    main {
+      grid-template-columns: 1fr;
+      grid-template-rows: 46% 54%;
+    }
+  }
+
+  /* Left 3D Viewport + Bottom Element Inspector */
+  .left-pane {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--line);
+    overflow: hidden;
+    background: #080a0f;
+  }
+  .viewport {
+    position: relative;
+    flex: 1;
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .viewport-overlay-top {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 3;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .viewport-overlay-bottom {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 3;
+    font-size: 11px;
+    color: var(--fg2);
+  }
+  .legend, .cam-tools, .hud-box {
+    pointer-events: auto;
+    background: rgba(14, 17, 25, 0.86);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 5px 10px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 11.5px;
+  }
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+  }
   canvas:active { cursor: grabbing; }
-  .sidebar { display: flex; flex-direction: column; overflow-y: auto; padding: 14px; gap: 12px; background: var(--bg); }
-  .card { background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
-  .card h2 { margin: 0 0 8px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
-  .row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
-  .row input { flex: 1; min-width: 150px; }
-  .badge { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; color: #fff; }
-  .PASSED { background: var(--ok); } .FAILED { background: var(--bad); } .NOT_APPLICABLE { background: #6b7280; }
-  .spec-item { border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-top: 8px; background: var(--bg); }
-  .finding-btn { all: unset; display: block; width: 100%; padding: 5px 6px; border-bottom: 1px dashed var(--line); cursor: pointer; font-size: 12px; }
-  .finding-btn:hover { background: var(--bg3); color: #60a5fa; }
-  pre { margin: 0; white-space: pre-wrap; font: 11px ui-monospace, monospace; color: var(--fg2); }
+
+  .inspector-drawer {
+    height: 195px;
+    background: var(--bg2);
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .inspector-header {
+    padding: 6px 12px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .inspector-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+    font: 11.5px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+    white-space: pre-wrap;
+    color: #d1d5db;
+  }
+
+  /* Right Tabbed Workbench */
+  .right-pane {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  .tab-bar {
+    display: flex;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    padding: 0 8px;
+    gap: 2px;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 9px 12px;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--fg2);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tab-btn:hover {
+    color: var(--fg);
+    background: var(--bg3);
+  }
+  .tab-btn.active {
+    color: #60a5fa;
+    border-bottom-color: var(--accent);
+    background: rgba(59, 130, 246, 0.08);
+  }
+  .tab-panel {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    gap: 10px;
+    flex-direction: column;
+  }
+  .tab-panel.active {
+    display: flex;
+  }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .card h3 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .sub {
+    color: var(--fg2);
+    font-size: 11.5px;
+    margin-bottom: 8px;
+  }
+  .row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .row input[type="text"], .row input:not([type]), .row select {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* Entity Chips & Element Table */
+  .chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+  .chip {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .chip.active, .chip:hover {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+  }
+
+  /* LOIN Catalogue List */
+  .loin-list {
+    max-height: 230px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg);
+  }
+  .loin-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 7px 9px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .loin-row:last-child { border-bottom: none; }
+  .loin-row:hover { background: var(--bg3); }
+  .loin-row.selected { background: rgba(59, 130, 246, 0.14); border-left: 3px solid var(--accent); }
+  .loin-meta { flex: 1; min-width: 0; }
+  .loin-title { font-weight: 600; color: var(--fg); display: flex; justify-content: space-between; gap: 6px; }
+  .loin-fit { font-size: 11px; color: #4ade80; margin-top: 2px; }
+  .loin-fit.none { color: var(--fg2); }
+  .loin-tags { font-size: 10.5px; color: var(--fg2); margin-top: 2px; }
+
+  /* Summary Table & Report Cards */
+  table.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+    margin-bottom: 8px;
+  }
+  table.summary-table th, table.summary-table td {
+    text-align: left;
+    padding: 5px 7px;
+    border-bottom: 1px solid var(--line);
+  }
+  table.summary-table th {
+    color: var(--fg2);
+    font-weight: 600;
+    background: var(--bg3);
+  }
+  table.summary-table tr:hover {
+    background: var(--bg3);
+    cursor: pointer;
+  }
+  .badge {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 1.5px 7px;
+    border-radius: 999px;
+    color: #fff;
+    display: inline-block;
+    white-space: nowrap;
+  }
+  .PASSED { background: var(--ok); }
+  .FAILED { background: var(--bad); }
+  .PARTLY_EVALUATED { background: var(--warn); color: #000; }
+  .NOT_APPLICABLE { background: var(--na); }
+  .UNCHECKED { background: #475569; }
+
+  .spec-item {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 9px;
+    margin-top: 8px;
+    background: var(--bg);
+  }
+  .finding-btn {
+    all: unset;
+    display: block;
+    width: 100%;
+    padding: 4.5px 6px;
+    border-bottom: 1px dashed var(--line);
+    cursor: pointer;
+    font-size: 11.5px;
+    box-sizing: border-box;
+  }
+  .finding-btn:hover {
+    background: var(--bg3);
+    color: #60a5fa;
+  }
+  .diag-box {
+    margin-top: 6px;
+    padding: 7px 9px;
+    border-radius: 6px;
+    background: rgba(234, 179, 8, 0.08);
+    border: 1px solid rgba(234, 179, 8, 0.35);
+    font-size: 11.5px;
+  }
+  .hint-box {
+    margin-top: 5px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 3px solid var(--accent);
+    font-size: 11.5px;
+    color: #93c5fd;
+  }
+  pre.mono-box {
+    margin: 0;
+    padding: 8px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    white-space: pre-wrap;
+    font: 11.5px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+    color: #e5e7eb;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  textarea.code-editor {
+    width: 100%;
+    min-height: 150px;
+    font: 11.5px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+    background: var(--bg);
+    color: #e5e7eb;
+    resize: vertical;
+  }
 </style>
 </head>
 <body>
 <header>
   <div class="brand">
     <span>♟️ CheckMate 0.4</span>
-    <span class="pill">TypeScript · IFClite 3D · BIM-Portal</span>
+    <span class="pill">IFClite 3D · BIM-Portal · MCP Parity</span>
+    <span class="status-pill" id="headerStatusPill">Modell: bruecke-tbw1-mit-merkmalen.ifc (303 Objekte) · Mapping: BIM.Hamburg Brücken</span>
   </div>
   <div class="toolbar">
-    <label class="btn">📂 IFC laden <input type="file" id="ifcFile" accept=".ifc,.ifczip"></label>
-    <label class="btn">📋 IDS laden <input type="file" id="idsFile" accept=".ids,.xml,.zip"></label>
-    <select id="mappingSelect" title="Property Mapping">
-      <option value="default">Mapping: BIM.Hamburg Brücken</option>
-      <option value="none">Mapping: Keine Aliase (strikt IDS)</option>
-    </select>
-    <button class="primary" id="runDemoBtn">⚡ Demo-Prüfung (Brücke TBW1)</button>
+    <label class="btn" title="Lokale .ifc oder .ifczip Datei öffnen">📂 IFC Datei <input type="file" id="ifcFile" accept=".ifc,.ifczip"></label>
+    <label class="btn" title="Lokale .ids oder AIA-Projekt .zip Datei prüfen">📋 IDS / AIA-ZIP <input type="file" id="idsFile" accept=".ids,.xml,.zip"></label>
+    <label class="btn" title="Lokale @ifc-lite/rules .rules.json Datei prüfen">⚙️ .rules.json <input type="file" id="rulesFile" accept=".json"></label>
+    <button id="presetKappeFailBtn" class="warn" title="Prüft Kappen auf Pset_Bauteilinformation/Feldnummer (6 Abweichungen in Rot)">⚡ Demo: Kappen-Fehler (6 Rot)</button>
+    <button id="presetPortalKappeBtn" class="primary" title="Prüft echte BIM-Portal LOIN Ueberbau > Kappe LPH 8-9 mit Mapping vs. ohne Mapping">🏛️ BIM-Portal LOIN: Kappe LPH 8-9</button>
+    <button id="presetPortalSchaftBtn" title="Prüft echte BIM-Portal LOIN Ueberbau > Schaft LPH 1-9 (Diagnose &amp; Fast-Treffer)">🔍 BIM-Portal LOIN: Schaft (Diagnose)</button>
   </div>
 </header>
 
 <main>
-  <section class="viewport">
-    <div class="viewport-overlay">
-      <div class="legend">
-        <span><i class="dot" style="background:#ef4444"></i>AIA/LOIN Fehler</span>
-        <span><i class="dot" style="background:#22c55e"></i>Erfüllt</span>
-        <span><i class="dot" style="background:#facc15"></i>Ausgewählt</span>
-        <span><i class="dot" style="background:#94a3b8"></i>Ungeprüft</span>
+  <!-- Left: 3D IFClite Viewer + Element Report Drawer -->
+  <section class="left-pane">
+    <div class="viewport">
+      <div class="viewport-overlay-top">
+        <div class="legend">
+          <span><i class="dot" style="background:#ef4444"></i>Nicht erfüllt (<b id="countFailed">0</b>)</span>
+          <span><i class="dot" style="background:#22c55e"></i>Erfüllt (<b id="countPassed">0</b>)</span>
+          <span><i class="dot" style="background:#facc15"></i>Ausgewählt / Fast-Treffer</span>
+          <span><i class="dot" style="background:#94a3b8"></i>Ungeprüft (<b id="countUnchecked">0</b>)</span>
+        </div>
+        <div class="cam-tools">
+          <button id="filterFailedBtn" title="Nur fehlerhafte Bauteile in 3D einblenden">Nur Fehler</button>
+          <button id="clearSelectionBtn" title="Bauteil-Auswahl aufheben">Alle zeigen</button>
+          <button id="resetCamBtn" title="3D-Kamera zurücksetzen">3D Reset</button>
+        </div>
       </div>
-      <div class="cam-tools">
-        <button id="filterFailedBtn">Nur Fehler</button>
-        <button id="resetCamBtn">3D Reset</button>
+      <canvas id="viewer3d" width="920" height="620"></canvas>
+      <div class="viewport-overlay-bottom">
+        <span class="hud-box" id="geomStatsHud">3D: Initialisiere IFClite WebGL ...</span>
+        <span class="hud-box">Maus ziehen: Drehen · Mausrad: Zoom · Klick auf Befund/Bauteil: 3D-Fokus</span>
       </div>
     </div>
-    <canvas id="viewer3d" width="900" height="650"></canvas>
+
+    <div class="inspector-drawer">
+      <div class="inspector-header">
+        <span id="inspectorTitle">🔎 Bauteil-Inspektor &amp; Elementbericht (element_report)</span>
+        <div style="display:flex;gap:6px">
+          <input id="quickElementInput" placeholder="GlobalId oder Namensteil (z.B. Kappe, Schaft) ..." style="width:230px;padding:2px 7px">
+          <button id="quickElementBtn" style="padding:2px 8px">Suchen</button>
+        </div>
+      </div>
+      <div class="inspector-body" id="elementInspector">Klicke rechts auf einen Prüf-Befund, einen Fast-Treffer (Diagnose) oder ein Bauteil in der Elementliste, um es in 3D gelb hervorzuheben und alle IFC-Merkmale sowie Prüfergebnisse zu sehen.</div>
+    </div>
   </section>
 
-  <aside class="sidebar">
-    <div class="card">
-      <h2>1. Modell &amp; BIM-Portal LOIN / AIA</h2>
-      <div id="modelMeta" style="color:var(--fg2);margin-bottom:8px">Kein Modell geladen — klicke „Demo-Prüfung“ oder lade eine IFC-Datei.</div>
-      <div class="row">
-        <input id="portalIdInput" placeholder="BIM-Portal LOIN / AIA GUID oder Link ...">
-        <button class="primary" id="checkPortalBtn">Prüfen</button>
+  <!-- Right: 4-Tab Full CheckMate Workbench (matching all 15 MCP Tools & 0.3.2 GUI) -->
+  <aside class="right-pane">
+    <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="tab-report">1. Prüfbericht &amp; Diagnose</button>
+      <button class="tab-btn" data-tab="tab-portal">2. BIM-Portal &amp; LOIN-Katalog</button>
+      <button class="tab-btn" data-tab="tab-model">3. Modell &amp; Elemente (303)</button>
+      <button class="tab-btn" data-tab="tab-mapping">4. Mapping, Rules &amp; Export</button>
+    </nav>
+
+    <!-- TAB 1: Check Report, Summary Table, Near-Miss Diagnosis & Text Report -->
+    <div class="tab-panel active" id="tab-report">
+      <div class="card">
+        <h3>
+          <span>Prüfbericht (check_model)</span>
+          <span id="verdictBadge" class="badge UNCHECKED">Bereit</span>
+        </h3>
+        <div class="sub" id="reportHeaderMeta">Noch keine Prüfung gestartet.</div>
+
+        <!-- Preset & Custom IDS Bar -->
+        <div class="row">
+          <select id="bundledFixtureSelect" title="Mitgelieferte BIM-Portal &amp; lokale IDS-Vorlagen">
+            <option value="demo-kappe-fail">Vorlage: BIM.Hamburg Brücke — Kappen Feldnummer (6 Fehler + 286 Erfüllt)</option>
+            <option value="fixtures/ueberbau-kappe-lph8-9.ids">BIM-Portal IDS: Ueberbau &gt; Kappe LPH 8-9 (braucht Mapping für Klassifizierung/Objekttyp)</option>
+            <option value="fixtures/ueberbau-schaft-lph1-9.ids">BIM-Portal IDS: Ueberbau &gt; Schaft LPH 1-9 (zeigt Fast-Treffer &amp; IFCTEXT/IFCLABEL Diagnose)</option>
+            <option value="fixtures/mehrere-spezifikationen.ids">Lokale IDS: Mehrere Spezifikationen (Übersichtstabelle)</option>
+            <option value="fixtures/fenster.ids">BIM-Portal IDS: Fenster (Nicht prüfbar auf Brücke)</option>
+            <option value="fixtures/aia-neubau-eisenbahnbruecke.zip">BIM-Portal AIA-Projekt ZIP: Neubau Eisenbahnbrücke (Dedupliziert)</option>
+            <option value="fixtures/aia-strasse-demonstrator.zip">BIM-Portal AIA-Projekt ZIP: Straße Demonstrator</option>
+          </select>
+          <button class="primary" id="runFixtureBtn">Prüfen</button>
+        </div>
+
+        <!-- Summary Table like 0.3.2 ElementUI.java -->
+        <div id="summaryTableWrap"></div>
+
+        <!-- Detailed Specification Cards with Findings & Near-Miss Diagnosis -->
+        <div id="reportContainer"></div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span>Vollständiger deutscher Prüfbericht (ReportText)</span>
+          <div style="display:flex;gap:5px">
+            <button id="toggleFullReportBtn">Vollbericht (examples=0)</button>
+            <button id="copyReportTextBtn">Kopieren</button>
+          </div>
+        </h3>
+        <pre class="mono-box" id="reportTextOutput"></pre>
       </div>
     </div>
 
-    <div class="card">
-      <h2>2. Prüfbericht &amp; 3D-Markierungen <span id="verdictBadge"></span></h2>
-      <div id="reportContainer">Noch keine Prüfung ausgeführt.</div>
+    <!-- TAB 2: BIM Portal Catalogue Search, Filters, ModelFit Ranking & LoinDescription -->
+    <div class="tab-panel" id="tab-portal">
+      <div class="card">
+        <h3>
+          <span>BIM-Portal Katalog &amp; LOIN-Suche (find_loins)</span>
+          <button class="primary" id="portalSearchBtn">🔄 Katalog abrufen</button>
+        </h3>
+        <div class="sub">Durchsucht live das BIM-Portal des Bundes (via.bund.de/bim) und sortiert LOINs nach <b>ModelFit</b> (wie viele Bauteile im 3D-Modell zum Objekttyp passen).</div>
+        <div class="row">
+          <input id="portalSearchInput" placeholder="Suchbegriff (z.B. Überbau, Kappe, Schaft, Brücke) oder GUID / Link ...">
+          <button id="checkPortalGuidBtn" title="Direkt eine LOIN- oder AIA-Projekt-GUID prüfen">GUID direkt prüfen</button>
+        </div>
+        <div class="row">
+          <select id="disciplineFilter"><option value="">Fachmodell: alle</option></select>
+          <select id="phaseFilter"><option value="">Leistungsphase: alle</option></select>
+          <select id="purposeFilter"><option value="">Anwendungsfall: alle</option></select>
+        </div>
+        <div class="row" style="justify-content:space-between">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;cursor:pointer">
+            <input type="checkbox" id="showAllLoinsCheckbox" checked>
+            alle anzeigen, auch nicht zum Modell passende (include_unfitting)
+          </label>
+          <button class="success" id="validateSelectedLoinsBtn">✅ Ausgewählte LOIN(s) prüfen</button>
+        </div>
+        <div class="sub" id="catalogueSummaryLine">Klicke auf einen Eintrag für <b>describe_requirements (LoinDescription)</b> oder setze Häkchen zum gemeinsamen Prüfen.</div>
+        <div class="loin-list" id="loinCatalogueList"></div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span>Anforderungs-Vorschau (describe_requirements / LoinDescription)</span>
+          <button class="primary" id="checkDescribedLoinBtn" style="display:none">Diese Anforderung jetzt prüfen</button>
+        </h3>
+        <pre class="mono-box" id="loinDescriptionOutput">Wähle oben eine LOIN oder ein AIA-Projekt aus, um genau zu sehen:
+• Katalog-Metadaten (Objekttyp, Fachmodell, Bauart, Leistungsphasen, Anwendungsfälle)
+• Passt zum Modell (ModelFit: Anzahl passender Elemente in Klassifizierung oder Name)
+• Wählt aus (Applicability-Facetten) &amp; Verlangt (Entity- &amp; Merkmal-Anforderungen)
+• Im Modell anwendbare Elemente + Datentyp-/Schreibweisen-Hinweise</pre>
+      </div>
     </div>
 
-    <div class="card">
-      <h2>3. Ausgewähltes Bauteil</h2>
-      <pre id="elementInspector">Klicke auf einen Befund oder ein Bauteil, um es in 3D gelb hervorzuheben und alle Merkmale zu sehen.</pre>
+    <!-- TAB 3: Model Overview, Entity Histogram & Element Browser -->
+    <div class="tab-panel" id="tab-model">
+      <div class="card">
+        <h3>
+          <span>Modellübersicht (describe_model &amp; load_model)</span>
+        </h3>
+        <div class="row">
+          <input id="modelUrlInput" placeholder="IFC-URL oder GitHub-Blob-Link (https://github.com/.../file.ifc) ...">
+          <button class="primary" id="loadModelUrlBtn">IFC-Link laden</button>
+        </div>
+        <div class="sub" id="modelSummaryLine"></div>
+        <div class="sub" style="margin-bottom:4px"><b>IFC-Entities im Modell</b> (Klick filtert Elementliste &amp; hebt Bauteile hervor):</div>
+        <div class="chip-list" id="entityHistogramChips"></div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span>Elementliste (list_elements)</span>
+          <span class="sub" id="elementCountLabel" style="margin:0"></span>
+        </h3>
+        <div class="row">
+          <input id="elementNameFilterInput" placeholder="Nach Name oder GlobalId filtern (z.B. Kappe, Widerlager, Pfahl) ...">
+          <button id="isolateFilteredIn3DBtn" title="Gefilterte Elemente in 3D fokussieren">In 3D zeigen</button>
+        </div>
+        <div class="loin-list" id="modelElementList" style="max-height:310px"></div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Property Mapping, @ifc-lite/rules & BCF / JSON / Text Exports -->
+    <div class="tab-panel" id="tab-mapping">
+      <div class="card">
+        <h3>
+          <span>JSON Property Mapping (load_mapping)</span>
+          <span class="badge PASSED" id="activeMappingBadge">BIM.Hamburg Brücken</span>
+        </h3>
+        <div class="sub">Übersetzt BIM-Portal-Merkmaladressen (z.B. <code>Klassifizierung/Objekttyp</code>) in modellspezifische PropertySets (z.B. <code>Pset_Objektinformation/_IDEbene3</code>). Im Bericht wird jeder Alias transparent als <code>(als ...)</code> ausgewiesen.</div>
+        <div class="row">
+          <button class="primary" id="useDefaultMappingBtn">Standard: BIM.Hamburg Brücken</button>
+          <button id="useNoneMappingBtn">Keine Aliase (strikt IDS)</button>
+          <label class="btn">📂 Mapping-JSON laden <input type="file" id="mappingFileInput" accept=".json"></label>
+        </div>
+        <textarea class="code-editor" id="mappingJsonEditor" spellcheck="false"></textarea>
+        <div class="row" style="margin-top:6px;justify-content:space-between">
+          <span class="sub" id="mappingStatusLine" style="margin:0">3 Alias-Regeln aktiv</span>
+          <button class="success" id="applyMappingJsonBtn">Mapping anwenden &amp; neu prüfen</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span>Exporte &amp; @ifc-lite/rules Konvertierung (export_bcf)</span>
+        </h3>
+        <div class="sub">Exportiere die Ergebnisse der aktuellen Prüfung als BCF 2.1 (<code>.bcfzip</code> für BIM-Koordination), strukturiertes JSON, deutschen Textbericht oder konvertiere die IDS in ein <code>@ifc-lite/rules</code> Regelwerk.</div>
+        <div class="row">
+          <button class="primary" id="exportBcfBtn">📦 BCF 2.1 (.bcfzip) herunterladen</button>
+          <button id="exportJsonBtn">📄 Bericht als JSON</button>
+          <button id="exportTextBtn">📝 Bericht als TXT</button>
+          <button id="convertIdsToRulesBtn">⚙️ IDS → .rules.json konvertieren</button>
+        </div>
+        <pre class="mono-box" id="exportPreviewBox" style="display:none"></pre>
+      </div>
     </div>
   </aside>
 </main>

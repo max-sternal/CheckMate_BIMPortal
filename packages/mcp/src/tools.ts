@@ -14,6 +14,7 @@ import {
   formatPropertyKey,
   isFindingOk,
   LoadedModel,
+  LoinDescription,
   ModelFit,
   PropertyMapping,
   ReportText,
@@ -265,17 +266,29 @@ export class CheckMateTools {
       idOrLink: id,
     });
     const current = await this.model();
-    const run = await this.service.validateIdsDocument(name, document, current);
+    const guid = extractPortalId(id);
+    const entry = guid
+      ? this.lastFoundLoins.find((e) => e.guid.toLowerCase() === guid.toLowerCase())
+      : undefined;
 
-    const lines: string[] = [
-      `Anforderungen: ${name}`,
-      `Spezifikationen für ${current.rawSchema}: ${run.results.length}`,
-    ];
-    for (const res of run.results) {
-      lines.push(
-        `  - ${res.specificationLabel}: ${res.applicableElements} von ${res.examinedElements} Elementen im Modell anwendbar`
+    if (entry) {
+      const fit = ModelFit.of(current.elements).fit(entry);
+      const lines = await LoinDescription.describeCatalogueEntry(
+        entry,
+        fit,
+        document,
+        current,
+        this.service
       );
+      return lines.join('\n');
     }
+
+    const lines = await LoinDescription.describeDocument(
+      name,
+      document,
+      current,
+      this.service
+    );
     return lines.join('\n');
   }
 

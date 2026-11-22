@@ -1,7 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 export interface PropertyKey {
   readonly propertySet: string;
   readonly baseName: string;
@@ -80,6 +76,27 @@ export interface PropertyMappingJson {
   }>;
 }
 
+export const BUNDLED_BIM_HAMBURG_MAPPING_JSON: PropertyMappingJson = {
+  name: 'BIM.Hamburg Brücken',
+  aliases: [
+    { from: 'Klassifizierung/Objektgruppe', to: ['Pset_Objektinformation/_IDEbene1'] },
+    { from: 'Klassifizierung/Objektklasse', to: ['Pset_Objektinformation/_IDEbene2'] },
+    { from: 'Klassifizierung/Objekttyp', to: ['Pset_Objektinformation/_IDEbene3'] },
+  ],
+};
+
+function readLocalTextSync(filePath: string): string {
+  const req =
+    typeof process !== 'undefined' &&
+    typeof process.getBuiltinModule === 'function'
+      ? (process.getBuiltinModule('node:fs') as { readFileSync: (p: string, enc: string) => string } | undefined)
+      : undefined;
+  if (req && typeof req.readFileSync === 'function') {
+    return req.readFileSync(filePath, 'utf-8');
+  }
+  throw new Error(`Lokaler Dateizugriff wird im Browser nicht unterstützt (${filePath})`);
+}
+
 export class PropertyMapping {
   readonly name: string;
   readonly aliases: ReadonlyMap<string, readonly PropertyKey[]>;
@@ -148,7 +165,7 @@ export class PropertyMapping {
   static loadFile(filePath: string): PropertyMapping {
     let content: string;
     try {
-      content = readFileSync(filePath, 'utf-8');
+      content = readLocalTextSync(filePath);
     } catch (err) {
       throw new Error(`Mapping-Datei nicht lesbar: ${filePath} (${(err as Error).message})`);
     }
@@ -160,22 +177,7 @@ export class PropertyMapping {
   }
 
   static bundled(): PropertyMapping {
-    const dir = dirname(fileURLToPath(import.meta.url));
-    const bundledPath = resolve(dir, '../../../resources/mapping/bim-hamburg.json');
-    try {
-      return PropertyMapping.loadFile(bundledPath);
-    } catch {
-      return PropertyMapping.parse(
-        JSON.stringify({
-          name: 'BIM.Hamburg Brücken',
-          aliases: [
-            { from: 'Klassifizierung/Objektgruppe', to: ['Pset_Objektinformation/_IDEbene1'] },
-            { from: 'Klassifizierung/Objektklasse', to: ['Pset_Objektinformation/_IDEbene2'] },
-            { from: 'Klassifizierung/Objekttyp', to: ['Pset_Objektinformation/_IDEbene3'] },
-          ],
-        })
-      );
-    }
+    return PropertyMapping.parse(JSON.stringify(BUNDLED_BIM_HAMBURG_MAPPING_JSON));
   }
 
   static resolve(named?: string | null): PropertyMapping {
@@ -184,7 +186,18 @@ export class PropertyMapping {
     const lower = val.toLowerCase();
     if (lower === 'none' || lower === 'keine') return PropertyMapping.NONE;
     if (lower === 'default' || lower === 'standard') return PropertyMapping.bundled();
+    if (val.startsWith('{')) return PropertyMapping.parse(val);
     return PropertyMapping.loadFile(val);
+  }
+
+  toJson(): PropertyMappingJson {
+    return {
+      name: this.name,
+      aliases: this.rawEntries.map((e) => ({
+        from: formatPropertyKey(e.from),
+        to: e.to.map(formatPropertyKey),
+      })),
+    };
   }
 
   /**

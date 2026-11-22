@@ -71,5 +71,15 @@ describe('@checkmate/mcp (MCP Server + 3D MCP Apps + App-only Tools)', () => {
     expect(meshData.totalElementsWithGeometry).toBeGreaterThan(0);
     expect(meshData.meshes.length).toBeGreaterThan(0);
     expect(['PASSED', 'FAILED', 'UNCHECKED']).toContain(meshData.meshes[0].status);
+
+    // Verify LoinDescription parity with 0.3.2 LoinDescription.java
+    const model = await tools.model();
+    const { document: kappeDoc } = await tools.service.loadIdsDocument({
+      kind: 'idsFile',
+      path: idsPath,
+    });
+    const descLines = await tools.service.validateIdsDocument('Kappe', kappeDoc, model);
+    expect(descLines.results[0].hints.some((h) => h.includes('IFCTEXT statt IFCLABEL'))).toBe(true);
   });
 });
+
