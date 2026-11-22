@@ -128,12 +128,60 @@ Important settings include `BIM_PORTAL_USERNAME`, `BIM_PORTAL_PASSWORD`,
   do not hard-code secrets, user-specific paths, or credentials into examples
   or tests.
 
+## CheckMate (`hackathon-template`) & version branches
+
+CheckMate lives inside `bim-portal/Java_client/hackathon-template/` with a
+library-free pure-Java checking core shared by three front ends:
+
+- `com.bimportal.hackathon.ids` — IDS 1.0 parser (`IdsParser`), ZIP archive
+  handling (`IdsArchive`), validator (`IdsValidator`), `DataTypes`, `Values`,
+  `PropertyKey`, `PropertyAliases`, `PortalRequirements`, `ModelElement`.
+- `com.bimportal.hackathon.catalogue` — BIM Portal catalogue metadata filtering
+  (`CatalogueFilter`), model-fit ranking (`ModelFit`), LOIN previews.
+- `com.bimportal.hackathon.check` — unified `CheckService` & `Source` facade.
+- `com.bimportal.hackathon.report` — `CheckReport`, exit codes (`0–4`),
+  `ReportText`, and `ReportJson`.
+- `com.bimportal.hackathon.mcp` — stdio MCP server (`CheckMateMcpServer`,
+  `CheckMateTools`, 7 tools) using the official MCP Java SDK (`2.1.0`).
+- `test.fx` — JavaFX GUI (`App`, `ElementUI`), headless CLI (`LoinCheckCli`),
+  and Apstex IFC reader (`IfcResources`, `ModelLinks`, `IfcModelElements`,
+  `LoadedModel`).
+
+### Prerequisites & Gradle tasks for CheckMate
+
+- **APSTEX IFC Toolbox JARs** (`com.apstex.ifctoolbox*.jar`,
+  `com.apstex.stepparser*.jar`) in `hackathon-template/lib/` are proprietary
+  and not committed to Git. When absent, Gradle excludes `test/fx/**` and
+  `com/bimportal/hackathon/mcp/**` and runs the 148 core unit & IDS conformance
+  tests cleanly.
+- **JavaFX** is provided by a JDK 21 FX build (e.g. Azul Zulu 21 JDK FX).
+- **Test reference:** `IfcOpenShell` / `ifctester` is the reference oracle for
+  IFC reading and IDS 1.0 validation (`src/test/python/make_ifc_fixtures.py`).
+- Key Gradle tasks (from `bim-portal/Java_client/`):
+  - `./gradlew :hackathon-template:test`
+  - `./gradlew :hackathon-template:runGui`
+  - `./gradlew :hackathon-template:runLoinCheck --args="..."`
+  - `./gradlew :hackathon-template:installMcp`
+  - `./gradlew :hackathon-template:downloadTestModels`
+
+### Bilingual Documentation (`website/`) & Branches
+
+- `website/` contains the bilingual **Astro Starlight** documentation site
+  (German default at `/`, English at `/en/`), deployed to GitHub Pages via
+  `.github/workflows/docs.yml`. Validate locally with `npm run build` in
+  `website/`. Keep German and English pages in sync.
+- Branch line:
+  - `0.1` (frozen): direct BIM Portal Hackathon Sept 2025 baseline.
+  - `0.2` (frozen): first post-hackathon fixes & initial IDS check (Oct 2026).
+  - `0.3.1` (active): Java working release with APSTEX, MCP server & DE/EN docs.
+  - `0.3.2` (planned): Java release without APSTEX + MCP upgrade.
+  - `0.4` (planned, WIP): *CheckMate Lite* on `IFClite` (no Java, no APSTEX).
+
 ## Relevant project documentation
 
-Use the module READMEs for user-facing workflows:
+- `README.md` — repository map, prerequisites, quick start, and MCP setup.
+- `docs/WORKFLOW.md` — end-to-end specification, checklist, and decisions.
+- `docs/STATUS.md` — open points and architectural decisions.
+- `website/src/content/docs/` — public bilingual (DE/EN) documentation site.
+- `bim-portal/Java_client/hackathon-template/README.md` — module-level notes.
 
-- `bim-portal/README.md` gives the project overview and client choice.
-- `bim-portal/Java_client/README.md` documents the Java modules and commands.
-- `bim-portal/Java_client/bim-portal-enhanced/README.md` documents the
-  available search/export examples.
-- `bim-portal/Python_client/README.md` documents Python setup and basic usage.
