@@ -47,6 +47,11 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2")
 
+    // MCP server (com.bimportal.hackathon.mcp): the official MCP Java SDK, with its Jackson 2
+    // binding. 2.1.0 rather than 2.2.0, which depends on a Reactor release candidate.
+    implementation("io.modelcontextprotocol.sdk:mcp-core:2.1.0")
+    implementation("io.modelcontextprotocol.sdk:mcp-json-jackson2:2.1.0")
+
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.9")
     implementation("ch.qos.logback:logback-classic:1.4.11")
@@ -66,11 +71,11 @@ application {
 // take the whole module down with it - including the API examples, which do not need
 // IFC at all. So skip that package exactly while the JARs are missing.
 if (localLibs.isEmpty) {
-    sourceSets.main.get().java.exclude("test/fx/**")
-    sourceSets.test.get().java.exclude("test/fx/**")
+    sourceSets.main.get().java.exclude("test/fx/**", "com/bimportal/hackathon/mcp/**")
+    sourceSets.test.get().java.exclude("test/fx/**", "com/bimportal/hackathon/mcp/**")
     logger.lifecycle(
-        "⚠ hackathon-template: lib/*.jar not found - excluding test/fx (CheckMate GUI, CLI and " +
-            "the IFC reading tests). Add com.apstex.ifctoolbox*.jar and " +
+        "⚠ hackathon-template: lib/*.jar not found - excluding test/fx and mcp (CheckMate GUI, " +
+            "CLI, MCP server and the IFC reading tests). Add com.apstex.ifctoolbox*.jar and " +
             "com.apstex.stepparser*.jar to lib/ to build them."
     )
 }
@@ -137,6 +142,48 @@ tasks.register<JavaExec>("runBasicExample") {
     description = "Run basic BIM Portal API example"
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("com.bimportal.hackathon.examples.BasicExample")
+}
+
+// MCP server: an AI app starts it as a program of its own and talks to it over stdin/stdout,
+// so it can't run through Gradle, which writes to stdout too. installMcp puts a start script
+// and every JAR it needs into build/install/checkmate-mcp/ (docs/WORKFLOW.md, section 2.7).
+val mcpStartScripts = tasks.register<CreateStartScripts>("mcpStartScripts") {
+    applicationName = "checkmate-mcp"
+    mainClass.set("com.bimportal.hackathon.mcp.CheckMateMcpServer")
+    outputDir = layout.buildDirectory.dir("mcp-scripts").get().asFile
+    classpath = files(tasks.jar) + configurations.runtimeClasspath.get()
+    // Listing every JAR makes the Windows script's line longer than cmd allows (8191
+    // characters); a wildcard, which Java expands itself, keeps it short.
+    doLast {
+        val scripts = checkNotNull(outputDir)
+        val windows = scripts.resolve("checkmate-mcp.bat")
+        windows.writeText(
+            windows.readText().replace(Regex("set CLASSPATH=.*")) { "set CLASSPATH=%APP_HOME%\\lib\\*" }
+        )
+        val unix = scripts.resolve("checkmate-mcp")
+        unix.writeText(
+            unix.readText().replace(Regex("(?m)^CLASSPATH=.*$")) { "CLASSPATH=\$APP_HOME/lib/*" }
+        )
+    }
+}
+
+tasks.register<Sync>("installMcp") {
+    group = "hackathon"
+    description = "Install the CheckMate MCP server with a start script into build/install/checkmate-mcp"
+    into(layout.buildDirectory.dir("install/checkmate-mcp"))
+    into("lib") {
+        from(tasks.jar)
+        from(configurations.runtimeClasspath)
+    }
+    into("bin") { from(mcpStartScripts) }
+    doFirst {
+        if (localLibs.isEmpty) {
+            throw GradleException(
+                "The MCP server reads IFC models and needs com.apstex.ifctoolbox*.jar and " +
+                    "com.apstex.stepparser*.jar in ${project.projectDir}/lib."
+            )
+        }
+    }
 }
 
 // Headless LOIN check: same validation as the GUI button, usable in a container or a pipeline.

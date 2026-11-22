@@ -13,7 +13,7 @@ What is being worked on and what is still open. One line per item. Reference cod
 
    The driver then compiles with the app, and `driver-classpath.init.gradle` is no longer needed.
 2. Done (2026-11-20): "Load IFC" opens a file, "Load IFC link" a link (GitHub file links and `.ifczip` included).
-3. "Connect MCP" has no handler (`ElementUI.java:112`). The LLM chat from the pitch is not implemented.
+3. "Connect MCP" has no handler (`ElementUI.java:112`). The MCP server exists (WORKFLOW 2.7) and works without the GUI; a chat inside the GUI, as in the pitch, is not implemented.
 4. "BIM Portal" opens a placeholder URL, `https://bimportal.com` (`ElementUI.java:94`).
 5. Done (2026-11-20): the window opens at 1280x900, which fits the whole layout.
 
@@ -38,6 +38,11 @@ What is being worked on and what is still open. One line per item. Reference cod
 14. **TODO, to be decided: the hard-coded property name mapping.** `PropertyAliases` (`hackathon-template/src/main/java/com/bimportal/hackathon/ids/PropertyAliases.java`) maps the portal's `Klassifizierung/Objektgruppe|Objektklasse|Objekttyp` to `Pset_Objektinformation/_IDEbene1..3`. That is the convention of the BIM.Hamburg bridge models bundled with the project, written into the code for them. It is not a rule: no spelling rule can tell that these names mean the same, other models with other conventions get no mapping, and IDS knows no aliases (ifctester reports these properties as missing). The report states every use of an alias ("als Pset_Objektinformation/_IDEbene3"). To decide: whether mappings stay at all, and if so how they are supplied - e.g. a mapping file per project or convention, passed with the model - instead of code.
 
 15. **To be decided: the IFC library.** CheckMate reads IFC with the Apstex IFC Toolbox (Java). It works and is tested, but its JARs are not redistributable: everyone needs the team's copy from Nextcloud, and CheckMate can't be published or run on a build server with them. The alternative is IfcOpenShell (open source, the basis of ifctester), at the cost of a second runtime (Python plus IfcOpenShell, over 100 MB) for every user. Only the reader would change (`IfcModelElements`, `IfcResources`); the check sees `ModelElement` records only. Apstex stays until this is decided (2026-11-22).
+
+### MCP server
+
+16. Tried only with a test script that speaks the protocol, not yet with an AI app: Claude Desktop or Code, and Ollama through an MCP host such as `ollmcp` (WORKFLOW 2.7).
+17. The MCP SDK is built for Jackson 2.21; the project pins Jackson to 2.15.2 (`build.gradle.kts`), so Gradle hands the SDK 2.15.2. Every message CheckMate uses works and is tested; if an AI app's message ever fails to parse, raise Jackson first.
 
 ### Code structure
 

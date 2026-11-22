@@ -177,7 +177,7 @@ From `bim-portal/Java_client/`:
 ./gradlew --console=plain :hackathon-template:test
 ```
 
-208 tests as of 2026-11-22; only `BasicExampleIntegrationTest` is skipped (an `assumeTrue`
+217 tests as of 2026-11-22; only `BasicExampleIntegrationTest` is skipped (an `assumeTrue`
 guard: it needs credentials). Without the Apstex JARs the `test/fx` tests are not built, and
 without the downloaded sample models (`./gradlew :hackathon-template:downloadTestModels`) the
 tests that need them are skipped with a message. Results are in

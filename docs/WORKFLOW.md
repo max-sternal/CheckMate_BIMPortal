@@ -141,7 +141,7 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
   specification's `instructions` text ("Projektphasen: LPH 9: ..., LPH 8: ..."), not in an IDS
   field; IDS files without it show no phases.
 - Every front end gets its report from the same place: `CheckService` checks, `ReportText` writes
-  the text (in full for the GUI, briefly for the CLI), `ReportJson` the JSON.
+  the text (in full for the GUI, briefly for the CLI and the MCP server), `ReportJson` the JSON.
 - GUI: a table above the report, one row per specification and one for all of them: verdict,
   applicable elements, elements without and with defects. Clicking a row narrows the report and
   the element tabs to it. Element tabs and report share a split pane whose divider can be dragged.
@@ -178,6 +178,62 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
 - Tests for the parser and the check, with real IDS files from the portal as test files and
   hand-built `ModelElement`s.
 - ifctester (IfcOpenShell's IDS implementation) is the reference for the expected results.
+
+### 2.7 AI apps: the MCP server
+
+- Purpose: an AI app asks CheckMate about a model: "Which LOINs fit this bridge?", "Does it meet
+  the Kappe LOIN for LPH 8?", "Why does this element fail?". The AI decides which tool to call and
+  puts the answer in its own words; CheckMate does the checking. The AI sees only the tool
+  answers, never the IFC file.
+- MCP (Model Context Protocol) is how the app finds the tools (name, description, parameters) and
+  calls them. The app starts CheckMate as a program of its own and talks to it over stdin/stdout,
+  one JSON message per line. Nothing listens on the network.
+- Install: `./gradlew :hackathon-template:installMcp` (from `bim-portal/Java_client/`) writes
+  `hackathon-template/build/install/checkmate-mcp/`, with the start script
+  `bin/checkmate-mcp.bat` (Windows) or `bin/checkmate-mcp` and every JAR in `lib/`. Run it again
+  after code changes. It needs the Apstex JARs and Java 21 (`JAVA_HOME` or `java` on the path), no
+  JavaFX at runtime. It can't run through Gradle, which writes to stdout too.
+- Tools (answers in German, as the CLI writes them):
+
+  | Tool | What it does | Arguments |
+  |---|---|---|
+  | `load_model` | load a model from a path or a link; replaces the one before | `source` |
+  | `describe_model` | name, schema, number of elements, most frequent entities | - |
+  | `list_elements` | `GlobalId \| entity \| name \| PredefinedType` | `entity`, `name`, `limit` |
+  | `find_loins` | AIA projects and LOINs from the catalogue, those fitting the model first, with IDs | `search`, `discipline`, `phase`, `purpose`, `limit`, `include_unfitting` |
+  | `describe_requirements` | what a LOIN or AIA project selects and requires, how many elements it would apply to | `id` |
+  | `check_model` | the report as the CLI prints it, `examples` unmet requirements per specification (default 3, 0 for the full report) | `ids`, `ids_files`, `examples` |
+  | `element_report` | what the last check said about an element, and its properties | `element` (GlobalId or part of the name) |
+
+- One session per server process: the model in use (until `load_model`, the one `CHECKMATE_IFC`
+  names or the bundled one), the last check for `element_report`, and every requirement downloaded
+  so far, each downloaded once.
+- An error is an answer, not a crash: the tool returns the message with `isError`, so the AI can
+  pass it on ("IFC-Datei nicht gefunden: ...").
+- Every answer has at most 50,000 characters (about 15,000 tokens). The full report of an AIA
+  project has about 500,000; it is cut at a line end, and the verdict line is kept. The default
+  brief report of the 36 specifications of an AIA project has about 16,000 characters.
+- Logs go to stderr, which AI apps keep as the server's log. stdout carries only the protocol.
+- Connecting an AI app (paths shortened; use the full path of the start script):
+  - Claude Desktop, in `claude_desktop_config.json`:
+    ```json
+    { "mcpServers": { "checkmate": {
+        "command": "C:\\...\\hackathon-template\\build\\install\\checkmate-mcp\\bin\\checkmate-mcp.bat",
+        "env": { "JAVA_HOME": "C:\\...\\zulu21-jdk-fx", "CHECKMATE_IFC": "C:\\...\\model.ifc" } } } }
+    ```
+    `env` is optional: `JAVA_HOME` when it is not set for the whole system, `CHECKMATE_IFC` for
+    the model to start with.
+  - Claude Code: `claude mcp add checkmate -- C:/.../bin/checkmate-mcp.bat`.
+  - Ollama: Ollama runs models but does not speak MCP itself; an MCP host in between does, e.g.
+    `ollmcp` (`pip install mcp-client-for-ollama`) with the same `mcpServers` file, or Open WebUI.
+    The model must support tool calls (e.g. Qwen 3, Llama 3.1). Small models have small context
+    windows, so keep `examples` low.
+- Known limits: tried so far with a script that speaks the protocol (initialize, tools/list, every
+  tool, errors), not yet with an AI app (STATUS #16). Tools only: no MCP resources or prompts, no
+  progress messages during a long check. Paths are read on the machine the server runs on.
+- Main classes: [`CheckMateMcpServer`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/mcp/CheckMateMcpServer.java)
+  (tools, parameters, transport), [`CheckMateTools`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/mcp/CheckMateTools.java)
+  (what each tool does, on `CheckService`, tested without the protocol).
 
 ## 3. Background: what the portal delivers
 
@@ -303,7 +359,8 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [x] Headless CLI: `runLoinCheck`.
 - [x] Window size: the GUI opens at 1280x900 (STATUS #5). Many element tabs no longer squeeze the LOIN list.
 - [ ] GUI cleanup: "BIM Portal" button (STATUS #4), chat placeholder (STATUS #3), the leftover class filter. The class filter's tabs still read IFC2X3 only and through the unreliable inverse relations (`ElementUI.createObjectTab`).
-- [ ] MCP server (later).
+- [x] MCP server for AI apps: stdio, seven tools on `CheckService`, `installMcp` (section 2.7).
+- [ ] Try the MCP server with an AI app: Claude Desktop or Code, and Ollama through an MCP host (STATUS #16).
 - [x] Tests for the `ids` package ([`src/test/java/com/bimportal/hackathon/ids/`](../bim-portal/Java_client/hackathon-template/src/test/java/com/bimportal/hackathon/ids)), with real IDS files from the portal as test files ([`src/test/resources/ids/portal/`](../bim-portal/Java_client/hackathon-template/src/test/resources/ids/portal/README.md)).
 - [x] Tests for reading IFC ([`src/test/java/test/fx/`](../bim-portal/Java_client/hackathon-template/src/test/java/test/fx)): small case files of our own per schema ([`make_ifc_fixtures.py`](../bim-portal/Java_client/hackathon-template/src/test/python/make_ifc_fixtures.py)), the bundled model, and sample models that `gradlew :hackathon-template:downloadTestModels` fetches into the ignored `test-models/` (about 5 MB, list in [`samples.properties`](../bim-portal/Java_client/hackathon-template/src/test/resources/ifc/samples.properties)).
 - [x] Missing prerequisites are reported, not failed: without the Apstex JARs the IFC tests are not built, without the sample models they are skipped, and `PrerequisitesTest` says in each case what to add and where.
@@ -335,6 +392,10 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - 2026-11-22, start script and IFC library: no start script until CheckMate runs in scripts or
   pipelines. Apstex stays the IFC library for now; switching to IfcOpenShell is an open decision
   (STATUS #15).
+- 2026-11-22, MCP server: the official MCP Java SDK (`mcp-core` and `mcp-json-jackson2` 2.1.0;
+  2.2.0 depends on a release candidate of Reactor), over stdio, without Spring. The tools answer
+  with the text report, not JSON: the AI reads it and answers in its own words. The server has its
+  own start script, since it can't run through Gradle.
 - 2026-11-21, exit codes: 3 when a specification is not met, 4 when nothing is violated but not
   everything is confirmed. "Nicht prüfbar" is never 0, in line with the rule that it is never
   reported as passed. Read errors (1) take precedence, since the report is then incomplete.
