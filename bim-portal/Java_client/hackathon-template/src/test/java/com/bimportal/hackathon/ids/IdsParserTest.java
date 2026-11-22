@@ -79,8 +79,7 @@ class IdsParserTest {
             + propertyFacet("Ausdruecklich", "required")
             + "</requirements></specification></specifications></ids>";
 
-    IdsSpecification specification =
-        IdsParser.parse(ids.getBytes(StandardCharsets.UTF_8)).get(0);
+    IdsSpecification specification = IdsParser.parse(ids.getBytes(StandardCharsets.UTF_8)).get(0);
 
     assertThat(specification.requirements())
         .extracting(r -> r.key().baseName(), PropertyRequirement::cardinality)

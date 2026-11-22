@@ -54,7 +54,10 @@ public record CatalogueEntry(
   private static List<String> clean(List<String> values) {
     return values == null
         ? List.of()
-        : values.stream().filter(Objects::nonNull).map(String::trim).filter(v -> !v.isEmpty())
+        : values.stream()
+            .filter(Objects::nonNull)
+            .map(String::trim)
+            .filter(v -> !v.isEmpty())
             .toList();
   }
 }

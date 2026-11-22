@@ -9,8 +9,8 @@ import java.util.List;
  * <p>Whatever the requirements come from - a LOIN in the portal, a local IDS file - they end up as
  * one of these, so the check does not care about the source.
  *
- * @param title the IDS {@code <info><title>}; in a LOIN's IDS file from the portal the LOIN's
- *     name. Null when the file has none.
+ * @param title the IDS {@code <info><title>}; in a LOIN's IDS file from the portal the LOIN's name.
+ *     Null when the file has none.
  * @param version the IDS {@code <info><version>}; in a LOIN's IDS file from the portal the LOIN's
  *     version. Null when the file has none.
  * @param source where it came from, for reports: e.g. {@code BIM Portal, LOIN be959b9d-...} or the
@@ -32,8 +32,8 @@ public record IdsDocument(
   }
 
   /**
-   * Label and source, for a report header: {@code Ueberbau > Kappe (Ingenieurbau): LPH 8-9,
-   * Version 4.1 (BIM Portal, LOIN be959b9d-...)}.
+   * Label and source, for a report header: {@code Ueberbau > Kappe (Ingenieurbau): LPH 8-9, Version
+   * 4.1 (BIM Portal, LOIN be959b9d-...)}.
    */
   public String describe() {
     return label().equals(source) ? source : label() + " (" + source + ")";
@@ -42,8 +42,8 @@ public record IdsDocument(
   /**
    * The specifications written for a model's schema, in file order.
    *
-   * <p>A LOIN's IDS file from the portal holds one per schema. Other IDS files may hold several
-   * for the same schema, and IDS checks each of them, so this is a list and not a pick.
+   * <p>A LOIN's IDS file from the portal holds one per schema. Other IDS files may hold several for
+   * the same schema, and IDS checks each of them, so this is a list and not a pick.
    */
   public List<IdsSpecification> forSchema(String schema) {
     return specifications.stream().filter(specification -> specification.covers(schema)).toList();
@@ -53,8 +53,8 @@ public record IdsDocument(
    * Check a model against every specification written for its schema.
    *
    * @return one result per specification, in file order
-   * @throws RequirementsException when the document holds no specification, or none for the
-   *     model's schema; both would otherwise surface as an empty report that reads like a pass
+   * @throws RequirementsException when the document holds no specification, or none for the model's
+   *     schema; both would otherwise surface as an empty report that reads like a pass
    */
   public List<CheckResult> check(String schema, Collection<ModelElement> model) {
     if (specifications.isEmpty()) {

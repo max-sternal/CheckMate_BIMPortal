@@ -649,9 +649,7 @@ public class ElementUI extends VBox {
         });
   }
 
-  /**
-   * Check the model against every selected entry; show the report and the elements it is about.
-   */
+  /** Check the model against every selected entry; show the report and the elements it is about. */
   private void validateSelected() {
     List<RequirementSource> selected = List.copyOf(loinView.getSelectionModel().getSelectedItems());
     if (selected.isEmpty()) {
@@ -858,7 +856,10 @@ public class ElementUI extends VBox {
         for (NearMiss nearMiss : result.diagnosis().nearMisses()) {
           List<String> lines = byElement.of(nearMiss.elementId(), result);
           lines.add(
-              "[Wert passt bei " + nearMiss.matchedFacets() + " von " + nearMiss.totalFacets()
+              "[Wert passt bei "
+                  + nearMiss.matchedFacets()
+                  + " von "
+                  + nearMiss.totalFacets()
                   + " Facetten] nicht ausgewählt");
           nearMiss.divergences().forEach(divergence -> lines.add("[Abweichung] " + divergence));
         }
@@ -982,8 +983,8 @@ public class ElementUI extends VBox {
   /**
    * A tab title short enough to read.
    *
-   * <p>Authoring tools repeat the family name and append an id, so only the first segment of
-   * {@code Kappe_Mitte_Fluegel:Kappe_Mitte_Fluegel:701260} carries information.
+   * <p>Authoring tools repeat the family name and append an id, so only the first segment of {@code
+   * Kappe_Mitte_Fluegel:Kappe_Mitte_Fluegel:701260} carries information.
    */
   private static String tabTitle(ModelElement element, String elementId) {
     if (element == null) {
@@ -997,8 +998,8 @@ public class ElementUI extends VBox {
   /**
    * Run work off the FX thread and hand the result back on it.
    *
-   * <p>The LOIN search and the check talk to the portal, and loading a model may download one;
-   * each would otherwise freeze the window for as long as it takes.
+   * <p>The LOIN search and the check talk to the portal, and loading a model may download one; each
+   * would otherwise freeze the window for as long as it takes.
    */
   private <T> void inBackground(Callable<T> work, Consumer<T> onSuccess) {
     Task<T> task =
@@ -1047,9 +1048,7 @@ public class ElementUI extends VBox {
 
     Map<String, List<ModelProperty>> bySet = new LinkedHashMap<>();
     for (ModelProperty property : element.properties()) {
-      bySet
-          .computeIfAbsent(property.key().propertySet(), key -> new ArrayList<>())
-          .add(property);
+      bySet.computeIfAbsent(property.key().propertySet(), key -> new ArrayList<>()).add(property);
     }
     if (!bySet.isEmpty()) {
       lines.add("");

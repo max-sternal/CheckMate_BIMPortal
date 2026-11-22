@@ -32,8 +32,8 @@ import java.util.stream.Collectors;
  * <p>The rules follow IDS 1.0, with ifctester (IfcOpenShell's implementation) as the reference for
  * where the standard leaves room: data types are compared strictly, {@code prohibited} turns a
  * property facet around, {@code predefinedType} is read the way IFC defines it, values are compared
- * by their data type (see {@link Values}), and in IFC2X3 an element also has the entity of its
- * type object.
+ * by their data type (see {@link Values}), and in IFC2X3 an element also has the entity of its type
+ * object.
  */
 public final class IdsValidator {
 
@@ -88,8 +88,8 @@ public final class IdsValidator {
   }
 
   /**
-   * How strictly the applicability is read. The verdict is always strict; the lenient readings
-   * only find the elements the hints name.
+   * How strictly the applicability is read. The verdict is always strict; the lenient readings only
+   * find the elements the hints name.
    */
   private enum Leniency {
     STRICT,
@@ -149,10 +149,7 @@ public final class IdsValidator {
    * @param viaType IFC2X3: the type object's entity counts too
    */
   private static boolean applies(
-      IdsSpecification specification,
-      ModelElement element,
-      Leniency leniency,
-      boolean viaType) {
+      IdsSpecification specification, ModelElement element, Leniency leniency, boolean viaType) {
     EntityRequirement entity = specification.applicableEntity();
     if (entity != null && !entityMatches(entity, element, viaType)) {
       return false;
@@ -303,7 +300,10 @@ public final class IdsValidator {
             otherSpelling++;
             if (otherSpellingNote == null) {
               otherSpellingNote =
-                  "'" + similar.get().property().key() + "' (" + similar.get().spelling().label()
+                  "'"
+                      + similar.get().property().key()
+                      + "' ("
+                      + similar.get().spelling().label()
                       + ")";
             }
           }
@@ -328,9 +328,7 @@ public final class IdsValidator {
               addressFound,
               valueButNotType,
               String.join(", ", typeDifferences),
-              otherSpelling == 0
-                  ? ""
-                  : otherSpelling + " Element(e) mit " + otherSpellingNote));
+              otherSpelling == 0 ? "" : otherSpelling + " Element(e) mit " + otherSpellingNote));
     }
 
     return new Diagnosis(facets, nearMisses(specification, model));
@@ -411,8 +409,7 @@ public final class IdsValidator {
   }
 
   /** One line per facet that kept an element out: a missing merkmal, its value or its type. */
-  private static List<String> divergences(
-      List<PropertyRequirement> facets, ModelElement element) {
+  private static List<String> divergences(List<PropertyRequirement> facets, ModelElement element) {
 
     List<String> divergences = new ArrayList<>();
     for (PropertyRequirement facet : facets) {
@@ -433,12 +430,15 @@ public final class IdsValidator {
       List<String> differences = new ArrayList<>();
       if (!valueMatches(facet, property)) {
         differences.add(
-            "'" + property.value() + "' statt '" + facet.expectedValue() + "'"
+            "'"
+                + property.value()
+                + "' statt '"
+                + facet.expectedValue()
+                + "'"
                 + caseNote(facet, property));
       }
       if (!typeMatches(facet, property)) {
-        differences.add(
-            "Datentyp " + DataTypes.difference(facet.dataType(), property.dataType()));
+        differences.add("Datentyp " + DataTypes.difference(facet.dataType(), property.dataType()));
       }
       if (!differences.isEmpty()) {
         divergences.add(
@@ -556,8 +556,7 @@ public final class IdsValidator {
           PropertyAliases.candidates(requirement.key()).stream()
               .map(PropertyKey::toString)
               .collect(Collectors.joining(", "));
-      String similar =
-          element.findSimilar(requirement.key()).map(s -> " - " + s.note()).orElse("");
+      String similar = element.findSimilar(requirement.key()).map(s -> " - " + s.note()).orElse("");
       return Optional.of(
           finding(
               element, requirement, Status.MISSING, "nicht gefunden unter " + searched + similar));
@@ -610,8 +609,7 @@ public final class IdsValidator {
       ModelElement element, PropertyRequirement requirement, Optional<ModelProperty> found) {
 
     if (found.isEmpty()) {
-      String similar =
-          element.findSimilar(requirement.key()).map(s -> " - " + s.note()).orElse("");
+      String similar = element.findSimilar(requirement.key()).map(s -> " - " + s.note()).orElse("");
       return finding(
           element, requirement, Status.FULFILLED, "nicht vorhanden, wie gefordert" + similar);
     }
@@ -645,5 +643,4 @@ public final class IdsValidator {
       ModelElement element, PropertyRequirement requirement, Status status, String detail) {
     return new Finding(element.id(), element.label(), requirement.describe(), status, detail);
   }
-
 }

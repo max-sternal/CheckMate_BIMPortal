@@ -82,10 +82,10 @@ project. Use host style variables (`--color-*`, `--font-sans`) with fallbacks.
 ## 8. Steps
 
 - [x] SDK 2.1.0 to 2.2.0 (this branch).
-- [ ] Jackson pin 2.15.2 to 2.22 and run all tests.
-- [ ] Capability `extensions` + client capability check.
-- [ ] `structuredContent` on all seven tools.
-- [ ] `ui://checkmate/report` view and resource, tests.
+- [x] Jackson 2.15.2 to 2.22.4, all tests green.
+- [x] Capability `extensions` declared. (No per-client check: hosts without the extension ignore `_meta.ui` and use the text.)
+- [x] `structuredContent` on `check_model`; [ ] on the other tools, with their views.
+- [x] `ui://checkmate/report` view and resource, protocol tests (`CheckMateMcpServerTest`). Not yet seen in a real host.
 - [ ] `ui://checkmate/loins` view, app-only tools.
 - [ ] `ui://checkmate/model` view.
 - [ ] Antigravity plugin task and Claude Desktop test (Windows).

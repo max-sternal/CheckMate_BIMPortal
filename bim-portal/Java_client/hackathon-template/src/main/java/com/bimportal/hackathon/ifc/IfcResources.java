@@ -244,10 +244,7 @@ public final class IfcResources {
 
   private static ModelLoadException tooLargeUncompressed(String source) {
     return new ModelLoadException(
-        source
-            + " ist entpackt größer als "
-            + (MAX_UNCOMPRESSED_BYTES / (1024 * 1024))
-            + " MB.");
+        source + " ist entpackt größer als " + (MAX_UNCOMPRESSED_BYTES / (1024 * 1024)) + " MB.");
   }
 
   private static void deleteQuietly(Path file) {

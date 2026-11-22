@@ -119,9 +119,7 @@ class CheckReportTest {
     CheckReport checked = report(List.of(GOOD_SLAB, BARE_SLAB));
     CheckReport report =
         new CheckReport(
-            NOON,
-            MODEL,
-            List.of(checked.runs().get(0), Run.failed("fehlt.ids", "nicht gefunden")));
+            NOON, MODEL, List.of(checked.runs().get(0), Run.failed("fehlt.ids", "nicht gefunden")));
 
     JsonNode json = new ObjectMapper().readTree(ReportJson.write(report));
 

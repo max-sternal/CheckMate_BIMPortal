@@ -22,8 +22,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * Reading IDS files that other tools wrote: several schemas per specification, other ways to give
- * a value, and parts CheckMate does not evaluate - which are listed, never dropped silently.
+ * Reading IDS files that other tools wrote: several schemas per specification, other ways to give a
+ * value, and parts CheckMate does not evaluate - which are listed, never dropped silently.
  */
 class LocalIdsTest {
 

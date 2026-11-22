@@ -9,9 +9,9 @@ import java.util.List;
 /**
  * Test files and model elements for the {@code ids} tests.
  *
- * <p>The IDS files are real downloads from the BIM Portal, see
- * {@code src/test/resources/ids/portal/README.md}. Model elements are built by hand, so the check
- * is tested without loading an IFC file.
+ * <p>The IDS files are real downloads from the BIM Portal, see {@code
+ * src/test/resources/ids/portal/README.md}. Model elements are built by hand, so the check is
+ * tested without loading an IFC file.
  */
 final class IdsFixtures {
 

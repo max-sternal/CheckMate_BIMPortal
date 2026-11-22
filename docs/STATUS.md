@@ -35,14 +35,15 @@ What is being worked on and what is still open. One line per item. Reference cod
 
 ### Open decisions
 
-14. **TODO, to be decided: the hard-coded property name mapping.** `PropertyAliases` (`hackathon-template/src/main/java/com/bimportal/hackathon/ids/PropertyAliases.java`) maps the portal's `Klassifizierung/Objektgruppe|Objektklasse|Objekttyp` to `Pset_Objektinformation/_IDEbene1..3`. That is the convention of the BIM.Hamburg bridge models bundled with the project, written into the code for them. It is not a rule: no spelling rule can tell that these names mean the same, other models with other conventions get no mapping, and IDS knows no aliases (ifctester reports these properties as missing). The report states every use of an alias ("als Pset_Objektinformation/_IDEbene3"). To decide: whether mappings stay at all, and if so how they are supplied - e.g. a mapping file per project or convention, passed with the model - instead of code.
+14. Done on `0.3.2` (2026-11-22): **the property name mapping is data, not code.** `PropertyMapping` reads a JSON file (`{"name": ..., "aliases": [{"from": "Klassifizierung/Objekttyp", "to": ["Pset_Objektinformation/_IDEbene3"]}]}`); the BIM.Hamburg convention is the bundled default (`src/main/resources/mapping/bim-hamburg.json`). Another file comes with `-Dcheckmate.mapping=<file>` or `CHECKMATE_MAPPING`, `--mapping <file|none|default>` on the CLI, or the MCP tool `load_mapping`. `none` checks exactly as ifctester does. Still open: a GUI control for it, and a mapping file per project next to the model.
 
 15. Done on `0.3.2` (2026-11-22): **the IFC library.** Replaced the proprietary Apstex IFC Toolbox with a pure-Java, schema-driven STEP reader in `com.bimportal.hackathon.ifc` (`StepParser`, `IfcSchema`, `IfcModelElements`, `IfcResources`, `LoadedModel`), verified 1:1 against `IfcOpenShell 0.9` (0 diffs across 702 elements / 12,695 properties). No proprietary JARs or Python runtime needed.
 
 ### MCP server
 
 16. Claude Desktop and Claude Code (Windows) start the server and list its tools (2026-11-22); Claude Desktop only with `JAVA_HOME` in the config's `env` (WORKFLOW 2.7). Not yet tried with Ollama through an MCP host such as `ollmcp`.
-17. The MCP SDK is built for Jackson 2.21; the project pins Jackson to 2.15.2 (`build.gradle.kts`), so Gradle hands the SDK 2.15.2. Every message CheckMate uses works and is tested; if an AI app's message ever fails to parse, raise Jackson first.
+17. Done on `0.3.2` (2026-11-22): MCP Java SDK 2.2.0 and Jackson 2.22.4 (both `hackathon-template` and `openapi-generated`). The server uses the legacy (2025-11-25) server over stdio; the modern 2026-07-28 server is planned as a second entry point (docs/MCP-APPS-PLAN.md).
+18. MCP Apps (docs/MCP-APPS-PLAN.md): done on `0.3.2` are the `io.modelcontextprotocol/ui` capability, `check_model` with `structuredContent` and the view `ui://checkmate/report`. Open: views for `find_loins` and `describe_model`, app-only tools, a test in Claude Desktop and the Antigravity App (the view is only tested at the protocol level), and the port to `0.4`.
 
 ### Code structure
 

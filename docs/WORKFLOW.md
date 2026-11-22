@@ -206,6 +206,8 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
   | `find_loins` | AIA projects and LOINs from the catalogue, those fitting the model first, with IDs | `search`, `discipline`, `phase`, `purpose`, `limit`, `include_unfitting` |
   | `describe_requirements` | what a LOIN or AIA project selects and requires, how many elements it would apply to | `id` |
   | `check_model` | the report as the CLI prints it, `examples` unmet requirements per specification (default 3, 0 for the full report) | `ids`, `ids_files`, `examples` |
+  | `load_mapping` | show or switch the JSON property mapping (`none`, `default`, a file) | `source` |
+  | `server_status` | model, mapping and verdict of the last check | - |
   | `element_report` | what the last check said about an element, and its properties | `element` (GlobalId or part of the name) |
 
 - One session per server process: the model in use (until `load_model`, the one `CHECKMATE_IFC`

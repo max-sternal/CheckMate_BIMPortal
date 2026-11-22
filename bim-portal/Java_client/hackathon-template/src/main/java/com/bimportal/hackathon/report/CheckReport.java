@@ -46,8 +46,7 @@ public record CheckReport(OffsetDateTime checkedAt, ModelInfo model, List<Run> r
    *
    * @param name what it is called, for reports: its label once read, or what was asked for
    * @param requirements null when it could not be read
-   * @param results one per specification for the model's schema; empty when it could not be
-   *     checked
+   * @param results one per specification for the model's schema; empty when it could not be checked
    * @param error why it could not be read or checked; null when it was
    */
   public record Run(
@@ -113,7 +112,6 @@ public record CheckReport(OffsetDateTime checkedAt, ModelInfo model, List<Run> r
   /** The first lines of every report: when, and against what. */
   public List<String> header() {
     return List.of(
-        "CheckMate-Prüfung vom " + checkedAt.format(HEADER_TIME),
-        "Modell: " + model.summary());
+        "CheckMate-Prüfung vom " + checkedAt.format(HEADER_TIME), "Modell: " + model.summary());
   }
 }

@@ -16,14 +16,14 @@ import java.util.zip.ZipInputStream;
  * IDS files in a ZIP archive, read as one document: the ZIP the BIM Portal provides for an AIA
  * project, or any ZIP of IDS files.
  *
- * <p>The portal's project ZIP holds {@code IDS/AIA_<project>_<guid>_<version>.ids}, one file
- * with every LOIN of the project, and for some projects also {@code IDS/LOIN_<name>_<guid>_...ids},
- * one per LOIN. They overlap, but not completely: in the road projects the combined file holds the
- * IFC4 specifications only, while each LOIN's own file holds IFC2X3, IFC4 and IFC4X3_ADD2 (measured
+ * <p>The portal's project ZIP holds {@code IDS/AIA_<project>_<guid>_<version>.ids}, one file with
+ * every LOIN of the project, and for some projects also {@code IDS/LOIN_<name>_<guid>_...ids}, one
+ * per LOIN. They overlap, but not completely: in the road projects the combined file holds the IFC4
+ * specifications only, while each LOIN's own file holds IFC2X3, IFC4 and IFC4X3_ADD2 (measured
  * 2026-11-21). So all files are read, the combined one first, and a specification is skipped when
  * one for the same LOIN and schema was already taken. LOINs are told apart by the GUID in the
- * specification's identifier, not by name: one project holds two different LOINs both named
- * "Träger - Unterzug - Oberzug".
+ * specification's identifier, not by name: one project holds two different LOINs both named "Träger
+ * - Unterzug - Oberzug".
  */
 final class IdsArchive {
 
@@ -55,8 +55,8 @@ final class IdsArchive {
   /**
    * Read every {@code .ids} file in an archive into one document.
    *
-   * <p>The title and version are the combined file's, or the only file's; with several files and
-   * no combined one there is none, and the document goes by its source.
+   * <p>The title and version are the combined file's, or the only file's; with several files and no
+   * combined one there is none, and the document goes by its source.
    *
    * @throws RequirementsException when the archive cannot be read, holds no IDS file, or one of
    *     them is not IDS
@@ -107,8 +107,8 @@ final class IdsArchive {
   }
 
   /**
-   * The specifications of all documents in order, each LOIN and schema once. Specifications
-   * without a LOIN GUID in their identifier are all kept: there is nothing to tell repeats by.
+   * The specifications of all documents in order, each LOIN and schema once. Specifications without
+   * a LOIN GUID in their identifier are all kept: there is nothing to tell repeats by.
    */
   private static List<IdsSpecification> withoutRepeats(List<IdsDocument> documents) {
     List<IdsSpecification> specifications = new ArrayList<>();

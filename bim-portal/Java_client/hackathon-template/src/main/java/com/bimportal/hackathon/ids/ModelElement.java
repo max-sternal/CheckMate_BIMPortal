@@ -17,10 +17,9 @@ import java.util.Optional;
  *     unknown.
  * @param userDefinedType whether that PredefinedType is user-defined, which an IDS facet asking for
  *     USERDEFINED checks
- * @param properties every single, enumerated and list property found on the element and on its
- *     type
- * @param typeEntityName the IFC entity of the element's type object, e.g. {@code IfcBeamType};
- *     null when it has none. In IFC2X3 an entity facet also accepts an element through it.
+ * @param properties every single, enumerated and list property found on the element and on its type
+ * @param typeEntityName the IFC entity of the element's type object, e.g. {@code IfcBeamType}; null
+ *     when it has none. In IFC2X3 an entity facet also accepts an element through it.
  */
 public record ModelElement(
     String id,

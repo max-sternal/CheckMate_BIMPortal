@@ -22,8 +22,7 @@ class LoinCheckCliTest {
   @Test
   void joinsTheWordsOfTheSearchTerm() {
     // Gradle splits --args="Ueberbau > Schaft" into three arguments.
-    assertThat(Arguments.parse("Ueberbau", ">", "Schaft").search())
-        .isEqualTo("Ueberbau > Schaft");
+    assertThat(Arguments.parse("Ueberbau", ">", "Schaft").search()).isEqualTo("Ueberbau > Schaft");
   }
 
   @Test

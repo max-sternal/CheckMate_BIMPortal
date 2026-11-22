@@ -18,8 +18,8 @@ import java.util.List;
  *
  * <p>The requirements part comes from the LOIN's IDS file, not from the portal's LOIN detail: the
  * generated client loses the detail's IFC classes and property names (they arrive as {@code null}),
- * while the IDS file holds exactly what the check will use. It is one small download per LOIN,
- * kept for the check.
+ * while the IDS file holds exactly what the check will use. It is one small download per LOIN, kept
+ * for the check.
  */
 public final class LoinDescription {
 

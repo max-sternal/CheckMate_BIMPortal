@@ -20,12 +20,12 @@ import org.slf4j.LoggerFactory;
  * Requirements from the BIM Portal: LOINs and AIA projects, found by ID or by name.
  *
  * <p>The portal is the source of the "Soll": rather than reassembling requirements from the
- * property and property-group endpoints, this asks for them as IDS - the buildingSMART format
- * meant for exactly this. That keeps the semantics the portal's rather than ours, and leaves the
- * door open to running the same file through an external IDS validator. A LOIN comes as one IDS
- * file, an AIA project as a ZIP of them (see {@link IdsArchive}). Nothing is written to the
- * portal: the client calls these downloads "exports" ({@code exportLoinIds}, {@code
- * exportProjectIds}) because that is the portal's name for them.
+ * property and property-group endpoints, this asks for them as IDS - the buildingSMART format meant
+ * for exactly this. That keeps the semantics the portal's rather than ours, and leaves the door
+ * open to running the same file through an external IDS validator. A LOIN comes as one IDS file, an
+ * AIA project as a ZIP of them (see {@link IdsArchive}). Nothing is written to the portal: the
+ * client calls these downloads "exports" ({@code exportLoinIds}, {@code exportProjectIds}) because
+ * that is the portal's name for them.
  *
  * <p>The portal keeps two IDs for each LOIN and each project: the {@code guid}, which stays the
  * same across versions and is what the downloads ask for, and the {@code id} of each version's
@@ -133,9 +133,7 @@ public final class PortalRequirements {
    */
   public static IdsDocument loin(EnhancedBimPortalClient client, UUID guid, String name) {
     byte[] ids =
-        client
-            .exportLoinIds(guid)
-            .orElseThrow(() -> noIdsFile("die LOIN '" + name + "'", guid));
+        client.exportLoinIds(guid).orElseThrow(() -> noIdsFile("die LOIN '" + name + "'", guid));
     return IdsParser.read(ids, loinSource(guid));
   }
 

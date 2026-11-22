@@ -35,8 +35,8 @@ dependencies {
     implementation("com.google.guava:guava:32.1.2-jre")
 
     // JSON
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.4")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.4")
 
     // MCP server (com.bimportal.hackathon.mcp): the official MCP Java SDK, with its Jackson 2
     // binding. 2.1.0 rather than 2.2.0, which depends on a Reactor release candidate.
