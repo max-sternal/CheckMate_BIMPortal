@@ -182,13 +182,13 @@ class LocalIdsTest {
   }
 
   @Test
-  void keepsAnOptionalPropertyWhoseValueIsARange() {
+  void keepsAnOptionalPropertyWhoseValueIsAnUnsupportedRestriction() {
     IdsSpecification specification =
         requirementsOnly(
             "<property cardinality=\"optional\" dataType=\"IFCREAL\">"
                 + "<propertySet><simpleValue>Pset_Test</simpleValue></propertySet>"
                 + "<baseName><simpleValue>Breite</simpleValue></baseName>"
-                + "<value><xs:restriction base=\"xs:double\"><xs:minInclusive value=\"1\"/>"
+                + "<value><xs:restriction base=\"xs:decimal\"><xs:totalDigits value=\"4\"/>"
                 + "</xs:restriction></value></property>");
 
     assertThat(specification.requirements())
@@ -196,7 +196,7 @@ class LocalIdsTest {
         .containsExactly(tuple(Cardinality.OPTIONAL, false));
     assertThat(specification.unsupported().requirements())
         .containsExactly(
-            "Merkmal Pset_Test/Breite: Wertvorgabe als Einschränkung mit xs:minInclusive"
+            "Merkmal Pset_Test/Breite: Wertvorgabe als Einschränkung mit xs:totalDigits"
                 + " - geprüft wird nur, ob es vorhanden ist");
   }
 

@@ -4,10 +4,12 @@ import com.bimportal.hackathon.ids.IdsSpecification.Cardinality;
 import com.bimportal.hackathon.ids.IdsSpecification.EntityRequirement;
 import com.bimportal.hackathon.ids.IdsSpecification.PropertyRequirement;
 import com.bimportal.hackathon.ids.IdsSpecification.Unsupported;
+import com.bimportal.hackathon.ids.ValueConstraint.CompiledPattern;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -32,12 +34,13 @@ import org.xml.sax.SAXException;
  * Reads buildingSMART IDS 1.0 files: the ones downloaded from the BIM Portal, and local ones.
  *
  * <p>What is evaluated: {@code entity} facets with name and {@code predefinedType}, and {@code
- * property} facets with property set, name, data type, a fixed value and {@code cardinality}. Names
- * and PredefinedTypes may be given as {@code <simpleValue>} or as an {@code xs:restriction} holding
- * {@code xs:pattern} or {@code xs:enumeration}. That is everything the portal writes.
+ * property} facets with property set, name, data type, a fixed value or XSD value restriction
+ * ({@code pattern}, numeric bounds, string lengths), and {@code cardinality}. Names and
+ * PredefinedTypes may be given as {@code <simpleValue>} or as an {@code xs:restriction} holding
+ * {@code xs:pattern} or {@code xs:enumeration}.
  *
- * <p>Everything else - attribute, classification, material and partOf facets, value restrictions on
- * properties, patterns in property names - is not dropped but listed in {@link
+ * <p>Everything else - attribute, classification, material and partOf facets, unsupported
+ * restriction facets, patterns in property names - is not dropped but listed in {@link
  * IdsSpecification#unsupported()}, because dropping a facet changes the verdict.
  */
 public final class IdsParser {
@@ -252,22 +255,195 @@ public final class IdsParser {
     Cardinality cardinality = Cardinality.of(property.getAttribute("cardinality"));
     String dataType = emptyToNull(property.getAttribute("dataType"));
 
-    FacetValue value = readValue(child(property, "value"), 0);
-    if (!value.absent() && !value.simple()) {
-      String what =
-          value.readable()
-              ? "Wertvorgabe als Muster oder Auswahl (" + value.source() + ")"
-              : "Wertvorgabe " + value.problem();
+    PropertyValue parsedValue = readPropertyValue(child(property, "value"));
+    if (parsedValue.problem() != null) {
       if (cardinality == Cardinality.PROHIBITED) {
         // Without its value a prohibited property would forbid every value: dropped whole.
-        unsupported.add("Merkmal " + key + ": " + what + " - nicht geprüft");
+        unsupported.add("Merkmal " + key + ": " + parsedValue.problem() + " - nicht geprüft");
         return Optional.empty();
       }
-      unsupported.add("Merkmal " + key + ": " + what + " - geprüft wird nur, ob es vorhanden ist");
-      return Optional.of(new PropertyRequirement(key, dataType, null, cardinality));
+      unsupported.add(
+          "Merkmal " + key + ": " + parsedValue.problem() + " - geprüft wird nur, ob es vorhanden ist");
+      return Optional.of(new PropertyRequirement(key, dataType, null, null, cardinality));
     }
-    String expectedValue = value.absent() ? null : value.source();
-    return Optional.of(new PropertyRequirement(key, dataType, expectedValue, cardinality));
+    return Optional.of(
+        new PropertyRequirement(
+            key, dataType, parsedValue.expectedValue(), parsedValue.constraint(), cardinality));
+  }
+
+  /** Parsed {@code <value>} of a {@code <property>} facet: fixed value, constraint, or problem. */
+  private record PropertyValue(
+      String expectedValue, ValueConstraint constraint, String problem) {
+
+    static final PropertyValue ABSENT = new PropertyValue(null, null, null);
+
+    static PropertyValue simple(String value) {
+      return new PropertyValue(value, null, null);
+    }
+
+    static PropertyValue constrained(ValueConstraint constraint) {
+      return new PropertyValue(null, constraint, null);
+    }
+
+    static PropertyValue unsupported(String problem) {
+      return new PropertyValue(null, null, problem);
+    }
+  }
+
+  /**
+   * Read a {@code <property>} facet's {@code <value>}: either {@code <simpleValue>} or an {@code
+   * xs:restriction} holding {@code pattern}, numeric bounds, or string lengths.
+   */
+  private static PropertyValue readPropertyValue(Element valueElement) {
+    if (valueElement == null) {
+      return PropertyValue.ABSENT;
+    }
+    String simple = text(child(valueElement, "simpleValue"));
+    if (simple != null && !simple.isBlank()) {
+      return PropertyValue.simple(simple.trim());
+    }
+
+    List<Element> restrictions = childrenNs(valueElement, XSD_NS, "restriction");
+    if (restrictions.isEmpty()) {
+      return PropertyValue.unsupported("Wertvorgabe ohne Wert");
+    }
+
+    List<CompiledPattern> patterns = new ArrayList<>();
+    BigDecimal minInclusive = null;
+    BigDecimal maxInclusive = null;
+    BigDecimal minExclusive = null;
+    BigDecimal maxExclusive = null;
+    Integer length = null;
+    Integer minLength = null;
+    Integer maxLength = null;
+    List<String> enumeration = new ArrayList<>();
+    Set<String> others = new LinkedHashSet<>();
+
+    for (Element facet : childrenNs(restrictions.get(0), XSD_NS, null)) {
+      String raw = facet.getAttribute("value");
+      switch (facet.getLocalName()) {
+        case "pattern" -> {
+          if (!facet.hasAttribute("value")) {
+            return PropertyValue.unsupported("Wertvorgabe mit xs:pattern ohne value-Attribut");
+          }
+          try {
+            patterns.add(new CompiledPattern(raw, Pattern.compile(raw)));
+          } catch (PatternSyntaxException e) {
+            return PropertyValue.unsupported(
+                "Wertvorgabe mit einem Muster, das sich nicht lesen lässt (" + raw + ")");
+          }
+        }
+        case "minInclusive" -> {
+          BigDecimal parsed = parseDecimal(raw);
+          if (parsed == null) {
+            return PropertyValue.unsupported(
+                "Wertvorgabe mit ungültigem xs:minInclusive (" + raw + ")");
+          }
+          minInclusive = parsed;
+        }
+        case "maxInclusive" -> {
+          BigDecimal parsed = parseDecimal(raw);
+          if (parsed == null) {
+            return PropertyValue.unsupported(
+                "Wertvorgabe mit ungültigem xs:maxInclusive (" + raw + ")");
+          }
+          maxInclusive = parsed;
+        }
+        case "minExclusive" -> {
+          BigDecimal parsed = parseDecimal(raw);
+          if (parsed == null) {
+            return PropertyValue.unsupported(
+                "Wertvorgabe mit ungültigem xs:minExclusive (" + raw + ")");
+          }
+          minExclusive = parsed;
+        }
+        case "maxExclusive" -> {
+          BigDecimal parsed = parseDecimal(raw);
+          if (parsed == null) {
+            return PropertyValue.unsupported(
+                "Wertvorgabe mit ungültigem xs:maxExclusive (" + raw + ")");
+          }
+          maxExclusive = parsed;
+        }
+        case "length" -> {
+          Integer parsed = parseNonNegativeInt(raw);
+          if (parsed == null) {
+            return PropertyValue.unsupported("Wertvorgabe mit ungültigem xs:length (" + raw + ")");
+          }
+          length = parsed;
+        }
+        case "minLength" -> {
+          Integer parsed = parseNonNegativeInt(raw);
+          if (parsed == null) {
+            return PropertyValue.unsupported(
+                "Wertvorgabe mit ungültigem xs:minLength (" + raw + ")");
+          }
+          minLength = parsed;
+        }
+        case "maxLength" -> {
+          Integer parsed = parseNonNegativeInt(raw);
+          if (parsed == null) {
+            return PropertyValue.unsupported(
+                "Wertvorgabe mit ungültigem xs:maxLength (" + raw + ")");
+          }
+          maxLength = parsed;
+        }
+        case "enumeration" -> enumeration.add(raw);
+        default -> others.add("xs:" + facet.getLocalName());
+      }
+    }
+
+    ValueConstraint constraint =
+        new ValueConstraint(
+            patterns,
+            minInclusive,
+            maxInclusive,
+            minExclusive,
+            maxExclusive,
+            length,
+            minLength,
+            maxLength);
+
+    if (!enumeration.isEmpty() && constraint.isEmpty() && others.isEmpty()) {
+      return PropertyValue.unsupported(
+          "Wertvorgabe als Muster oder Auswahl (" + String.join("|", enumeration) + ")");
+    }
+    if (!others.isEmpty() || !enumeration.isEmpty()) {
+      Set<String> unsupportedFacets = new LinkedHashSet<>();
+      if (!enumeration.isEmpty()) {
+        unsupportedFacets.add("xs:enumeration");
+      }
+      unsupportedFacets.addAll(others);
+      return PropertyValue.unsupported(
+          "Wertvorgabe als Einschränkung mit " + String.join(", ", unsupportedFacets));
+    }
+    if (constraint.isEmpty()) {
+      return PropertyValue.unsupported("Wertvorgabe ohne Wert");
+    }
+    return PropertyValue.constrained(constraint);
+  }
+
+  private static BigDecimal parseDecimal(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    try {
+      return new BigDecimal(value.trim());
+    } catch (NumberFormatException e) {
+      return null;
+    }
+  }
+
+  private static Integer parseNonNegativeInt(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    try {
+      int parsed = Integer.parseInt(value.trim());
+      return parsed >= 0 ? parsed : null;
+    } catch (NumberFormatException e) {
+      return null;
+    }
   }
 
   /**

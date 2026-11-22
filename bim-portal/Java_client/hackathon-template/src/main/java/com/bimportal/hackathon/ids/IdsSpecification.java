@@ -220,14 +220,31 @@ public record IdsSpecification(
    *
    * @param key which property is addressed
    * @param dataType the IFC type the value must have, e.g. {@code IFCLABEL}; null when unspecified
-   * @param expectedValue the value the property must carry; null when only presence is required
+   * @param expectedValue the fixed value the property must carry; null when absent or constrained
+   *     via {@code valueConstraint}
+   * @param valueConstraint XSD restriction facets ({@code pattern}, numeric bounds, length); null
+   *     when absent
    * @param cardinality required, optional or prohibited
    */
   public record PropertyRequirement(
-      PropertyKey key, String dataType, String expectedValue, Cardinality cardinality) {
+      PropertyKey key,
+      String dataType,
+      String expectedValue,
+      ValueConstraint valueConstraint,
+      Cardinality cardinality) {
+
+    /** A property requirement with a fixed expected value, or presence-only when null. */
+    public PropertyRequirement(
+        PropertyKey key, String dataType, String expectedValue, Cardinality cardinality) {
+      this(key, dataType, expectedValue, null, cardinality);
+    }
 
     public boolean hasExpectedValue() {
       return expectedValue != null && !expectedValue.isBlank();
+    }
+
+    public boolean hasValueConstraint() {
+      return valueConstraint != null && !valueConstraint.isEmpty();
     }
 
     public boolean hasDataType() {
@@ -235,11 +252,15 @@ public record IdsSpecification(
     }
 
     /**
-     * How this requirement reads in a report, e.g. {@code Klassifizierung/Objekttyp = 'Kappe'}.
-     * Optional and prohibited ones say so, because the reader cannot tell from the finding alone.
+     * How this requirement reads in a report, e.g. {@code Klassifizierung/Objekttyp = 'Kappe'} or
+     * {@code Pset_Test/Breite (>= 1)}. Optional and prohibited ones say so, because the reader
+     * cannot tell from the finding alone.
      */
     public String describe() {
-      String address = hasExpectedValue() ? key + " = '" + expectedValue + "'" : key.toString();
+      String address =
+          hasExpectedValue()
+              ? key + " = '" + expectedValue + "'"
+              : hasValueConstraint() ? key + " (" + valueConstraint.describe() + ")" : key.toString();
       return switch (cardinality) {
         case REQUIRED -> address;
         case OPTIONAL -> address + " (optional)";

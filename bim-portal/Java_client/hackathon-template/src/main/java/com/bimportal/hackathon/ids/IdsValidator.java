@@ -429,13 +429,17 @@ public final class IdsValidator {
       }
       List<String> differences = new ArrayList<>();
       if (!valueMatches(facet, property)) {
-        differences.add(
-            "'"
-                + property.value()
-                + "' statt '"
-                + facet.expectedValue()
-                + "'"
-                + caseNote(facet, property));
+        if (facet.hasValueConstraint()) {
+          differences.add("'" + property.value() + "' (" + constraintNote(facet, property) + ")");
+        } else {
+          differences.add(
+              "'"
+                  + property.value()
+                  + "' statt '"
+                  + facet.expectedValue()
+                  + "'"
+                  + caseNote(facet, property));
+        }
       }
       if (!typeMatches(facet, property)) {
         differences.add("Datentyp " + DataTypes.difference(facet.dataType(), property.dataType()));
@@ -456,9 +460,23 @@ public final class IdsValidator {
     if (!hasValue(property)) {
       return false;
     }
-    return !facet.hasExpectedValue()
-        || property.values().stream()
-            .anyMatch(value -> Values.same(facet.expectedValue(), value, property.dataType()));
+    if (facet.hasExpectedValue()) {
+      return property.values().stream()
+          .anyMatch(value -> Values.same(facet.expectedValue(), value, property.dataType()));
+    }
+    if (facet.hasValueConstraint()) {
+      return property.values().stream().anyMatch(facet.valueConstraint()::matches);
+    }
+    return true;
+  }
+
+  /** German explanation why a property's value failed its {@link ValueConstraint}. */
+  private static String constraintNote(PropertyRequirement facet, ModelProperty property) {
+    return property.values().stream()
+        .map(v -> facet.valueConstraint().violation(v))
+        .flatMap(Optional::stream)
+        .findFirst()
+        .orElse("entspricht nicht der Einschränkung (" + facet.valueConstraint().describe() + ")");
   }
 
   /**
@@ -573,12 +591,16 @@ public final class IdsValidator {
           finding(element, requirement, Status.MISSING, "vorhanden, aber ohne Wert" + alias));
     }
     if (!valueMatches(requirement, property)) {
-      return Optional.of(
-          finding(
-              element,
-              requirement,
-              Status.WRONG_VALUE,
-              "gefunden: '" + property.value() + "'" + caseNote(requirement, property) + alias));
+      String detail =
+          requirement.hasValueConstraint()
+              ? "gefunden: '"
+                  + property.value()
+                  + "' ("
+                  + constraintNote(requirement, property)
+                  + ")"
+                  + alias
+              : "gefunden: '" + property.value() + "'" + caseNote(requirement, property) + alias;
+      return Optional.of(finding(element, requirement, Status.WRONG_VALUE, detail));
     }
 
     if (!typeMatches(requirement, property)) {
