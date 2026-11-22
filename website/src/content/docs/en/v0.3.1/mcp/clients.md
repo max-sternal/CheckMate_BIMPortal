@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: Set up an MCP client
 description: Set up CheckMate as a local MCP server for compatible clients.
 slug: en/v0.3.1/mcp/clients

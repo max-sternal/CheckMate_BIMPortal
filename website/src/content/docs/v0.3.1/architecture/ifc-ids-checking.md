@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: IFC und IDS
 description: IFC-Einlesen, unterstützte IDS-Anforderungen und Grenzen der
   Prüfung in CheckMate 0.3.1.

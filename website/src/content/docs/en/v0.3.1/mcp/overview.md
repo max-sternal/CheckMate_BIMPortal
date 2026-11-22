@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: MCP interface
 description: The CheckMate MCP server and its tools in version 0.3.1.
 slug: en/v0.3.1/mcp/overview

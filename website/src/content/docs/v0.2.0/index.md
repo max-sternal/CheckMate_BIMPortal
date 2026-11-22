@@ -1,5 +1,6 @@
 ---
 title: CheckMate 0.2
+editUrl: https://github.com/max-sternal/CheckMate_BIMPortal/edit/0.3.2/website/src/content/docs/v0.2.0/index.md
 description: Erste Korrekturen und IDS-Prüfung nach dem Hackathon.
 slug: v0.2.0
 ---

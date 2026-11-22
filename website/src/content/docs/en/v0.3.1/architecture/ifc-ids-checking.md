@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: IFC and IDS
 description: IFC loading, supported IDS requirements and checking limitations in
   CheckMate 0.3.1.

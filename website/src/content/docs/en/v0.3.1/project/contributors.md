@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: Contributors & Transparency
 description: CheckMate's origin, responsibilities, support, licensing, and
   transparent use of AI tools.

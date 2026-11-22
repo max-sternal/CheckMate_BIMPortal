@@ -1,5 +1,6 @@
 ---
 title: CheckMate 0.1
+editUrl: https://github.com/max-sternal/CheckMate_BIMPortal/edit/0.3.2/website/src/content/docs/en/v0.1.0/index.md
 description: The CheckMate hackathon prototype.
 slug: en/v0.1.0
 ---

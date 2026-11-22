@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: MCP-Client einrichten
 description: CheckMate als lokalen MCP-Server für kompatible Clients einrichten.
 slug: v0.3.1/mcp/clients

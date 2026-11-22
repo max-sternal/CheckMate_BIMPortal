@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: Versionen & Branches
 description: Historische Projektstände und der dokumentierte Stand von CheckMate 0.3.1.
 slug: v0.3.1/guides/versions

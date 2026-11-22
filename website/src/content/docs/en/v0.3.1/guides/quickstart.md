@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: Quick start (0.3.1)
 description: Prerequisites, setup and execution of CheckMate.
 slug: en/v0.3.1/guides/quickstart

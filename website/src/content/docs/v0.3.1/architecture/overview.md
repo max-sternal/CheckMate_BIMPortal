@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: Systemarchitektur
 description: Komponenten und Schnittstellen von CheckMate 0.3.1.
 slug: v0.3.1/architecture/overview

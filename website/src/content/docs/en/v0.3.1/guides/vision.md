@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: Context & foundations
 description: CheckMate in the context of the German BIM Portal, open standards
   and information requirements.

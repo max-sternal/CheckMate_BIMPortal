@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: Mitwirkende & Transparenz
 description: Herkunft, Verantwortlichkeiten, Unterstützung, Lizenzen und
   transparent dokumentierter KI-Einsatz bei CheckMate.

@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: MCP-Schnittstelle
 description: Der CheckMate-MCP-Server und seine Werkzeuge in Version 0.3.1.
 slug: v0.3.1/mcp/overview

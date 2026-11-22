@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: Projektstatus
 description: Stand und offene Punkte von CheckMate 0.3.1.
 slug: v0.3.1/project/roadmap

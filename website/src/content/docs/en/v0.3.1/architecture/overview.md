@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: System architecture
 description: Components and interfaces of CheckMate 0.3.1.
 slug: en/v0.3.1/architecture/overview

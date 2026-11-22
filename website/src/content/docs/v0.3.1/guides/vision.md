@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: Einordnung & Grundlagen
 description: CheckMate im Kontext von BIM-Portal, offenen Standards und
   Informationsanforderungen.

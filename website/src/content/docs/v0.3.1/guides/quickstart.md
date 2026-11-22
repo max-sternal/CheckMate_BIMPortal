@@ -1,4 +1,5 @@
 ---
+editUrl: false
 title: Schnellstart (0.3.1)
 description: Voraussetzungen, Einrichtung und Aufruf von CheckMate.
 slug: v0.3.1/guides/quickstart
