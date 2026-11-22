@@ -31,9 +31,9 @@ import org.junit.jupiter.api.Test;
 /**
  * The check against real portal specifications, with hand-built elements.
  *
- * <p>The cases follow a cross-check against ifctester (IfcOpenShell's IDS implementation) on a
- * copy of the bridge model, 2026-11-20, and ifctester's rules for data types, {@code prohibited}
- * and {@code predefinedType}. The data type rule is the one decided in docs/WORKFLOW.md, section 5:
+ * <p>The cases follow a cross-check against ifctester (IfcOpenShell's IDS implementation) on a copy
+ * of the bridge model, 2026-11-20, and ifctester's rules for data types, {@code prohibited} and
+ * {@code predefinedType}. The data type rule is the one decided in docs/WORKFLOW.md, section 5:
  * strict, with a hint.
  */
 class IdsValidatorTest {
@@ -266,9 +266,7 @@ class IdsValidatorTest {
     assertThat(result.relatedTypes().elementIds()).containsExactly("kappe");
     assertThat(result.diagnosis().facets())
         .extracting(
-            FacetMatch::matchedElements,
-            FacetMatch::valueButNotType,
-            FacetMatch::typeDifferences)
+            FacetMatch::matchedElements, FacetMatch::valueButNotType, FacetMatch::typeDifferences)
         .containsOnly(tuple(0, 1, "IFCTEXT statt IFCLABEL"));
     assertThat(result.diagnosis().facets().get(0).line())
         .isEqualTo(
@@ -349,9 +347,7 @@ class IdsValidatorTest {
             tuple("ohne", "Pset_Test/Status = 'Abriss' (unzulässig)", Status.FULFILLED),
             tuple("anders", "Pset_Test/Status = 'Abriss' (unzulässig)", Status.FULFILLED),
             tuple(
-                "verboten",
-                "Pset_Test/Status = 'Abriss' (unzulässig)",
-                Status.PROHIBITED_PRESENT));
+                "verboten", "Pset_Test/Status = 'Abriss' (unzulässig)", Status.PROHIBITED_PRESENT));
     assertThat(result.passed()).isFalse();
   }
 

@@ -18,8 +18,7 @@ import java.util.TreeMap;
  * The downloaded sample IFC models: which there are, where they live, and which are missing.
  *
  * <p>The list is {@code src/test/resources/ifc/samples.properties}, shared with the Gradle task
- * that downloads them. Needs no IFC library, so {@link PrerequisitesTest} can use it even when the
- * Apstex JARs are missing.
+ * that downloads them, so {@link PrerequisitesTest} and the IFC reading tests share one list.
  */
 public final class TestModelFiles {
 

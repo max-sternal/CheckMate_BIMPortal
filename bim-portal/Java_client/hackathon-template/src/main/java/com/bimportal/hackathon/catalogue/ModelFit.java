@@ -16,8 +16,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * How well catalogue LOINs fit a model, judged by their object type alone - without downloading
- * any requirements.
+ * How well catalogue LOINs fit a model, judged by their object type alone - without downloading any
+ * requirements.
  *
  * <p>A LOIN's object type (e.g. {@code Kappe}) is looked for in the model in two places:
  *
@@ -33,10 +33,10 @@ import java.util.regex.Pattern;
  * and without spaces or punctuation. An object type of several parts ({@code Stütze - Pfeiler},
  * {@code Wand, massiv}) also matches by each part of at least {@value #MIN_WORD} letters.
  *
- * <p>Many LOINs share an object type and differ in their group, the part of the name before
- * {@code >}: {@code Verbau > Verankerung}, {@code Laermschutz > Verankerung}. Elements that also
- * carry the group (e.g. {@code _IDEbene1 = Lager} for {@code Lager > Ankerplatte}) put a LOIN
- * ahead of the others of its kind.
+ * <p>Many LOINs share an object type and differ in their group, the part of the name before {@code
+ * >}: {@code Verbau > Verankerung}, {@code Laermschutz > Verankerung}. Elements that also carry the
+ * group (e.g. {@code _IDEbene1 = Lager} for {@code Lager > Ankerplatte}) put a LOIN ahead of the
+ * others of its kind.
  *
  * <p>This is a ranking to help choose, not a check: whether a LOIN really applies, the check says.
  */
@@ -128,8 +128,8 @@ public final class ModelFit {
   }
 
   /**
-   * How a LOIN fits: its best object type - classification before name, then elements in the
-   * LOIN's group, then all elements.
+   * How a LOIN fits: its best object type - classification before name, then elements in the LOIN's
+   * group, then all elements.
    */
   public Fit fit(CatalogueEntry entry) {
     String group = group(entry.name());

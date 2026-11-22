@@ -6,9 +6,8 @@ import java.util.Optional;
 /**
  * One element of an IFC model, reduced to what an IDS check looks at.
  *
- * <p>This is the "Ist" side of the comparison. It carries no IFC toolbox types on purpose, so the
- * check can be exercised with hand-written elements in a test - and so the whole {@code ids} package
- * still compiles when the Apstex JARs are missing.
+ * <p>This is the "Ist" side of the comparison. It carries no IFC parser types on purpose, so the
+ * check stays independent of the reader and can be exercised with hand-written elements in a test.
  *
  * @param id the element's GlobalId, or its STEP line number when it has none
  * @param name the element's name as authored, for reports
@@ -18,10 +17,9 @@ import java.util.Optional;
  *     unknown.
  * @param userDefinedType whether that PredefinedType is user-defined, which an IDS facet asking for
  *     USERDEFINED checks
- * @param properties every single, enumerated and list property found on the element and on its
- *     type
- * @param typeEntityName the IFC entity of the element's type object, e.g. {@code IfcBeamType};
- *     null when it has none. In IFC2X3 an entity facet also accepts an element through it.
+ * @param properties every single, enumerated and list property found on the element and on its type
+ * @param typeEntityName the IFC entity of the element's type object, e.g. {@code IfcBeamType}; null
+ *     when it has none. In IFC2X3 an entity facet also accepts an element through it.
  */
 public record ModelElement(
     String id,

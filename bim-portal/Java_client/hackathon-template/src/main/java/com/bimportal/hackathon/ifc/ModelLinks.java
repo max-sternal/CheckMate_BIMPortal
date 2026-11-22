@@ -1,4 +1,4 @@
-package test.fx;
+package com.bimportal.hackathon.ifc;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,8 +22,8 @@ import java.util.regex.Pattern;
  *
  * <p>A GitHub link to a file is the page showing it, not the file, so it is turned into the raw
  * file's address. A file kept in Git LFS comes back as a small pointer; GitHub serves the real file
- * under another host. And whatever arrives is recognised by its first bytes before the toolbox sees
- * it, so a web page or an error page is reported as such instead of as "kein lesbares IFC".
+ * under another host. And whatever arrives is recognised by its first bytes before the STEP parser
+ * sees it, so a web page or an error page is reported as such instead of as "kein lesbares IFC".
  */
 final class ModelLinks {
 
@@ -59,9 +59,9 @@ final class ModelLinks {
   /**
    * The address to download a link from.
    *
-   * <p>{@code github.com/<owner>/<repo>/blob/<ref>/<path>} (and {@code .../raw/...}) becomes
-   * {@code raw.githubusercontent.com/<owner>/<repo>/<ref>/<path>}; the query and fragment such a
-   * link carries ({@code ?raw=true}, {@code #L12}) are dropped. Every other link is used as given.
+   * <p>{@code github.com/<owner>/<repo>/blob/<ref>/<path>} (and {@code .../raw/...}) becomes {@code
+   * raw.githubusercontent.com/<owner>/<repo>/<ref>/<path>}; the query and fragment such a link
+   * carries ({@code ?raw=true}, {@code #L12}) are dropped. Every other link is used as given.
    * Spaces, as a copied path may contain, are escaped.
    *
    * @throws IllegalArgumentException when the text is not a usable link
@@ -71,7 +71,13 @@ final class ModelLinks {
     Matcher github = GITHUB_FILE.matcher(withoutQueryAndFragment(text));
     if (github.matches()) {
       text =
-          "https://" + RAW_HOST + "/" + github.group(1) + "/" + github.group(2) + "/"
+          "https://"
+              + RAW_HOST
+              + "/"
+              + github.group(1)
+              + "/"
+              + github.group(2)
+              + "/"
               + github.group(3);
     }
     URI uri = URI.create(text);
@@ -134,8 +140,8 @@ final class ModelLinks {
   /**
    * Download into a file, following redirects.
    *
-   * @throws ModelLoadException when the server answers with anything but 200, or the file is
-   *     larger than {@code maxBytes}
+   * @throws ModelLoadException when the server answers with anything but 200, or the file is larger
+   *     than {@code maxBytes}
    */
   static void download(URI uri, Path target, long maxBytes)
       throws IOException, InterruptedException {

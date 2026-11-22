@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.bimportal.hackathon.check.CheckService;
 import com.bimportal.hackathon.check.CheckService.Portal;
+import com.bimportal.hackathon.ifc.LoadedModel;
+import com.bimportal.hackathon.ifc.ModelLoadException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -22,8 +24,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
-import test.fx.LoadedModel;
-import test.fx.ModelLoadException;
 
 /** The server over its stdio transport, spoken to as an AI app does: JSON-RPC, one per line. */
 @Timeout(60)
@@ -68,7 +68,8 @@ class CheckMateMcpServerTest {
 
     assertThat(init.path("result").path("serverInfo").path("name").asText()).isEqualTo("checkmate");
     assertThat(init.path("result").path("instructions").asText()).contains("check_model");
-    assertThat(tools).extracting(tool -> tool.path("name").asText())
+    assertThat(tools)
+        .extracting(tool -> tool.path("name").asText())
         .containsExactly(
             "load_model",
             "describe_model",
@@ -76,7 +77,10 @@ class CheckMateMcpServerTest {
             "find_loins",
             "describe_requirements",
             "check_model",
-            "element_report");
+            "element_report",
+            "app_report_page",
+            "load_mapping",
+            "server_status");
     JsonNode check = tools.get(5).path("inputSchema");
     assertThat(check.path("properties").path("ids_files").path("type").asText()).isEqualTo("array");
 
@@ -84,6 +88,64 @@ class CheckMateMcpServerTest {
     assertThat(checked.path("isError").asBoolean()).isFalse();
     assertThat(text(checked)).contains("Modell: Kappen.ifc", "1 erfüllt (Exit-Code 0)");
     assertThat(text(call("element_report", Map.of("element", "k1")))).contains("[erfüllt]");
+
+    // MCP Apps: the extension is declared, check_model points to a view, and the answer carries
+    // its data next to the text.
+    assertThat(
+            init.path("result")
+                .path("capabilities")
+                .path("extensions")
+                .has("io.modelcontextprotocol/ui"))
+        .isTrue();
+    JsonNode checkTool = tools.get(5);
+    assertThat(checkTool.path("_meta").path("ui").path("resourceUri").asText())
+        .isEqualTo("ui://checkmate/report");
+    assertThat(checkTool.path("annotations").path("readOnlyHint").asBoolean()).isFalse();
+    assertThat(tools.get(1).path("annotations").path("readOnlyHint").asBoolean()).isTrue();
+    JsonNode spec =
+        checked.path("structuredContent").path("runs").path(0).path("specifications").path(0);
+    assertThat(spec.path("verdict").asText()).isEqualTo("PASSED");
+    JsonNode appTool = tools.get(7);
+    assertThat(appTool.path("name").asText()).isEqualTo("app_report_page");
+    assertThat(appTool.path("_meta").path("ui").path("visibility"))
+        .extracting(JsonNode::asText)
+        .containsExactly("app");
+    assertThat(checkTool.path("_meta").path("ui").has("visibility")).isFalse();
+    assertThat(spec.path("unmetTotal").asInt()).isZero();
+    JsonNode page = call("app_report_page", Map.of("run", 0, "spec", 0)).path("structuredContent");
+    assertThat(page.path("total").asInt()).isZero();
+    assertThat(call("app_report_page", Map.of("run", 3, "spec", 0)).path("isError").asBoolean())
+        .isTrue();
+    JsonNode view =
+        request("resources/read", Map.of("uri", "ui://checkmate/report"))
+            .path("result")
+            .path("contents")
+            .path(0);
+    assertThat(view.path("mimeType").asText()).isEqualTo("text/html;profile=mcp-app");
+    assertThat(view.path("text").asText())
+        .contains("ui/initialize", "ui/notifications/tool-result");
+  }
+
+  @Test
+  void theMappingCanBeShownAndSwitched() throws IOException {
+    start(CheckMateToolsTest.model("Kappen.ifc", CheckMateToolsTest.kappe("k1", "Kappe", "1")));
+    request(
+        "initialize",
+        Map.of(
+            "protocolVersion", "2025-06-18",
+            "capabilities", Map.of(),
+            "clientInfo", Map.of("name", "test", "version", "0")));
+    notify("notifications/initialized");
+    try {
+      assertThat(text(call("load_mapping", Map.of())))
+          .contains("Klassifizierung/Objekttyp -> Pset_Objektinformation/_IDEbene3");
+      assertThat(text(call("load_mapping", Map.of("source", "none")))).contains("0 Alias");
+      assertThat(call("load_mapping", Map.of("source", "fehlt.json")).path("isError").asBoolean())
+          .isTrue();
+    } finally {
+      call("load_mapping", Map.of("source", "default"));
+    }
+    assertThat(text(call("server_status", Map.of()))).contains("Mapping: BIM.Hamburg");
   }
 
   @Test

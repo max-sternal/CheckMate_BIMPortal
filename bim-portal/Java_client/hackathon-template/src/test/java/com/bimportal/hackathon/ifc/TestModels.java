@@ -1,6 +1,5 @@
-package test.fx;
+package com.bimportal.hackathon.ifc;
 
-import com.apstex.ifctoolbox.ifcmodel.IfcModel;
 import com.bimportal.hackathon.TestModelFiles;
 import com.bimportal.hackathon.ids.ModelElement;
 import java.net.URISyntaxException;
@@ -20,7 +19,7 @@ final class TestModels {
   private TestModels() {}
 
   /** A downloaded sample model; the calling test is skipped, saying why, when it is missing. */
-  static IfcModel sample(String name) {
+  static StepModel sample(String name) {
     return IfcResources.load(TestModelFiles.require(name));
   }
 
@@ -29,7 +28,7 @@ final class TestModels {
    *
    * @param schema {@code ifc2x3}, {@code ifc4} or {@code ifc4x3}
    */
-  static IfcModel cases(String schema) {
+  static StepModel cases(String schema) {
     String resource = "/ifc/checkmate-cases-" + schema + ".ifc";
     URL url = TestModels.class.getResource(resource);
     if (url == null) {

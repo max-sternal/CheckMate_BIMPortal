@@ -406,8 +406,8 @@ public final class IdsParser {
    * null.
    *
    * <p>Deliberately not {@code getElementsByTagNameNS}: that searches the whole subtree, so a
-   * {@code <property>} inside {@code <requirements>} would also surface while reading
-   * {@code <applicability>}.
+   * {@code <property>} inside {@code <requirements>} would also surface while reading {@code
+   * <applicability>}.
    */
   private static List<Element> childrenNs(Element parent, String namespace, String localName) {
     List<Element> found = new ArrayList<>();

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CheckMate Prüfbericht</title>
+<style>
+  :root {
+    --bg: var(--color-background-primary, light-dark(#ffffff, #1b1b1b));
+    --bg2: var(--color-background-secondary, light-dark(#f4f5f7, #262626));
+    --fg: var(--color-text-primary, light-dark(#1b1b1b, #f2f2f2));
+    --fg2: var(--color-text-secondary, light-dark(#5b6068, #a8a8a8));
+    --line: var(--color-border-primary, light-dark(#d9dce1, #3a3a3a));
+    --ok: light-dark(#1a7f37, #4ac26b);
+    --bad: light-dark(#cf222e, #ff7b72);
+    --warn: light-dark(#9a6700, #d4a72c);
+    --none: light-dark(#6e7781, #8b949e);
+    color-scheme: light dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; background: var(--bg); color: var(--fg);
+         font: 14px/1.45 var(--font-sans, system-ui, sans-serif); }
+  h1 { font-size: 15px; margin: 0 0 2px; }
+  .meta { color: var(--fg2); font-size: 12px; margin-bottom: 8px; }
+  .verdict { padding: 8px 10px; background: var(--bg2); border-radius: 8px; margin-bottom: 10px; }
+  .run { margin: 10px 0 4px; font-weight: 600; }
+  .run.err { color: var(--bad); }
+  .spec { border: 1px solid var(--line); border-radius: 8px; margin: 6px 0; }
+  .spec > summary { cursor: pointer; padding: 7px 10px; display: flex; gap: 8px; align-items: baseline; }
+  .badge { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; color: #fff; white-space: nowrap; }
+  .PASSED { background: var(--ok); } .FAILED { background: var(--bad); }
+  .PARTLY_EVALUATED { background: var(--warn); } .NOT_APPLICABLE { background: var(--none); }
+  .label { flex: 1; word-break: break-word; }
+  .count { color: var(--fg2); font-size: 12px; white-space: nowrap; }
+  .body { padding: 2px 10px 8px; border-top: 1px solid var(--line); }
+  .summary { color: var(--fg2); font-size: 12px; margin: 6px 0; }
+  .unmet { list-style: none; margin: 0; padding: 0; }
+  .unmet li { padding: 4px 0; border-bottom: 1px dashed var(--line); }
+  .unmet button { all: unset; cursor: pointer; color: var(--fg); }
+  .unmet button:hover { text-decoration: underline; }
+  .more { margin-top: 6px; cursor: pointer; color: var(--fg); background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; }
+  .elem { font-weight: 600; }
+  .line { color: var(--fg2); font-size: 12px; display: block; }
+  pre { white-space: pre-wrap; background: var(--bg2); border-radius: 6px; padding: 8px; font: 12px var(--font-mono, monospace); }
+  .empty { color: var(--fg2); }
+</style>
+</head>
+<body>
+<h1>CheckMate Prüfbericht</h1>
+<div id="header" class="meta">Warte auf eine Prüfung ...</div>
+<div id="verdict" class="verdict" hidden></div>
+<div id="runs"></div>
+<pre id="detail" hidden></pre>
+<script>
+(function () {
+  "use strict";
+  var nextId = 1;
+  var pending = {};
+
+  function send(message) { window.parent.postMessage(message, "*"); }
+  function request(method, params) {
+    var id = nextId++;
+    return new Promise(function (resolve, reject) {
+      pending[id] = { resolve: resolve, reject: reject };
+      send({ jsonrpc: "2.0", id: id, method: method, params: params });
+    });
+  }
+  function notify(method, params) { send({ jsonrpc: "2.0", method: method, params: params || {} }); }
+
+  window.addEventListener("message", function (event) {
+    var m = event.data;
+    if (!m || m.jsonrpc !== "2.0") { return; }
+    if (m.id !== undefined && !m.method && pending[m.id]) {
+      var p = pending[m.id]; delete pending[m.id];
+      if (m.error) { p.reject(new Error(m.error.message || "Fehler")); } else { p.resolve(m.result); }
+      return;
+    }
+    if (m.method === "ui/notifications/tool-result") { render(m.params); }
+    if (m.method === "ui/notifications/host-context-changed") { theme(m.params); }
+    if (m.method === "ui/resource-teardown" && m.id !== undefined) { send({ jsonrpc: "2.0", id: m.id, result: {} }); }
+  });
+
+  function theme(context) {
+    if (!context || !context.styles || !context.styles.variables) { return; }
+    var vars = context.styles.variables;
+    Object.keys(vars).forEach(function (key) {
+      if (vars[key]) { document.documentElement.style.setProperty(key, vars[key]); }
+    });
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) { e.className = cls; }
+    if (text !== undefined) { e.textContent = text; }
+    return e;
+  }
+
+  function render(result) {
+    var data = result && result.structuredContent;
+    var runsBox = document.getElementById("runs");
+    runsBox.textContent = "";
+    if (!data || !data.runs) {
+      var text = (result && result.content && result.content[0] && result.content[0].text) || "Keine Daten.";
+      runsBox.appendChild(el("pre", "", text));
+      return;
+    }
+    document.getElementById("header").textContent = (data.header || []).join(" · ");
+    var verdict = document.getElementById("verdict");
+    verdict.hidden = false;
+    verdict.textContent = data.verdict || "";
+
+    data.runs.forEach(function (run, runIndex) {
+      runsBox.appendChild(el("div", "run" + (run.error ? " err" : ""), run.name + (run.error ? " - " + run.error : "")));
+      (run.specifications || []).forEach(function (spec, specIndex) {
+        var box = el("details", "spec");
+        var head = el("summary");
+        head.appendChild(el("span", "badge " + spec.verdict, spec.verdictLabel));
+        head.appendChild(el("span", "label", spec.label));
+        head.appendChild(el("span", "count", spec.applicable + " von " + spec.examined + " anwendbar"
+          + (spec.failing ? ", " + spec.failing + " nicht erfüllt" : "")));
+        box.appendChild(head);
+        var body = el("div", "body");
+        body.appendChild(el("div", "summary", spec.summary));
+        var unmet = spec.unmet || [];
+        if (unmet.length) {
+          var list = el("ul", "unmet");
+          unmet.forEach(function (f) { addFinding(list, f); });
+          body.appendChild(list);
+          var total = spec.unmetTotal || unmet.length;
+          if (unmet.length < total) {
+            var more = el("button", "more", "Weitere laden (" + (total - unmet.length) + " übrig)");
+            more.addEventListener("click", function () {
+              more.disabled = true;
+              loadMore(runIndex, specIndex, list.children.length, total, list, more);
+            });
+            body.appendChild(more);
+          }
+        } else if (spec.verdict !== "NOT_APPLICABLE") {
+          body.appendChild(el("div", "empty", "Keine unerfüllten Anforderungen."));
+        }
+        box.appendChild(body);
+        runsBox.appendChild(box);
+      });
+    });
+  }
+
+  function addFinding(list, f) {
+    var item = el("li");
+    var button = el("button");
+    button.appendChild(el("span", "elem", f.element));
+    button.appendChild(el("span", "line", f.line));
+    button.title = "Elementbericht anzeigen";
+    button.addEventListener("click", function () { elementReport(f.elementId); });
+    item.appendChild(button);
+    list.appendChild(item);
+  }
+
+  // The tool only this view may call: the host keeps it from the model.
+  function loadMore(run, spec, offset, total, list, more) {
+    request("tools/call", { name: "app_report_page", arguments: { run: run, spec: spec, offset: offset, limit: 25 } })
+      .then(function (r) {
+        var page = r.structuredContent || {};
+        (page.unmet || []).forEach(function (f) { addFinding(list, f); });
+        var left = total - list.children.length;
+        if (left > 0 && (page.unmet || []).length) {
+          more.textContent = "Weitere laden (" + left + " übrig)";
+          more.disabled = false;
+        } else {
+          more.remove();
+        }
+      }, function (e) { more.textContent = e.message; });
+  }
+
+  function elementReport(id) {
+    var detail = document.getElementById("detail");
+    detail.hidden = false;
+    detail.textContent = "Lade ...";
+    request("tools/call", { name: "element_report", arguments: { element: id } }).then(function (r) {
+      detail.textContent = (r.content || []).map(function (c) { return c.text || ""; }).join("\n");
+    }, function (e) { detail.textContent = e.message; });
+  }
+
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "checkmate-report", version: "0.3.2" },
+    appCapabilities: {}
+  }).then(function (init) {
+    theme(init && init.hostContext);
+    notify("ui/notifications/initialized");
+  }, function () {});
+
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () {
+      notify("ui/notifications/size-changed", {
+        width: Math.ceil(document.documentElement.scrollWidth),
+        height: Math.ceil(document.documentElement.scrollHeight)
+      });
+    }).observe(document.body);
+  }
+})();
+</script>
+</body>
+</html>

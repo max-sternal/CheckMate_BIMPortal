@@ -17,18 +17,20 @@ English.
 |---|---|
 | `bim-portal/Java_client/hackathon-template/` | CheckMate (Gradle module `hackathon-template`) |
 | `…/src/main/java/com/bimportal/hackathon/ids/` | the core: requirements from the portal or IDS files (`PortalRequirements`, `IdsParser`, `IdsArchive`), the check (`IdsValidator`, `Values`, `DataTypes`, `PropertyKey`), the result (`CheckResult`) |
+| `…/src/main/java/com/bimportal/hackathon/ifc/` | pure-Java STEP IFC reader with schema tables for IFC2X3, IFC4 and IFC4X3 (`StepParser`, `IfcSchema`, `IfcModelElements`, `IfcResources`, `ModelLinks`, `LoadedModel`) |
 | `…/src/main/java/com/bimportal/hackathon/catalogue/` | choosing LOINs from the portal's catalogue: filters, ranking by fit (`ModelFit`), the description on click |
 | `…/src/main/java/com/bimportal/hackathon/check/` | the check as every front end runs it: requirement sources, downloading each once, checking, searching (`CheckService`, `Source`) |
 | `…/src/main/java/com/bimportal/hackathon/report/` | the result of a run: verdict, exit code, text and JSON (`CheckReport`, `ReportText`, `ReportJson`) |
+| `…/src/main/java/com/bimportal/hackathon/cli/` | headless command-line front end (`LoinCheckCli`) |
 | `…/src/main/java/com/bimportal/hackathon/mcp/` | the MCP server for AI apps: the tools (`CheckMateTools`) and the server over stdio (`CheckMateMcpServer`), on the official MCP Java SDK |
-| `…/src/main/java/test/fx/` | GUI (`App`, `ElementUI`), CLI (`LoinCheckCli`), and reading IFC models with the Apstex toolbox (`IfcResources`, `IfcModelElements`, `ModelLinks`). `PropertyUtils` and `Geo` are left from the original template. The package name is a leftover (STATUS #13). |
+| `…/src/main/java/test/fx/` | JavaFX GUI only (`App`, `ElementUI`, `RequirementSource`). The package name is a leftover (STATUS #13). |
 | `…/src/test/` | tests, with real portal downloads and own IFC case files |
 | `bim-portal/Java_client/bim-portal-enhanced/` | client for the BIM Portal's API (from the hackathon template) |
 | `bim-portal/Java_client/openapi-generated/` | generated API client, don't edit |
 | `docs/WORKFLOW.md` | how CheckMate works step by step, a checklist, and decisions |
 | `docs/STATUS.md` | open points, including open decisions |
 | `website/` | bilingual (DE/EN) Astro Starlight documentation site for GitHub Pages (`0.1`–`0.4`) |
-| `.github/workflows/` | GitHub Actions CI (Java core tests + docs build) and GitHub Pages deployment |
+| `.github/workflows/` | GitHub Actions CI (Java tests + docs build) and GitHub Pages deployment |
 | `.claude/skills/run-checkmate/` | Claude Code skill: build, run and drive the GUI |
 | `DocsBIMDeutschland/` | background material on the BIM Portal, LOIN and IDS |
 
@@ -45,14 +47,11 @@ is maintained separately.
 
 Needed:
 
-- **JDK 21 with JavaFX**, e.g. Azul Zulu 21 "JDK FX", as `JAVA_HOME`. With a plain JDK the GUI, the
-  CLI (package `test.fx`) and the MCP server don't compile: the `javafx` packages are missing. `runGui` checks for
-  this and says so.
-- **Apstex IFC Toolbox JARs** (`com.apstex.ifctoolbox*.jar`, `com.apstex.stepparser*.jar`) in
-  `bim-portal/Java_client/hackathon-template/lib/`. They read IFC files. They are not
-  redistributable and not in git; the team keeps a copy in the shared Nextcloud folder
-  `BIM_Deutschland_Hackathon`. Without them, everything that reads IFC (GUI, CLI, MCP server, IFC
-  tests) is left out of the build, and a test says what is missing.
+- **JDK 21** as `JAVA_HOME`: enough to build and run the pure-Java IFC reader, CLI, MCP server,
+  and all tests. No Apstex JARs or external IFC runtime are needed.
+- **JDK 21 with JavaFX**, e.g. Azul Zulu 21 "JDK FX", only for the JavaFX GUI (`runGui`). On a
+  plain JDK 21, Gradle skips only `test/fx` (the GUI) while building everything else; `runGui`
+  checks for JavaFX and says so.
 - **Network access** to `https://via.bund.de/bim` for LOINs and AIA projects. No account needed:
   without credentials CheckMate sees everything published.
 
@@ -83,7 +82,7 @@ From `bim-portal/Java_client/`:
 ```
 
 The model is the bundled bridge model unless `CHECKMATE_IFC` names a file or a link, or `--model`
-does. CLI options and exit codes: [`LoinCheckCli`](bim-portal/Java_client/hackathon-template/src/main/java/test/fx/LoinCheckCli.java)
+does. CLI options and exit codes: [`LoinCheckCli`](bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/cli/LoinCheckCli.java)
 and `docs/WORKFLOW.md`, section 2.5.
 
 ## Using CheckMate from an AI app
@@ -114,5 +113,5 @@ Ollama, the tools, and what to do when the server doesn't start:
 
 ## License
 
-Apache License 2.0, see [LICENSE](LICENSE). The Apstex IFC Toolbox is not part of it and must not
-be redistributed.
+Apache License 2.0, see [LICENSE](LICENSE). CheckMate has no proprietary third-party runtime
+dependencies.

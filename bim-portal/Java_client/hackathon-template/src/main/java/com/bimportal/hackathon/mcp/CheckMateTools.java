@@ -13,12 +13,15 @@ import com.bimportal.hackathon.ids.CheckResult.Finding;
 import com.bimportal.hackathon.ids.IdsDocument;
 import com.bimportal.hackathon.ids.ModelElement;
 import com.bimportal.hackathon.ids.PortalRequirements;
+import com.bimportal.hackathon.ids.PropertyAliases;
+import com.bimportal.hackathon.ifc.LoadedModel;
 import com.bimportal.hackathon.report.CheckReport;
 import com.bimportal.hackathon.report.CheckReport.Run;
 import com.bimportal.hackathon.report.ReportText;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -27,7 +30,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import test.fx.LoadedModel;
 
 /**
  * What the MCP server's tools do, for one session: the model in use, the last check, and the
@@ -123,8 +125,7 @@ public final class CheckMateTools {
             + " passend zum Modell; "
             + found.projects().size()
             + " AIA-Projekt(e)");
-    found.projects()
-        .forEach(p -> lines.add("AIA-Projekt | " + p.guid() + " | " + p.name()));
+    found.projects().forEach(p -> lines.add("AIA-Projekt | " + p.guid() + " | " + p.name()));
     ranked.stream()
         .filter(r -> includeUnfitting || fitting == 0 || r.fit().fits())
         .limit(limit)
@@ -173,8 +174,7 @@ public final class CheckMateTools {
       throw new IllegalArgumentException("Keine Anforderungen angegeben: ids oder ids_files.");
     }
     LoadedModel current = model();
-    lastReport =
-        service.check(sources, current.info(), current.elements(), OffsetDateTime.now());
+    lastReport = service.check(sources, current.info(), current.elements(), OffsetDateTime.now());
 
     List<String> lines = new ArrayList<>();
     if (examples <= 0) {
@@ -190,8 +190,129 @@ public final class CheckMateTools {
     return String.join("\n", lines);
   }
 
+  /**
+   * The last check as data for a view: per run its specifications with verdict, counts and a few
+   * unmet findings. Empty before the first check.
+   *
+   * @param examples unmet findings to carry per specification
+   */
+  public synchronized Map<String, Object> reportData(int examples) {
+    Map<String, Object> data = new LinkedHashMap<>();
+    if (lastReport == null) {
+      return data;
+    }
+    data.put("header", lastReport.header());
+    data.put("verdict", ReportText.verdictLine(lastReport));
+    List<Map<String, Object>> runs = new ArrayList<>();
+    for (Run run : lastReport.runs()) {
+      Map<String, Object> runData = new LinkedHashMap<>();
+      runData.put("name", run.name());
+      runData.put("error", run.error());
+      List<Map<String, Object>> specs = new ArrayList<>();
+      for (CheckResult result : run.results()) {
+        Map<String, Object> spec = new LinkedHashMap<>();
+        spec.put("label", result.specification().label());
+        spec.put("verdict", result.verdict().name());
+        spec.put("verdictLabel", result.verdict().label());
+        spec.put("examined", result.examinedElements());
+        spec.put("applicable", result.applicableElements());
+        spec.put("failing", result.failingElements());
+        spec.put("passing", result.passingElements());
+        spec.put("summary", result.summary());
+        spec.put("unmetTotal", unmetFindings(result).size());
+        spec.put("unmet", unmetPage(result, 0, examples));
+        specs.add(spec);
+      }
+      runData.put("specifications", specs);
+      runs.add(runData);
+    }
+    data.put("runs", runs);
+    return data;
+  }
+
+  private static List<Finding> unmetFindings(CheckResult result) {
+    return result.findings().stream().filter(f -> !f.status().ok()).toList();
+  }
+
+  private static List<Map<String, Object>> unmetPage(CheckResult result, int offset, int limit) {
+    return unmetFindings(result).stream()
+        .skip(Math.max(offset, 0))
+        .limit(Math.max(limit, 0))
+        .map(
+            f -> {
+              Map<String, Object> finding = new LinkedHashMap<>();
+              finding.put("elementId", f.elementId());
+              finding.put("element", f.elementLabel());
+              finding.put("line", f.requirementLine());
+              return finding;
+            })
+        .toList();
+  }
+
+  /**
+   * More unmet findings of one specification of the last check, for a view that loads them on
+   * demand instead of carrying them all.
+   *
+   * @param run index of the run, as in {@link #reportData}
+   * @param spec index of the specification within the run
+   * @param offset findings to skip
+   * @param limit findings to return
+   * @return {@code run}, {@code spec}, {@code offset}, {@code total} and {@code unmet}
+   */
+  public synchronized Map<String, Object> reportPage(int run, int spec, int offset, int limit) {
+    if (lastReport == null) {
+      throw new IllegalStateException("Noch keine Prüfung - zuerst check_model aufrufen.");
+    }
+    if (run < 0 || run >= lastReport.runs().size()) {
+      throw new IllegalArgumentException("Kein Lauf " + run + " in der letzten Prüfung.");
+    }
+    List<CheckResult> results = lastReport.runs().get(run).results();
+    if (spec < 0 || spec >= results.size()) {
+      throw new IllegalArgumentException("Keine Spezifikation " + spec + " in Lauf " + run + ".");
+    }
+    CheckResult result = results.get(spec);
+    Map<String, Object> page = new LinkedHashMap<>();
+    page.put("run", run);
+    page.put("spec", spec);
+    page.put("offset", Math.max(offset, 0));
+    page.put("total", unmetFindings(result).size());
+    page.put("unmet", unmetPage(result, offset, limit));
+    return page;
+  }
+
+  /**
+   * Which property mapping is in use, or switch it.
+   *
+   * @param source a path to a mapping JSON file, {@code none}, {@code default}; blank to only
+   *     describe the one in use
+   */
+  public synchronized String mapping(String source) {
+    if (!blank(source)) {
+      PropertyAliases.use(PropertyAliases.resolve(source));
+      lastReport = null;
+    }
+    return String.join("\n", PropertyAliases.current().describe());
+  }
+
+  /** The state of the session: model, mapping, last check. */
+  public synchronized String status() {
+    List<String> lines = new ArrayList<>();
+    lines.add(
+        "Modell: "
+            + (model == null
+                ? "noch keines geladen (Standardmodell wird genutzt)"
+                : model.summary()));
+    lines.add("Mapping: " + PropertyAliases.current().name());
+    lines.add(
+        "Letzte Prüfung: " + (lastReport == null ? "keine" : ReportText.verdictLine(lastReport)));
+    return String.join("\n", lines);
+  }
+
   /** What the last check said about an element, found by GlobalId or a part of its name. */
   public synchronized String elementReport(String element) {
+    if (blank(element)) {
+      throw new IllegalArgumentException("Kein Element angegeben (GlobalId oder Namensteil).");
+    }
     if (lastReport == null) {
       throw new IllegalStateException("Noch keine Prüfung - zuerst check_model aufrufen.");
     }

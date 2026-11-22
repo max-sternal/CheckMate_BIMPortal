@@ -23,19 +23,13 @@ on Linux/macOS.
 ## Prerequisites
 
 - **JDK 21 with bundled JavaFX** in `JAVA_HOME`, e.g. Zulu 21 FX
-  (`zulu21.*-ca-fx-jdk21.*`). Check it with
-  `grep JAVA_VERSION "$JAVA_HOME/release"` and `ls "$JAVA_HOME/lib/javafx.properties"`.
+  (`zulu21.*-ca-fx-jdk21.*`), is required only for the JavaFX GUI (`runGui` / `drive.sh`). Check
+  it with `grep JAVA_VERSION "$JAVA_HOME/release"` and `ls "$JAVA_HOME/lib/javafx.properties"`.
   The `java` on `PATH` may be a different version, so don't run bare `java`. drive.sh uses
   `$JAVA_HOME/bin/java`.
-- **Apstex JARs** (`com.apstex.ifctoolbox*.jar`, `com.apstex.stepparser*.jar`) in
-  `hackathon-template/lib/`. They're not redistributable and not in git (`*.jar` is ignored).
-  The team has a copy in the shared Nextcloud folder `BIM_Deutschland_Hackathon`. Copy them
-  from wherever your Nextcloud client syncs that folder to:
-
-```bash
-cp "<nextcloud>/BIM_Deutschland_Hackathon/bim-portal/Java_client/hackathon-template/lib/"com.apstex.*.jar hackathon-template/lib/
-```
-
+- **No Apstex JARs needed on `0.3.2`.** CheckMate uses its own pure-Java STEP/IFC reader, so the
+  CLI, MCP server, and tests build and run on any plain JDK 21 without anything in
+  `hackathon-template/lib/`.
 - **No credentials needed.** Without a `.env` the client runs in public mode: published LOINs only.
 - Network access to the BIM Portal (the LOIN search and the IDS downloads happen live).
 
@@ -177,11 +171,10 @@ From `bim-portal/Java_client/`:
 ./gradlew --console=plain :hackathon-template:test
 ```
 
-217 tests as of 2026-11-22; only `BasicExampleIntegrationTest` is skipped (an `assumeTrue`
-guard: it needs credentials). Without the Apstex JARs the `test/fx` tests are not built, and
-without the downloaded sample models (`./gradlew :hackathon-template:downloadTestModels`) the
-tests that need them are skipped with a message. Results are in
-`hackathon-template/build/test-results/test/`.
+All core, IFC, CLI, and MCP tests build and run on any plain JDK 21 without Apstex or JavaFX;
+`BasicExampleIntegrationTest` is skipped without credentials (`assumeTrue`), and without the
+downloaded sample models (`./gradlew :hackathon-template:downloadTestModels`) the tests that need
+them are skipped with a message. Results are in `hackathon-template/build/test-results/test/`.
 
 ## Gotchas
 
@@ -192,9 +185,10 @@ tests that need them are skipped with a message. Results are in
 - **The portal search is a substring match.** `search Schaft` returns 171 LOINs, mostly
   "Land*schaft*sbau", and `select Schaft` picks the wrong one. Anchor on the category
   separator: `loins > Schaft` / `select > Schaft` gives `Ueberbau > Schaft (Ingenieurbau)`.
-- **Without the Apstex JARs the build doesn't fail.** `build.gradle.kts` then silently
-  excludes `test/fx` (one `⚠ ... excluding test/fx` lifecycle line), so there's no GUI class at
-  all. drive.sh checks first and exits 2.
+- **Without JavaFX the build doesn't fail.** On a plain JDK 21 (without bundled JavaFX),
+  `build.gradle.kts` skips only `test/fx` (the GUI) with a lifecycle notice while still building
+  the IFC reader, CLI, MCP server, and tests. `drive.sh` checks `JAVA_HOME` for JDK 21 FX first
+  and exits 2.
 - **Some non-21 JDKs also bundle JavaFX** (e.g. Zulu 17 FX). A JavaFX check alone accepts them,
   and Gradle then dies with `invalid source release: 21`. drive.sh also checks
   `JAVA_VERSION="21` in `$JAVA_HOME/release`.
@@ -209,7 +203,7 @@ tests that need them are skipped with a message. Results are in
 - **Buttons not to click in automation.** `Load IFC` and `Load IDS` open a file dialog and
   `Load IFC link` a text dialog; the driver can't operate them. Set `CHECKMATE_IFC` instead of
   loading a model, and use the `ids <file>` command instead of `Load IDS`. `BIM Portal` opens a
-  browser at a placeholder URL (`https://bimportal.com`). `Connect MCP` has no handler.
+  browser (`https://via.bund.de/bim`). `Connect MCP` has no handler.
 - **An ID the portal doesn't know takes about 7 s** before the report says so: the ID is looked
   up among the project list's and the catalogue's version record IDs first. Use `idle 60` after
   `search <id>`.
@@ -236,8 +230,6 @@ tests that need them are skipped with a message. Results are in
 
 - **`drive.sh: JAVA_HOME='...' is not a JDK 21 with bundled JavaFX`**: point `JAVA_HOME` at a
   JDK 21 that bundles JavaFX (see Prerequisites).
-- **`drive.sh: Apstex JARs missing from hackathon-template/lib/`**: copy the JARs as described
-  in Prerequisites.
 - **`error: invalid source release: 21`** from `:openapi-generated:compileJava`: Gradle ran on a
   JDK older than 21. Fix `JAVA_HOME`.
 - **`❌ No .env file found in search paths`** at configuration time: harmless, it means public mode.

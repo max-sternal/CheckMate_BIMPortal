@@ -14,8 +14,8 @@ public final class ReportText {
   private ReportText() {}
 
   /**
-   * Everything: header, an overview line per specification when there are several, then each set
-   * of requirements with every finding.
+   * Everything: header, an overview line per specification when there are several, then each set of
+   * requirements with every finding.
    */
   public static List<String> full(CheckReport report) {
     List<String> lines = new ArrayList<>(report.header());

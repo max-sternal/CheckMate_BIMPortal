@@ -1,8 +1,8 @@
 package com.bimportal.hackathon.ids;
 
 /**
- * The requirements for a check could not be had: no LOIN with that ID, no IDS file to download,
- * an IDS file that is missing or not IDS, or no specification for the model's schema.
+ * The requirements for a check could not be had: no LOIN with that ID, no IDS file to download, an
+ * IDS file that is missing or not IDS, or no specification for the model's schema.
  *
  * <p>The message is written for whoever started the check, in German like the rest of the report,
  * and names the LOIN or file. Each of these cases would otherwise end as an empty report, which

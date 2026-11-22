@@ -1,7 +1,7 @@
 # How CheckMate works
 
 This file describes how CheckMate is meant to work (sections 1-3) and how much of that works
-today (section 4). As of 2026-11-21. Open points that are also listed in [STATUS.md](STATUS.md)
+today (section 4). As of 2026-11-22. Open points that are also listed in [STATUS.md](STATUS.md)
 are referred to by their number there ("STATUS #2") instead of being repeated.
 
 ## 1. Goal
@@ -27,10 +27,12 @@ The check is one core with three front ends, which only collect input and presen
 - Read per element: entity, GlobalId, name, PredefinedType, and the single and enumerated property
   values of the element itself and of its type.
 - A model that can't be read is reported as an error. It never turns into an empty model.
-- Main classes: [`IfcResources`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/IfcResources.java)
-  finds the model, [`IfcModelElements`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/IfcModelElements.java)
+- Main classes: [`IfcResources`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ifc/IfcResources.java)
+  finds the model, [`StepParser`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ifc/StepParser.java)
+  and [`IfcSchema`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ifc/IfcSchema.java)
+  parse STEP in pure Java, and [`IfcModelElements`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ifc/IfcModelElements.java)
   reads it into [`ModelElement`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/ModelElement.java) records.
-- Output: the model's schema and a list of `ModelElement`s. They carry no IFC library types, so the
+- Output: the model's schema and a list of `ModelElement`s. They carry no IFC parser types, so the
   check can be tested without an IFC file.
 
 ### 2.2 Get the requirements
@@ -171,7 +173,7 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
   [`ReportJson`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/report/ReportJson.java),
   [`CheckResult`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/CheckResult.java),
   [`ElementUI`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/ElementUI.java),
-  [`LoinCheckCli`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/LoinCheckCli.java).
+  [`LoinCheckCli`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/cli/LoinCheckCli.java).
 
 ### 2.6 Quality
 
@@ -191,7 +193,7 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
 - Install: `./gradlew :hackathon-template:installMcp` (from `bim-portal/Java_client/`) writes
   `hackathon-template/build/install/checkmate-mcp/`, with the start script
   `bin/checkmate-mcp.bat` (Windows) or `bin/checkmate-mcp` and every JAR in `lib/`. Run it again
-  after code changes. It needs the Apstex JARs and Java 21, no JavaFX at runtime; the start
+  after code changes. It needs only Java 21 (no Apstex JARs and no JavaFX at runtime); the start
   script takes the Java in `JAVA_HOME`, else the first `java` on the path. It can't run through
   Gradle, which writes to stdout too.
 - Tools (answers in German, as the CLI writes them):
@@ -204,6 +206,8 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
   | `find_loins` | AIA projects and LOINs from the catalogue, those fitting the model first, with IDs | `search`, `discipline`, `phase`, `purpose`, `limit`, `include_unfitting` |
   | `describe_requirements` | what a LOIN or AIA project selects and requires, how many elements it would apply to | `id` |
   | `check_model` | the report as the CLI prints it, `examples` unmet requirements per specification (default 3, 0 for the full report) | `ids`, `ids_files`, `examples` |
+  | `load_mapping` | show or switch the JSON property mapping (`none`, `default`, a file) | `source` |
+  | `server_status` | model, mapping and verdict of the last check | - |
   | `element_report` | what the last check said about an element, and its properties | `element` (GlobalId or part of the name) |
 
 - One session per server process: the model in use (until `load_model`, the one `CHECKMATE_IFC`
@@ -308,7 +312,7 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [x] If the configured model can't be read at startup, the GUI says why and starts with the bundled model.
 - [ ] All IFC files of a GitHub folder or repository (CLI, later).
 - [x] IFC2X3, IFC4 and IFC4X3; checked against IfcOpenShell on the bundled model and five downloaded samples.
-- [x] Every property is read. The toolbox's inverse relations (`IsDefinedBy`) lose entries at random while parsing, so the reader goes by the relations' `RelatedObjects` instead. Before, a different few percent of the properties went missing on each start.
+- [x] Every property is read by the pure-Java, schema-driven STEP reader (`com.bimportal.hackathon.ifc`), resolving property and type relations via `RelatedObjects` (verified 1:1 against IfcOpenShell 0.9 with 0 diffs across 702 elements / 12,695 properties).
 - [x] Single, enumerated and list values, from the element and its type; quantity sets are skipped.
 - [x] PredefinedType and "user-defined" the way IfcOpenShell reads them.
 - [x] Load errors are reported with the file name (`ModelLoadException`): the GUI shows a dialog, the CLI exits with code 1.
@@ -377,13 +381,13 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 
 - [x] Headless CLI: `runLoinCheck`.
 - [x] Window size: the GUI opens at 1280x900 (STATUS #5). Many element tabs no longer squeeze the LOIN list.
-- [ ] GUI cleanup: "BIM Portal" button (STATUS #4), chat placeholder (STATUS #3), the leftover class filter. The class filter's tabs still read IFC2X3 only and through the unreliable inverse relations (`ElementUI.createObjectTab`).
+- [ ] GUI cleanup: chat placeholder (STATUS #3) and deciding whether to keep the class filter tab (`ElementUI.createObjectTab` now reads `ModelElement` across IFC2X3, IFC4 and IFC4X3). The "BIM Portal" button opens `https://via.bund.de/bim` (STATUS #4).
 - [x] MCP server for AI apps: stdio, seven tools on `CheckService`, `installMcp` (section 2.7).
 - [x] Connect the MCP server to Claude Desktop and Claude Code (Windows).
 - [ ] Try the MCP server with Ollama through an MCP host (STATUS #16).
 - [x] Tests for the `ids` package ([`src/test/java/com/bimportal/hackathon/ids/`](../bim-portal/Java_client/hackathon-template/src/test/java/com/bimportal/hackathon/ids)), with real IDS files from the portal as test files ([`src/test/resources/ids/portal/`](../bim-portal/Java_client/hackathon-template/src/test/resources/ids/portal/README.md)).
-- [x] Tests for reading IFC ([`src/test/java/test/fx/`](../bim-portal/Java_client/hackathon-template/src/test/java/test/fx)): small case files of our own per schema ([`make_ifc_fixtures.py`](../bim-portal/Java_client/hackathon-template/src/test/python/make_ifc_fixtures.py)), the bundled model, and sample models that `gradlew :hackathon-template:downloadTestModels` fetches into the ignored `test-models/` (about 5 MB, list in [`samples.properties`](../bim-portal/Java_client/hackathon-template/src/test/resources/ifc/samples.properties)).
-- [x] Missing prerequisites are reported, not failed: without the Apstex JARs the IFC tests are not built, without the sample models they are skipped, and `PrerequisitesTest` says in each case what to add and where.
+- [x] Tests for reading IFC ([`src/test/java/com/bimportal/hackathon/ifc/`](../bim-portal/Java_client/hackathon-template/src/test/java/com/bimportal/hackathon/ifc)): small case files of our own per schema ([`make_ifc_fixtures.py`](../bim-portal/Java_client/hackathon-template/src/test/python/make_ifc_fixtures.py)), the bundled model, and sample models that `gradlew :hackathon-template:downloadTestModels` fetches into the ignored `test-models/` (about 5 MB, list in [`samples.properties`](../bim-portal/Java_client/hackathon-template/src/test/resources/ifc/samples.properties)).
+- [x] Missing prerequisites are reported, not failed: without JavaFX only the GUI (`test/fx`) is skipped while all IFC, CLI, MCP and core tests run; without the sample models the tests needing them are skipped, and `PrerequisitesTest` says in each case what to add and where.
 
 ## 5. Decisions
 
@@ -410,8 +414,9 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
   present results; checking (`CheckService`) and writing the report (`ReportText`, `ReportJson`)
   happen once, in the core.
 - 2026-11-22, start script and IFC library: no start script until CheckMate runs in scripts or
-  pipelines. Apstex stays the IFC library for now; switching to IfcOpenShell is an open decision
-  (STATUS #15).
+  pipelines. On `0.3.2`, replaced the proprietary Apstex IFC Toolbox with a pure-Java schema-driven
+  STEP reader (`com.bimportal.hackathon.ifc`, schema tables for IFC2X3/4/4X3), keeping CheckMate
+  100% Apache 2.0 with zero external IFC runtime (STATUS #15).
 - 2026-11-22, MCP server: the official MCP Java SDK (`mcp-core` and `mcp-json-jackson2` 2.1.0;
   2.2.0 depends on a release candidate of Reactor), over stdio, without Spring. The tools answer
   with the text report, not JSON: the AI reads it and answers in its own words. The server has its

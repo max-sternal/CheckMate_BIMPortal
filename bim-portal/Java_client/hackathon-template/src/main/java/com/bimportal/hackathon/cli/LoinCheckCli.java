@@ -1,4 +1,4 @@
-package test.fx;
+package com.bimportal.hackathon.cli;
 
 import com.bimportal.hackathon.catalogue.CatalogueEntry;
 import com.bimportal.hackathon.catalogue.CatalogueFilter;
@@ -9,7 +9,10 @@ import com.bimportal.hackathon.check.CheckService.Found;
 import com.bimportal.hackathon.check.CheckService.Portal;
 import com.bimportal.hackathon.check.Source;
 import com.bimportal.hackathon.ids.PortalRequirements;
+import com.bimportal.hackathon.ids.PropertyAliases;
 import com.bimportal.hackathon.ids.RequirementsException;
+import com.bimportal.hackathon.ifc.LoadedModel;
+import com.bimportal.hackathon.ifc.ModelLoadException;
 import com.bimportal.hackathon.report.CheckReport;
 import com.bimportal.hackathon.report.ReportJson;
 import com.bimportal.hackathon.report.ReportText;
@@ -39,7 +42,7 @@ public final class LoinCheckCli {
       "Aufruf: runLoinCheck --args=\"[--model <IFC-Datei oder Link>] [--loin <LOIN-ID oder Link>]"
           + " [--aia <AIA-Projekt-ID oder Link>] [--ids <IDS-Datei oder ZIP>] [--suggest]"
           + " [--discipline <Fachmodell>] [--phase <Leistungsphase>] [--purpose <Anwendungsfall>]"
-          + " [--json <Datei>] [--full] [Suchbegriff ...]\"\n"
+          + " [--mapping <JSON-Datei|none|default>] [--json <Datei>] [--full] [Suchbegriff ...]\"\n"
           + "--loin, --aia und --ids dürfen mehrfach stehen.";
 
   private LoinCheckCli() {}
@@ -87,6 +90,11 @@ public final class LoinCheckCli {
         switch (args[i]) {
           case "--suggest" -> suggest = true;
           case "--full" -> full = true;
+          case "--mapping" ->
+              // Applies at once: the mapping is process-wide, like the model it belongs to.
+              PropertyAliases.use(
+                  PropertyAliases.resolve(
+                      value(args, ++i, "--mapping braucht eine JSON-Datei, none oder default.")));
           case "--json" -> json = value(args, ++i, "--json braucht eine Datei.");
           case "--discipline" ->
               discipline = value(args, ++i, "--discipline braucht ein Fachmodell.");
@@ -201,8 +209,8 @@ public final class LoinCheckCli {
   }
 
   /**
-   * Check everything the arguments name. Briefly, each set of requirements is printed as soon as
-   * it is checked; in full, the whole report at the end.
+   * Check everything the arguments name. Briefly, each set of requirements is printed as soon as it
+   * is checked; in full, the whole report at the end.
    *
    * @return the exit code
    */

@@ -20,18 +20,9 @@ repositories {
     mavenCentral()
 }
 
-// Local JARs for the CheckMate GUI (test.fx): Apstex IFC Toolbox + STEP parser.
-// They are not redistributable, so they are not in the repo - drop them into lib/
-// and the GUI compiles again automatically. JavaFX itself needs no dependency here:
-// the Zulu JDK-FX build ships javafx.* as platform modules.
-val localLibs = fileTree("lib") { include("*.jar") }
-
 dependencies {
     // Dependency on the BIM Portal enhanced client
     implementation(project(":bim-portal-enhanced"))
-
-    // Apstex IFC Toolbox etc., if present
-    implementation(localLibs)
 
     // Spring Boot starters
     implementation("org.springframework.boot:spring-boot-starter")
@@ -44,13 +35,13 @@ dependencies {
     implementation("com.google.guava:guava:32.1.2-jre")
 
     // JSON
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.4")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.4")
 
     // MCP server (com.bimportal.hackathon.mcp): the official MCP Java SDK, with its Jackson 2
     // binding. 2.1.0 rather than 2.2.0, which depends on a Reactor release candidate.
-    implementation("io.modelcontextprotocol.sdk:mcp-core:2.1.0")
-    implementation("io.modelcontextprotocol.sdk:mcp-json-jackson2:2.1.0")
+    implementation("io.modelcontextprotocol.sdk:mcp-core:2.2.0")
+    implementation("io.modelcontextprotocol.sdk:mcp-json-jackson2:2.2.0")
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.9")
@@ -67,16 +58,18 @@ application {
     mainClass.set("com.bimportal.hackathon.HackathonApplication")
 }
 
-// Without the Apstex JARs the test.fx package cannot compile, and its errors would
-// take the whole module down with it - including the API examples, which do not need
-// IFC at all. So skip that package exactly while the JARs are missing.
-if (localLibs.isEmpty) {
-    sourceSets.main.get().java.exclude("test/fx/**", "com/bimportal/hackathon/mcp/**")
-    sourceSets.test.get().java.exclude("test/fx/**", "com/bimportal/hackathon/mcp/**")
+// The CheckMate GUI (test.fx) uses JavaFX, which JDK-FX builds (e.g. Zulu/Liberica 21 FX) ship as
+// platform modules and plain JDKs omit. Without JavaFX, exclude only test/fx so the IFC reader,
+// CLI, MCP server and all tests still build and run on any JDK 21.
+val hasJavaFx =
+    ModuleLayer.boot().findModule("javafx.controls").isPresent ||
+        file(System.getProperty("java.home")).resolve("lib/javafx.properties").exists()
+
+if (!hasJavaFx) {
+    sourceSets.main.get().java.exclude("test/fx/**")
     logger.lifecycle(
-        "⚠ hackathon-template: lib/*.jar not found - excluding test/fx and mcp (CheckMate GUI, " +
-            "CLI, MCP server and the IFC reading tests). Add com.apstex.ifctoolbox*.jar and " +
-            "com.apstex.stepparser*.jar to lib/ to build them."
+        "⚠ hackathon-template: JavaFX not bundled in this JDK - skipping only the GUI " +
+            "(test/fx). The IFC reader, CLI, MCP server and all tests are still built."
     )
 }
 
@@ -176,32 +169,15 @@ tasks.register<Sync>("installMcp") {
         from(configurations.runtimeClasspath)
     }
     into("bin") { from(mcpStartScripts) }
-    doFirst {
-        if (localLibs.isEmpty) {
-            throw GradleException(
-                "The MCP server reads IFC models and needs com.apstex.ifctoolbox*.jar and " +
-                    "com.apstex.stepparser*.jar in ${project.projectDir}/lib."
-            )
-        }
-    }
 }
 
 // Headless LOIN check: same validation as the GUI button, usable in a container or a pipeline.
-// Needs the Apstex JARs (it reads an IFC), but no JavaFX.
+// Needs no JavaFX.
 tasks.register<JavaExec>("runLoinCheck") {
     group = "hackathon"
     description = "Check the configured IFC model against the LOINs matching a search term"
     classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("test.fx.LoinCheckCli")
-
-    doFirst {
-        if (localLibs.isEmpty) {
-            throw GradleException(
-                "The LOIN check reads an IFC and needs com.apstex.ifctoolbox*.jar and " +
-                    "com.apstex.stepparser*.jar in ${project.projectDir}/lib."
-            )
-        }
-    }
+    mainClass.set("com.bimportal.hackathon.cli.LoinCheckCli")
 }
 
 // The GUI needs javafx.* on the runtime image - a Zulu/Liberica "JDK FX" build has them,
@@ -213,12 +189,6 @@ tasks.register<JavaExec>("runGui") {
     mainClass.set("test.fx.App")
 
     doFirst {
-        if (localLibs.isEmpty) {
-            throw GradleException(
-                "The CheckMate GUI needs com.apstex.ifctoolbox*.jar and com.apstex.stepparser*.jar " +
-                    "in ${project.projectDir}/lib - without them test/fx is not compiled."
-            )
-        }
         if (!javaLauncher.get().metadata.installationPath.dir("lib/javafx.properties").asFile.exists()) {
             throw GradleException(
                 "This JDK does not bundle JavaFX. Use a JDK-FX build (e.g. Zulu 21 FX), " +
@@ -285,7 +255,7 @@ tasks.test {
 
     doFirst {
         val missing = missingTestModels()
-        if (!localLibs.isEmpty && missing.isNotEmpty()) {
+        if (missing.isNotEmpty()) {
             logger.lifecycle(
                 "⚠ ${missing.size} of ${testModels().size} test models are missing in " +
                     "test-models/ - the tests reading them are skipped. " +

@@ -1,20 +1,24 @@
-package test.fx;
+package com.bimportal.hackathon.ifc;
 
-import com.apstex.ifctoolbox.ifcmodel.IfcModel;
+import com.bimportal.hackathon.ifc.ModelLinks.Content;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.Enumeration;
+import java.util.Locale;
 import java.util.Optional;
-import java.util.regex.Pattern;
-import test.fx.ModelLinks.Content;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Locates and reads the IFC model the GUI and the CLI work on.
+ * Locates and reads the IFC model the GUI, the CLI and the MCP server work on.
  *
  * <p>The default model ships inside the JAR under {@code /ifc}, so a fresh clone and a Docker image
  * both run without any local file lying around. To use a different model, point {@code
@@ -29,17 +33,17 @@ public final class IfcResources {
   /**
    * Model bundled as a resource; see {@code src/main/resources/ifc}.
    *
-   * <p>The BIM.Hamburg bridge TBW1, in the variant that carries the Merkmale: without
-   * {@code Pset_Objektinformation} a LOIN check has nothing to select on and every specification
-   * comes out "nicht prüfbar".
+   * <p>The BIM.Hamburg bridge TBW1, in the variant that carries the Merkmale: without {@code
+   * Pset_Objektinformation} a LOIN check has nothing to select on and every specification comes out
+   * "nicht prüfbar".
    */
   public static final String DEFAULT_RESOURCE = "/ifc/bruecke-tbw1-mit-merkmalen.ifc";
 
   public static final String PROPERTY = "checkmate.ifc";
   public static final String ENV_VARIABLE = "CHECKMATE_IFC";
 
-  /** The schemas IfcModelElements reads: IFC2X3, IFC4 and IFC4X3, with addenda and corrigenda. */
-  private static final Pattern SUPPORTED_SCHEMA = Pattern.compile("IFC(2X3|4|4X3)(_[A-Z0-9]+)?");
+  /** Uncompressed size limit for an {@code .ifc} entry inside an {@code .ifczip} archive. */
+  static final long MAX_UNCOMPRESSED_BYTES = 512L * 1024 * 1024;
 
   private static final Logger logger = LoggerFactory.getLogger(IfcResources.class);
 
@@ -50,7 +54,7 @@ public final class IfcResources {
    *
    * @throws ModelLoadException when the model cannot be read
    */
-  public static IfcModel loadDefaultModel() {
+  public static StepModel loadDefaultModel() {
     String override = configuredSource();
     return override == null ? loadBundled() : load(override);
   }
@@ -61,7 +65,7 @@ public final class IfcResources {
    * @param source a path, or an {@code http(s)} link - a GitHub link to a file works as well
    * @throws ModelLoadException when the model cannot be read; the message says why
    */
-  public static IfcModel load(String source) {
+  public static StepModel load(String source) {
     if (source == null || source.isBlank()) {
       throw new ModelLoadException("Kein Modell angegeben.");
     }
@@ -77,18 +81,20 @@ public final class IfcResources {
   }
 
   /** Read the bundled bridge model, whatever override is configured. */
-  public static IfcModel loadBundled() {
+  public static StepModel loadBundled() {
     logger.info("Reading bundled IFC model {}", DEFAULT_RESOURCE);
-    IfcModel model = new IfcModel();
     try (InputStream in = open(DEFAULT_RESOURCE)) {
-      model.readStepFile(in);
+      return StepParser.parseForElements(in, DEFAULT_RESOURCE);
+    } catch (ModelLoadException e) {
+      throw e;
     } catch (Exception e) {
       throw new ModelLoadException(
-          "Das mitgelieferte Modell " + DEFAULT_RESOURCE + " konnte nicht gelesen werden: "
+          "Das mitgelieferte Modell "
+              + DEFAULT_RESOURCE
+              + " konnte nicht gelesen werden: "
               + reason(e),
           e);
     }
-    return requireSupportedSchema(model, DEFAULT_RESOURCE);
   }
 
   /**
@@ -97,7 +103,7 @@ public final class IfcResources {
    * @throws ModelLoadException when the file is missing, is not an IFC file, or uses a schema
    *     CheckMate does not read
    */
-  public static IfcModel load(Path file) {
+  public static StepModel load(Path file) {
     Path absolute = file.toAbsolutePath();
     if (!Files.isRegularFile(absolute)) {
       throw new ModelLoadException("IFC-Datei nicht gefunden: " + absolute);
@@ -112,7 +118,7 @@ public final class IfcResources {
    * <p>Nothing is kept: a model is read once per load, and keeping every download would fill the
    * disk with copies of files the user has anyway.
    */
-  private static IfcModel loadLink(String link) {
+  private static StepModel loadLink(String link) {
     URI uri;
     try {
       uri = ModelLinks.downloadUri(link);
@@ -149,7 +155,7 @@ public final class IfcResources {
    *
    * @param source how to name the file in a message: its path, or the link it came from
    */
-  private static IfcModel read(Path file, String source) {
+  private static StepModel read(Path file, String source) {
     Content content;
     try {
       content = ModelLinks.sniff(file);
@@ -171,24 +177,74 @@ public final class IfcResources {
               source
                   + " ist keine IFC-Datei: sie beginnt nicht mit 'ISO-10303-21' und ist kein"
                   + " ifcZIP. CheckMate liest .ifc und .ifczip.");
-      default -> {
-        // STEP or ZIP: read below.
+      case ZIP -> {
+        return readZip(file, source);
+      }
+      case STEP -> {
+        try (InputStream in = Files.newInputStream(file)) {
+          return StepParser.parseForElements(in, source);
+        } catch (ModelLoadException e) {
+          throw e;
+        } catch (Exception e) {
+          throw new ModelLoadException(source + " ist kein lesbares IFC-Modell: " + reason(e), e);
+        }
       }
     }
+    throw new AssertionError("Unhandled content kind: " + content);
+  }
 
-    IfcModel model = new IfcModel();
-    // Through a stream closed here: handed the file itself, the toolbox keeps it open after a
-    // failed read, which on Windows locks it until the program ends.
-    try (InputStream in = Files.newInputStream(file)) {
-      if (content == Content.ZIP) {
-        model.readZipFile(in);
-      } else {
-        model.readStepFile(in);
+  private static StepModel readZip(Path file, String source) {
+    try (ZipFile zip = new ZipFile(file.toFile())) {
+      ZipEntry ifcEntry = findIfcEntry(zip);
+      if (ifcEntry == null) {
+        throw new ModelLoadException(
+            source + " ist eine ZIP-Datei, enthält aber keine .ifc-Datei.");
       }
-    } catch (Exception e) {
+      if (ifcEntry.getSize() > MAX_UNCOMPRESSED_BYTES) {
+        throw tooLargeUncompressed(source);
+      }
+      try (InputStream raw = zip.getInputStream(ifcEntry);
+          InputStream bounded = new BoundedInputStream(raw, MAX_UNCOMPRESSED_BYTES, source)) {
+        return StepParser.parseForElements(bounded, source);
+      }
+    } catch (ModelLoadException e) {
+      throw e;
+    } catch (ZipException e) {
+      throw new ModelLoadException(source + " ist keine lesbare ifcZIP-Datei: " + reason(e), e);
+    } catch (IOException e) {
       throw new ModelLoadException(source + " ist kein lesbares IFC-Modell: " + reason(e), e);
     }
-    return requireSupportedSchema(model, source);
+  }
+
+  private static ZipEntry findIfcEntry(ZipFile zip) {
+    Enumeration<? extends ZipEntry> entries = zip.entries();
+    while (entries.hasMoreElements()) {
+      ZipEntry entry = entries.nextElement();
+      if (isIfcEntry(entry)) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
+  private static boolean isIfcEntry(ZipEntry entry) {
+    if (entry.isDirectory()) {
+      return false;
+    }
+    String name = entry.getName().replace('\\', '/');
+    if (name.startsWith("__MACOSX/") || name.contains("/__MACOSX/")) {
+      return false;
+    }
+    String baseName = name.substring(name.lastIndexOf('/') + 1);
+    if (baseName.startsWith("._")) {
+      return false;
+    }
+    return baseName.toLowerCase(Locale.ROOT).endsWith(".ifc");
+  }
+
+  private static ModelLoadException tooLargeUncompressed(String source) {
+    return new ModelLoadException(
+        source + " ist entpackt größer als " + (MAX_UNCOMPRESSED_BYTES / (1024 * 1024)) + " MB.");
   }
 
   private static void deleteQuietly(Path file) {
@@ -200,28 +256,6 @@ public final class IfcResources {
     } catch (IOException e) {
       logger.warn("Could not delete the temporary download {}", file, e);
     }
-  }
-
-  /**
-   * Turn a read that "succeeded" on something other than IFC into an error.
-   *
-   * <p>The toolbox accepts files it cannot make sense of and leaves the model empty; the header's
-   * schema is what tells an IFC model apart from such a file.
-   */
-  private static IfcModel requireSupportedSchema(IfcModel model, String source) {
-    String schema = IfcModelElements.schemaOf(model);
-    if (schema == null) {
-      throw new ModelLoadException(
-          source + " nennt kein IFC-Schema (FILE_SCHEMA) - ist es wirklich eine IFC-Datei?");
-    }
-    if (!SUPPORTED_SCHEMA.matcher(schema).matches()) {
-      throw new ModelLoadException(
-          source
-              + " verwendet das Schema "
-              + schema
-              + " - CheckMate liest IFC2X3, IFC4 und IFC4X3.");
-    }
-    return model;
   }
 
   /**
@@ -258,5 +292,43 @@ public final class IfcResources {
           "Resource " + resource + " is missing from the classpath - was the module rebuilt?");
     }
     return in;
+  }
+
+  /** Stops reading an uncompressed ZIP entry once it exceeds the configured byte cap. */
+  static final class BoundedInputStream extends FilterInputStream {
+    private final long maxBytes;
+    private final String source;
+    private long readBytes;
+
+    BoundedInputStream(InputStream in, long maxBytes, String source) {
+      super(in);
+      this.maxBytes = maxBytes;
+      this.source = source;
+    }
+
+    @Override
+    public int read() throws IOException {
+      int b = super.read();
+      if (b != -1) {
+        count(1);
+      }
+      return b;
+    }
+
+    @Override
+    public int read(byte[] b, int off, int len) throws IOException {
+      int n = super.read(b, off, len);
+      if (n > 0) {
+        count(n);
+      }
+      return n;
+    }
+
+    private void count(int n) {
+      readBytes += n;
+      if (readBytes > maxBytes) {
+        throw tooLargeUncompressed(source);
+      }
+    }
   }
 }

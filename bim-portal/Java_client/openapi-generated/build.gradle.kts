@@ -26,10 +26,10 @@ dependencies {
     api("io.github.openfeign.form:feign-form:3.8.0")
 
     // Jackson dependencies with JSR310 support
-    api("com.fasterxml.jackson.core:jackson-databind:2.15.2")
-    api("com.fasterxml.jackson.core:jackson-annotations:2.15.2")
-    api("com.fasterxml.jackson.core:jackson-core:2.15.2")
-    api("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2")
+    api("com.fasterxml.jackson.core:jackson-databind:2.22.4")
+    api("com.fasterxml.jackson.core:jackson-annotations:2.22")
+    api("com.fasterxml.jackson.core:jackson-core:2.22.4")
+    api("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.4")
 
     // Jackson nullable support (required by generated client)
     api("org.openapitools:jackson-databind-nullable:0.2.6")

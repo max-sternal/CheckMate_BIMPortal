@@ -24,13 +24,11 @@ against it. A bridge model is bundled inside the JAR, so there is no file to loa
 
 ### What you need
 
-1. **The Apstex JARs.** Not redistributable, so not in the repo. Drop
-   `com.apstex.ifctoolbox*.jar` and `com.apstex.stepparser*.jar` into
-   `hackathon-template/lib/`. Without them the build excludes the whole `test/fx`
-   package - no GUI and no LOIN check - and says so in a single warning line that is
-   easy to miss. The `ids` package itself needs no IFC library and always compiles.
-2. **A JDK 21 that bundles JavaFX** for the GUI, e.g. Zulu 21 FX. `runGui` checks this
-   and names the problem. The headless check needs no JavaFX.
+1. **JDK 21.** Enough to build and run the pure-Java IFC reader (`com.bimportal.hackathon.ifc`),
+   the headless CLI (`runLoinCheck`), the MCP server (`installMcp`), and all tests — no Apstex
+   JARs or external IFC runtime needed.
+2. **A JDK 21 that bundles JavaFX** for the GUI, e.g. Zulu 21 FX. On a plain JDK 21, Gradle skips
+   only `test/fx` (the GUI), and `runGui` checks for JavaFX and names the problem.
 3. **No credentials.** The client falls back to anonymous access, and the LOINs used
    here are published ones. A `.env` only unlocks private content.
 
@@ -62,15 +60,20 @@ names differ from what the portal's LOINs ask for.
 ```
 hackathon-template/
 ├── .env                              # Your credentials (create from template)
-├── lib/                              # Apstex IFC Toolbox + STEP parser (not in the repo)
 ├── src/main/java/com/bimportal/hackathon/
 │   ├── HackathonApplication.java     # 🎯 Main entry point - start here
+│   ├── catalogue/                    # 🔎 BIM Portal LOIN catalogue filter & fit ranking
+│   ├── check/                        # ⚙️ Unified CheckService shared by all front ends
+│   ├── cli/                          # 💻 Headless CLI (LoinCheckCli)
 │   ├── examples/
-│   │   └── BasicExample.java        # 📚 Learn the API basics
-│   └── ids/                         # ✅ LOIN check: read an IDS export, check a model
-├── src/main/java/test/fx/           # 🖼️ CheckMate GUI (App) and headless CLI (LoinCheckCli)
-├── src/main/resources/ifc/          # Bundled bridge model
-└── README.md                        # This file
+│   │   └── BasicExample.java         # 📚 Learn the API basics
+│   ├── ids/                          # ✅ IDS 1.0 parser, archive & validator
+│   ├── ifc/                          # 🧱 Pure-Java STEP/IFC reader (IFC2X3, IFC4, IFC4X3)
+│   ├── mcp/                          # 🤖 MCP server for AI apps (CheckMateMcpServer)
+│   └── report/                       # 📝 Text & JSON check reports
+├── src/main/java/test/fx/            # 🖼️ CheckMate JavaFX GUI (App, ElementUI, RequirementSource)
+├── src/main/resources/ifc/           # Bundled bridge model & IFC schema tables
+└── README.md                         # This file
 ```
 
 ## 🛠️ Building Your Solution
@@ -131,5 +134,3 @@ client.logout();
 - In IntelliJ, check the Project and the Modules tab under `File -> Project Structure` and verify the Java versions there
 - In the console, run an export `export JAVA_HOME=/path/to/jdk-21` that points to the directory of the Java SDK
 - Open a different console
-
-

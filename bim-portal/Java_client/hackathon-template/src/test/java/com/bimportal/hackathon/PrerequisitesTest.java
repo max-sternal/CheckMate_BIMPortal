@@ -15,21 +15,11 @@ import org.junit.jupiter.api.Test;
 class PrerequisitesTest {
 
   @Test
-  void apstexIfcToolboxIsInstalled() {
-    assumeTrue(
-        onClasspath("com.apstex.ifctoolbox.ifcmodel.IfcModel")
-            && onClasspath("com.apstex.step.core.ClassInterface"),
-        "Apstex IFC Toolbox missing: copy com.apstex.ifctoolbox*.jar and com.apstex.stepparser*.jar"
-            + " into hackathon-template/lib/. Without them the GUI, the CLI and the IFC reading"
-            + " tests (test.fx) are not built.");
-  }
-
-  @Test
   void javaFxIsAvailableForTheGui() {
     assumeTrue(
         onClasspath("javafx.application.Application"),
-        "JavaFX missing: the GUI needs a JDK that bundles it, such as Zulu 21 JDK FX. The CLI and"
-            + " the tests run without it.");
+        "JavaFX missing: the GUI needs a JDK that bundles it, such as Zulu 21 JDK FX. The IFC"
+            + " reader, CLI, MCP server and tests run without it.");
   }
 
   @Test

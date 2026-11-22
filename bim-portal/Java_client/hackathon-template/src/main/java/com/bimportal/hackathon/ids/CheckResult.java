@@ -209,8 +209,7 @@ public record CheckResult(
      */
     public static FacetMatch entity(
         String facet, int matchedElements, int ofEntity, String predefinedTypeMismatch) {
-      return new FacetMatch(
-          facet, matchedElements, ofEntity, 0, predefinedTypeMismatch, true, "");
+      return new FacetMatch(facet, matchedElements, ofEntity, 0, predefinedTypeMismatch, true, "");
     }
 
     public String line() {
@@ -234,9 +233,7 @@ public record CheckResult(
             + typeDifferences;
       }
       String wrongType =
-          valueButNotType
-              + " Element(e) mit passendem Wert, aber Datentyp "
-              + typeDifferences;
+          valueButNotType + " Element(e) mit passendem Wert, aber Datentyp " + typeDifferences;
 
       if (matchedElements > 0) {
         String line = facet + " trifft " + matchedElements + " Element(e)";
@@ -313,9 +310,9 @@ public record CheckResult(
   }
 
   /**
-   * Elements the applicability turned down only because a property name is written differently
-   * from the one asked for - in case, umlauts or separators. IDS compares names exactly, so they
-   * are not checked; the hint names them so the model can be fixed.
+   * Elements the applicability turned down only because a property name is written differently from
+   * the one asked for - in case, umlauts or separators. IDS compares names exactly, so they are not
+   * checked; the hint names them so the model can be fixed.
    *
    * @param spellings how the names differ, e.g. {@code 'pset_test/status' statt 'Pset_Test/Status'}
    */

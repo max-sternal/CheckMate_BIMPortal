@@ -1,0 +1,8 @@
+{
+  "name": "BIM.Hamburg Brücken",
+  "aliases": [
+    { "from": "Klassifizierung/Objektgruppe", "to": ["Pset_Objektinformation/_IDEbene1"] },
+    { "from": "Klassifizierung/Objektklasse", "to": ["Pset_Objektinformation/_IDEbene2"] },
+    { "from": "Klassifizierung/Objekttyp", "to": ["Pset_Objektinformation/_IDEbene3"] }
+  ]
+}

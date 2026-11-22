@@ -33,8 +33,7 @@ class IdsConformanceTest {
         only(check("Status", LABEL, "Neu", property("Pset_Test", "Status", "neu", LABEL)));
 
     assertThat(finding.status()).isEqualTo(Status.WRONG_VALUE);
-    assertThat(finding.detail())
-        .isEqualTo("gefunden: 'neu' (nur Groß-/Kleinschreibung weicht ab)");
+    assertThat(finding.detail()).isEqualTo("gefunden: 'neu' (nur Groß-/Kleinschreibung weicht ab)");
   }
 
   @Test
@@ -208,8 +207,7 @@ class IdsConformanceTest {
   void theDiagnosisSaysWhenTheEntityIsMissing() throws Exception {
     ModelElement door = typedElement("tuer", "IfcDoor", "DOOR", false, List.of());
 
-    CheckResult result =
-        IdsValidator.check(specification(FENSTER, "IFC4"), List.of(door), "IFC4");
+    CheckResult result = IdsValidator.check(specification(FENSTER, "IFC4"), List.of(door), "IFC4");
 
     assertThat(result.diagnosis().facets())
         .extracting(FacetMatch::line)

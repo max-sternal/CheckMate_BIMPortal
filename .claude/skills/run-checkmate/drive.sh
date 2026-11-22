@@ -20,11 +20,6 @@ if [ -z "$java_home" ] || [ ! -f "$java_home/lib/javafx.properties" ] ||
   exit 2
 fi
 
-if ! ls hackathon-template/lib/com.apstex.ifctoolbox*.jar hackathon-template/lib/com.apstex.stepparser*.jar >/dev/null 2>&1; then
-  echo "drive.sh: Apstex JARs missing from hackathon-template/lib/ - without them test/fx (the GUI) is not compiled." >&2
-  exit 2
-fi
-
 # Compile the module and write the classpath @argfile (build/checkmate-driver.args).
 ./gradlew -q --console=plain -I "$skill/driver-classpath.init.gradle" :hackathon-template:writeDriverArgs >&2
 

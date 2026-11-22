@@ -15,6 +15,7 @@ import com.bimportal.hackathon.check.CheckService.Portal;
 import com.bimportal.hackathon.ids.ModelElement;
 import com.bimportal.hackathon.ids.ModelElement.ModelProperty;
 import com.bimportal.hackathon.ids.PropertyKey;
+import com.bimportal.hackathon.ifc.LoadedModel;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +33,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import test.fx.LoadedModel;
 
 /** The MCP tools without the protocol, on a model built in code and with the portal mocked. */
 @ExtendWith(MockitoExtension.class)
@@ -96,6 +96,34 @@ class CheckMateToolsTest {
   }
 
   @Test
+  void aViewLoadsUnmetFindingsPageByPage() throws IOException {
+    Path ids = Files.write(folder.resolve("kappe.ids"), resource(KAPPE_IDS));
+    CheckMateTools tools =
+        tools(
+            Portal.none(),
+            kappe("k1", "Kappe 1", null),
+            kappe("k2", "Kappe 2", null),
+            kappe("k3", "Kappe 3", null));
+    assertThatThrownBy(() -> tools.reportPage(0, 0, 0, 10))
+        .hasMessageContaining("zuerst check_model");
+
+    tools.check(List.of(), List.of(ids.toString()), 3);
+    Map<String, Object> data = tools.reportData(2);
+    Map<String, Object> spec =
+        ((List<Map<String, Object>>)
+                ((List<Map<String, Object>>) data.get("runs")).get(0).get("specifications"))
+            .get(0);
+
+    assertThat(spec.get("unmetTotal")).isEqualTo(3);
+    assertThat((List<?>) spec.get("unmet")).hasSize(2);
+    Map<String, Object> rest = tools.reportPage(0, 0, 2, 25);
+    assertThat(rest.get("total")).isEqualTo(3);
+    assertThat((List<?>) rest.get("unmet")).hasSize(1);
+    assertThatThrownBy(() -> tools.reportPage(0, 5, 0, 1))
+        .hasMessageContaining("Keine Spezifikation");
+  }
+
+  @Test
   void theFullReportListsEveryFinding() throws IOException {
     Path ids = Files.write(folder.resolve("kappe.ids"), resource(KAPPE_IDS));
     CheckMateTools tools = tools(Portal.none(), kappe("k1", "Kappe Nord", "1"));
@@ -109,6 +137,12 @@ class CheckMateToolsTest {
   void saysWhatIsMissingInsteadOfGuessing() {
     CheckMateTools tools = tools(Portal.none(), kappe("k1", "Kappe Nord", "1"));
 
+    assertThatThrownBy(() -> tools.elementReport(null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Kein Element");
+    assertThatThrownBy(() -> tools.elementReport("   "))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Kein Element");
     assertThatThrownBy(() -> tools.elementReport("k1")).hasMessageContaining("check_model");
     assertThatThrownBy(() -> tools.check(List.of(), List.of(), 3))
         .hasMessageContaining("Keine Anforderungen");
@@ -159,7 +193,7 @@ class CheckMateToolsTest {
   static LoadedModel model(String name, ModelElement... elements) {
     Map<String, ModelElement> byId =
         List.of(elements).stream().collect(Collectors.toMap(ModelElement::id, Function.identity()));
-    return new LoadedModel(name, null, "IFC2X3", List.of(elements), byId);
+    return new LoadedModel(name, "IFC2X3", List.of(elements), byId);
   }
 
   /** Classified as the Kappe LOIN asks; without a Feldnummer it fails. */

@@ -81,8 +81,7 @@ class CatalogueTest {
     List<ModelElement> model = List.of(kappeElement("IfcLabel"), kappeElement("IfcText"));
     Fit fit = new Fit(Kind.CLASSIFICATION, 2, "Kappe", 0, "Ueberbau");
 
-    List<String> lines =
-        LoinDescription.describe(kappe(), fit, kappeIds(), "IFC2X3", model);
+    List<String> lines = LoinDescription.describe(kappe(), fit, kappeIds(), "IFC2X3", model);
 
     assertThat(lines)
         .contains(
@@ -101,8 +100,7 @@ class CatalogueTest {
 
   @Test
   void saysWhenTheRequirementsAreStillLoadingOrMissForTheSchema() throws Exception {
-    List<String> loading =
-        LoinDescription.describe(kappe(), Fit.NONE, null, "IFC2X3", List.of());
+    List<String> loading = LoinDescription.describe(kappe(), Fit.NONE, null, "IFC2X3", List.of());
     List<String> otherSchema =
         LoinDescription.describe(kappe(), Fit.NONE, kappeIds(), "IFC5", List.of());
 
