@@ -276,8 +276,15 @@ async function loadAndCheck(ifcBytes: Uint8Array, modelName: string, idsXml: str
 
       geom.meshes.forEach((m: MeshData) => {
         if (!m.positions || m.positions.length === 0) return;
-        const p = m.positions;
-        for (let i = 0; i < p.length; i += 3) {
+        const orig = (m as unknown as { origin?: [number, number, number] }).origin ?? [0, 0, 0];
+        const ox = orig[0] ?? 0,
+          oy = orig[1] ?? 0,
+          oz = orig[2] ?? 0;
+        const p = new Float32Array(m.positions.length);
+        for (let i = 0; i < m.positions.length; i += 3) {
+          p[i] = m.positions[i] + ox;
+          p[i + 1] = m.positions[i + 1] + oy;
+          p[i + 2] = m.positions[i + 2] + oz;
           if (p[i] < minX) minX = p[i];
           if (p[i] > maxX) maxX = p[i];
           if (p[i + 1] < minY) minY = p[i + 1];
@@ -287,7 +294,7 @@ async function loadAndCheck(ifcBytes: Uint8Array, modelName: string, idsXml: str
         }
         const pb = gl.createBuffer()!;
         gl.bindBuffer(gl.ARRAY_BUFFER, pb);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(m.positions), gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, p, gl.STATIC_DRAW);
         const nb = gl.createBuffer()!;
         gl.bindBuffer(gl.ARRAY_BUFFER, nb);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(m.normals), gl.STATIC_DRAW);

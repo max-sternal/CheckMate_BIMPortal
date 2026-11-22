@@ -817,14 +817,18 @@ export class CheckService {
         for (const rr of er.requirementResults) {
           const facet = rr.requirement.facet;
           const reqDesc = describeFacet(facet);
-          let status: FindingStatus = rr.passed ? 'FULFILLED' : 'WRONG_VALUE';
-          let detail = rr.passed
+          const reqPassed =
+            (rr as unknown as { status?: string }).status !== undefined
+              ? (rr as unknown as { status?: string }).status !== 'fail'
+              : Boolean((rr as unknown as { passed?: boolean }).passed);
+          let status: FindingStatus = reqPassed ? 'FULFILLED' : 'WRONG_VALUE';
+          let detail = reqPassed
             ? rr.actualValue
               ? `'${rr.actualValue}'`
               : 'vorhanden'
             : rr.failureReason ?? 'Anforderung nicht erfüllt';
 
-          if (!rr.passed && rr.failure) {
+          if (!reqPassed && rr.failure) {
             const ft = rr.failure.type;
             if (ft.endsWith('_MISSING') || ft === 'PROPERTY_EMPTY') {
               status = 'MISSING';

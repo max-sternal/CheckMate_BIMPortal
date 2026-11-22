@@ -128,7 +128,7 @@
     var minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
     list.forEach(function (m) {
       var p = m.positions;
-      for (var i = 0; i < p.length; i += 3) {
+      var o = m.origin || [0,0,0]; for (var i = 0; i < p.length; i += 3) { p[i] += o[0]||0; p[i+1] += o[1]||0; p[i+2] += o[2]||0;
         if (p[i] < minX) minX = p[i]; if (p[i] > maxX) maxX = p[i];
         if (p[i+1] < minY) minY = p[i+1]; if (p[i+1] > maxY) maxY = p[i+1];
         if (p[i+2] < minZ) minZ = p[i+2]; if (p[i+2] > maxZ) maxZ = p[i+2];

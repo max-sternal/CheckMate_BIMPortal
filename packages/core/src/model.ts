@@ -277,12 +277,22 @@ export class LoadedModel {
 
       for (const m of subMeshes) {
         if (!m.positions || m.positions.length === 0) continue;
+        const orig = (m as unknown as { origin?: [number, number, number] }).origin ?? [0, 0, 0];
+        const ox = orig[0] ?? 0;
+        const oy = orig[1] ?? 0;
+        const oz = orig[2] ?? 0;
+        const worldPos = new Array<number>(m.positions.length);
+        for (let i = 0; i < m.positions.length; i += 3) {
+          worldPos[i] = m.positions[i] + ox;
+          worldPos[i + 1] = m.positions[i + 1] + oy;
+          worldPos[i + 2] = m.positions[i + 2] + oz;
+        }
         resultMeshes.push({
           expressId,
           globalId: gid,
           entityName: el?.entityName ?? m.ifcType ?? 'IfcProduct',
           name: el?.name ?? '',
-          positions: Array.from(m.positions),
+          positions: worldPos,
           normals: Array.from(m.normals),
           indices: Array.from(m.indices),
           color: m.color ?? [0.75, 0.78, 0.82, 1.0],
