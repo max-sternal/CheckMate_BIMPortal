@@ -1,0 +1,70 @@
+name: Deploy Versioned Documentation
+
+on:
+  push:
+    branches: ["0.3.2"]
+    paths:
+      - "website/**"
+      - ".github/workflows/versioned-docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+env:
+  CHECKMATE_DOCS_LATEST: v0.3.1
+
+jobs:
+  build:
+    name: Build versioned site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout documentation
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Prepare the latest release and archived versions
+        run: |
+          mkdir -p "$RUNNER_TEMP/checkmate-release"
+          git archive "$CHECKMATE_DOCS_LATEST" website | tar -x -C "$RUNNER_TEMP/checkmate-release"
+          node website/scripts/prepare-published-site.mjs "$RUNNER_TEMP/checkmate-release/website" "$RUNNER_TEMP/checkmate-site"
+
+      - name: Install dependencies and build
+        working-directory: ${{ runner.temp }}/checkmate-site
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/checkmate-site/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

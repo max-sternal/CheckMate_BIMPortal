@@ -1,6 +1,10 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import starlightVersions from 'starlight-versions';
+
+const publishedVersion = process.env.CHECKMATE_DOCS_LATEST ?? 'v0.3.2';
+const is031 = publishedVersion === 'v0.3.1';
 
 // https://astro.build/config
 export default defineConfig({
@@ -8,6 +12,16 @@ export default defineConfig({
 	base: '/CheckMate_BIMPortal',
 	integrations: [
 		starlight({
+			plugins: [
+				starlightVersions({
+					current: { label: `Aktuell (${publishedVersion})`, redirect: 'root' },
+					versions: [
+						{ slug: 'v0.3.1', label: 'v0.3.1', redirect: 'root' },
+						{ slug: 'v0.2.0', label: 'v0.2.0', redirect: 'root' },
+						{ slug: 'v0.1.0', label: 'v0.1.0', redirect: 'root' },
+					],
+				}),
+			],
 			title: 'CheckMate',
 			description:
 				'CheckMate prüft IFC-Modelle anhand von IDS-Anforderungen aus dem BIM-Portal oder lokalen Dateien.',
@@ -36,7 +50,7 @@ export default defineConfig({
 			],
 			editLink: {
 				baseUrl:
-					'https://github.com/max-sternal/CheckMate_BIMPortal/edit/0.3.2/website/',
+					`https://github.com/max-sternal/CheckMate_BIMPortal/edit/${is031 ? '0.3.1' : '0.3.2'}/website/`,
 			},
 			sidebar: [
 				{
@@ -54,10 +68,11 @@ export default defineConfig({
 							slug: 'guides/versions',
 						},
 						{
-							label: 'Schnellstart (0.3.2)',
-							translations: { en: 'Quick Start (0.3.2)' },
+							label: `Schnellstart (${is031 ? '0.3.1' : '0.3.2'})`,
+							translations: { en: `Quick Start (${is031 ? '0.3.1' : '0.3.2'})` },
 							slug: 'guides/quickstart',
 						},
+						...(is031 ? [] : [
 						{
 							label: 'Beispiele & Mapping',
 							translations: { en: 'Examples & Mapping' },
@@ -68,6 +83,7 @@ export default defineConfig({
 							translations: { en: 'Walk Through a Check' },
 							slug: 'guides/example',
 						},
+						]),
 					],
 				},
 				{
