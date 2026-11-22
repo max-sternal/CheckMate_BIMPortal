@@ -15,9 +15,17 @@ import com.bimportal.hackathon.ids.ModelElement;
 import com.bimportal.hackathon.ids.PortalRequirements;
 import com.bimportal.hackathon.ids.PropertyAliases;
 import com.bimportal.hackathon.ifc.LoadedModel;
+import com.bimportal.hackathon.properties.PortalProperties;
+import com.bimportal.hackathon.properties.PortalProperties.PropertyDetail;
+import com.bimportal.hackathon.properties.PortalProperties.PropertyGroupDetail;
+import com.bimportal.hackathon.properties.PortalProperties.PropertySummary;
 import com.bimportal.hackathon.report.CheckReport;
 import com.bimportal.hackathon.report.CheckReport.Run;
+import com.bimportal.hackathon.report.ReportJson;
 import com.bimportal.hackathon.report.ReportText;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -37,13 +45,21 @@ import java.util.function.Supplier;
  */
 public final class CheckMateTools {
 
+  private static final ObjectMapper JSON =
+      new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
   private final CheckService service;
   private final Function<String, LoadedModel> modelReader;
   private final Supplier<LoadedModel> defaultModel;
+  private final Supplier<PortalProperties> propertiesSupplier;
 
   private LoadedModel model;
+  private PortalProperties propertiesClient;
   private CheckReport lastReport;
   private List<CatalogueEntry> lastFound = List.of();
+  private Map<String, Object> lastLoinsData = Map.of();
+  private Map<String, Object> lastPropertiesData = Map.of();
+  private Map<String, Object> lastPropertyDetailData = Map.of();
 
   /**
    * @param modelReader reads a model from a path or a link
@@ -53,15 +69,30 @@ public final class CheckMateTools {
       CheckService service,
       Function<String, LoadedModel> modelReader,
       Supplier<LoadedModel> defaultModel) {
+    this(service, modelReader, defaultModel, null);
+  }
+
+  /**
+   * @param modelReader reads a model from a path or a link
+   * @param defaultModel the model to use when none was loaded: the configured or bundled one
+   * @param propertiesSupplier lazy supplier for the BIM Portal Merkmale &amp; Merkmalsgruppen API
+   */
+  public CheckMateTools(
+      CheckService service,
+      Function<String, LoadedModel> modelReader,
+      Supplier<LoadedModel> defaultModel,
+      Supplier<PortalProperties> propertiesSupplier) {
     this.service = service;
     this.modelReader = modelReader;
     this.defaultModel = defaultModel;
+    this.propertiesSupplier = propertiesSupplier;
   }
 
   /** Load a model from a path or a link; it replaces the one before. */
   public synchronized String loadModel(String source) {
     model = modelReader.apply(source);
     lastReport = null;
+    lastLoinsData = Map.of();
     return describeModel();
   }
 
@@ -78,6 +109,29 @@ public final class CheckMateTools {
         .limit(15)
         .forEach(entry -> lines.add("   " + entry.getKey() + ": " + entry.getValue()));
     return String.join("\n", lines);
+  }
+
+  /** The model in use as structured data for the model overview view and JSON resource. */
+  public synchronized Map<String, Object> modelData() {
+    LoadedModel current = model();
+    Map<String, Integer> counts = new TreeMap<>();
+    current.elements().forEach(e -> counts.merge(e.entityName(), 1, Integer::sum));
+    Map<String, Integer> sortedCounts = new LinkedHashMap<>();
+    counts.entrySet().stream()
+        .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+        .forEach(entry -> sortedCounts.put(entry.getKey(), entry.getValue()));
+    Map<String, Object> data = new LinkedHashMap<>();
+    data.put("name", current.name());
+    data.put("schema", current.schema());
+    data.put("elementCount", current.elements().size());
+    data.put("entityCounts", sortedCounts);
+    data.put("mappingName", PropertyAliases.current().name());
+    return data;
+  }
+
+  /** The current model overview serialized as JSON, for the {@code checkmate://model/current} resource. */
+  public synchronized String currentModelJson() {
+    return toJson(modelData());
   }
 
   /** Elements of the model, filtered by entity and part of the name. */
@@ -115,6 +169,13 @@ public final class CheckMateTools {
     long fitting = ranked.stream().filter(r -> r.fit().fits()).count();
     lastFound = filtered;
 
+    List<Ranked> shown =
+        ranked.stream()
+            .filter(r -> includeUnfitting || fitting == 0 || r.fit().fits())
+            .limit(limit)
+            .toList();
+    lastLoinsData = buildLoinsData(found, filtered.size(), fitting, shown);
+
     List<String> lines = new ArrayList<>();
     lines.add(
         found.loins().size()
@@ -126,19 +187,67 @@ public final class CheckMateTools {
             + found.projects().size()
             + " AIA-Projekt(e)");
     found.projects().forEach(p -> lines.add("AIA-Projekt | " + p.guid() + " | " + p.name()));
-    ranked.stream()
-        .filter(r -> includeUnfitting || fitting == 0 || r.fit().fits())
-        .limit(limit)
-        .forEach(
-            r ->
-                lines.add(
-                    "LOIN | "
-                        + r.entry().guid()
-                        + " | "
-                        + r.entry().name()
-                        + " | "
-                        + (r.fit().fits() ? r.fit().describe() : "passt nicht erkennbar")));
+    shown.forEach(
+        r ->
+            lines.add(
+                "LOIN | "
+                    + r.entry().guid()
+                    + " | "
+                    + r.entry().name()
+                    + " | "
+                    + (r.fit().fits() ? r.fit().describe() : "passt nicht erkennbar")));
     return String.join("\n", lines);
+  }
+
+  /**
+   * The last {@link #findLoins} result as structured data for the LOIN picker view. Empty before
+   * the first search.
+   */
+  public synchronized Map<String, Object> loinsData() {
+    return lastLoinsData;
+  }
+
+  private static Map<String, Object> buildLoinsData(
+      Found found, int filteredCount, long fittingCount, List<Ranked> shown) {
+    Map<String, Object> data = new LinkedHashMap<>();
+    data.put("totalLoins", found.loins().size());
+    data.put("filteredLoins", filteredCount);
+    data.put("fittingLoins", fittingCount);
+
+    List<Map<String, Object>> projects = new ArrayList<>();
+    found
+        .projects()
+        .forEach(
+            p -> {
+              Map<String, Object> proj = new LinkedHashMap<>();
+              proj.put("id", p.guid() == null ? "" : p.guid().toString());
+              proj.put("name", p.name());
+              projects.add(proj);
+            });
+    data.put("projects", projects);
+
+    List<Map<String, Object>> loins = new ArrayList<>();
+    for (Ranked ranked : shown) {
+      CatalogueEntry entry = ranked.entry();
+      Map<String, Object> item = new LinkedHashMap<>();
+      item.put("id", entry.guid() == null ? "" : entry.guid().toString());
+      item.put("name", entry.name());
+      item.put("version", entry.version());
+      item.put("organisation", entry.organisation());
+      item.put("objectTypes", entry.objectTypes());
+      item.put("disciplines", entry.disciplines());
+      item.put("phases", entry.phases());
+      item.put("purposes", entry.purposes());
+      item.put("fits", ranked.fit().fits());
+      item.put("fitKind", ranked.fit().kind().name());
+      item.put("fitElements", ranked.fit().elements());
+      item.put(
+          "fitDescription",
+          ranked.fit().fits() ? ranked.fit().describe() : "passt nicht erkennbar");
+      loins.add(item);
+    }
+    data.put("loins", loins);
+    return data;
   }
 
   /** What a LOIN or AIA project asks for, and how many elements of the model it would apply to. */
@@ -228,6 +337,20 @@ public final class CheckMateTools {
     }
     data.put("runs", runs);
     return data;
+  }
+
+  /**
+   * The last check report serialized as JSON, for the {@code checkmate://report/last.json}
+   * resource.
+   */
+  public synchronized String lastReportJson() {
+    if (lastReport == null) {
+      Map<String, Object> empty = new LinkedHashMap<>();
+      empty.put("status", "none");
+      empty.put("message", "Noch keine Prüfung durchgeführt.");
+      return toJson(empty);
+    }
+    return ReportJson.write(lastReport);
   }
 
   private static List<Finding> unmetFindings(CheckResult result) {
@@ -346,6 +469,132 @@ public final class CheckMateTools {
     return String.join("\n", lines);
   }
 
+  /**
+   * Search Merkmale (properties) and/or Merkmalsgruppen (property groups) in the German BIM Portal.
+   */
+  public synchronized String findProperties(String search, String kind, int limit) {
+    int cap = limit <= 0 ? 20 : Math.min(limit, 100);
+    String mode = blank(kind) ? "all" : kind.trim().toLowerCase(Locale.ROOT);
+    PortalProperties portal = properties();
+
+    List<PropertySummary> props = List.of();
+    List<PropertySummary> groups = List.of();
+    switch (mode) {
+      case "property", "properties", "merkmal", "merkmale" ->
+          props = portal.searchProperties(search, cap);
+      case "group", "groups", "gruppe", "merkmalsgruppe", "merkmalsgruppen" ->
+          groups = portal.searchPropertyGroups(search, cap);
+      case "all", "alle" -> {
+        props = portal.searchProperties(search, cap);
+        groups = portal.searchPropertyGroups(search, cap);
+      }
+      default ->
+          throw new IllegalArgumentException(
+              "Unbekannter Typ '" + kind + "' (erlaubt: all, property, group).");
+    }
+
+    Map<String, Object> data = new LinkedHashMap<>();
+    data.put("query", blank(search) ? "" : search.trim());
+    data.put("kind", mode);
+    data.put("properties", props.stream().map(PropertySummary::toMap).toList());
+    data.put("groups", groups.stream().map(PropertySummary::toMap).toList());
+    lastPropertiesData = data;
+
+    List<String> sections = new ArrayList<>();
+    if (!props.isEmpty() || mode.equals("property") || mode.equals("properties")
+        || mode.equals("merkmal") || mode.equals("merkmale")) {
+      sections.add(PortalProperties.formatSearchResults(props, "Merkmale"));
+    }
+    if (!groups.isEmpty() || mode.equals("group") || mode.equals("groups")
+        || mode.equals("gruppe") || mode.equals("merkmalsgruppe")
+        || mode.equals("merkmalsgruppen")) {
+      sections.add(PortalProperties.formatSearchResults(groups, "Merkmalsgruppen"));
+    }
+    if (sections.isEmpty()) {
+      return "Keine Merkmale oder Merkmalsgruppen im BIM-Portal gefunden"
+          + (blank(search) ? "." : " für '" + search.trim() + "'.");
+    }
+    return String.join("\n\n", sections);
+  }
+
+  /** Structured data of the last {@link #findProperties} call. */
+  public synchronized Map<String, Object> propertiesData() {
+    return lastPropertiesData;
+  }
+
+  /** Describe a single Merkmal or Merkmalsgruppe from the German BIM Portal by GUID or link. */
+  public synchronized String describeProperty(String guidOrLink, String kind) {
+    if (blank(guidOrLink)) {
+      throw new IllegalArgumentException(
+          "Keine GUID angegeben (Merkmal- oder Merkmalsgruppen-GUID oder BIM-Portal-Link).");
+    }
+    UUID guid =
+        PortalRequirements.idIn(guidOrLink)
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Keine gültige GUID in '" + guidOrLink + "' gefunden."));
+    String mode = blank(kind) ? "auto" : kind.trim().toLowerCase(Locale.ROOT);
+    PortalProperties portal = properties();
+
+    if (mode.equals("group") || mode.equals("gruppe") || mode.equals("merkmalsgruppe")) {
+      PropertyGroupDetail group =
+          portal
+              .getPropertyGroup(guid)
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "Keine Merkmalsgruppe im BIM-Portal mit GUID " + guid + "."));
+      lastPropertyDetailData = group.toMap();
+      return PortalProperties.formatPropertyGroupDetail(group);
+    }
+
+    if (mode.equals("property") || mode.equals("merkmal")) {
+      PropertyDetail prop =
+          portal
+              .getProperty(guid)
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "Kein Merkmal im BIM-Portal mit GUID " + guid + "."));
+      lastPropertyDetailData = prop.toMap();
+      return PortalProperties.formatPropertyDetail(prop);
+    }
+
+    if (!mode.equals("auto")) {
+      throw new IllegalArgumentException(
+          "Unbekannter Typ '" + kind + "' (erlaubt: auto, property, group).");
+    }
+
+    Optional<PropertyDetail> prop = portal.getProperty(guid);
+    if (prop.isPresent()) {
+      lastPropertyDetailData = prop.get().toMap();
+      return PortalProperties.formatPropertyDetail(prop.get());
+    }
+    Optional<PropertyGroupDetail> group = portal.getPropertyGroup(guid);
+    if (group.isPresent()) {
+      lastPropertyDetailData = group.get().toMap();
+      return PortalProperties.formatPropertyGroupDetail(group.get());
+    }
+    throw new IllegalArgumentException(
+        "Weder Merkmal noch Merkmalsgruppe im BIM-Portal mit GUID " + guid + " gefunden.");
+  }
+
+  /** Structured data of the last {@link #describeProperty} call. */
+  public synchronized Map<String, Object> propertyDetailData() {
+    return lastPropertyDetailData;
+  }
+
+  private PortalProperties properties() {
+    if (propertiesClient == null) {
+      if (propertiesSupplier == null) {
+        throw new IllegalStateException("BIM-Portal-Merkmalsclient nicht konfiguriert.");
+      }
+      propertiesClient = propertiesSupplier.get();
+    }
+    return propertiesClient;
+  }
+
   private LoadedModel model() {
     if (model == null) {
       model = defaultModel.get();
@@ -360,5 +609,12 @@ public final class CheckMateTools {
   private static boolean contains(String text, String part) {
     return text != null
         && text.toLowerCase(Locale.ROOT).contains(part.trim().toLowerCase(Locale.ROOT));
+  }
+  private static String toJson(Object value) {
+    try {
+      return JSON.writeValueAsString(value);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("JSON serialization failed", e);
+    }
   }
 }

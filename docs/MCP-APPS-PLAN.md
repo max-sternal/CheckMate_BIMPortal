@@ -84,11 +84,12 @@ project. Use host style variables (`--color-*`, `--font-sans`) with fallbacks.
 - [x] SDK 2.1.0 to 2.2.0 (this branch).
 - [x] Jackson 2.15.2 to 2.22.x; CI tests passed on `6ac8b40`.
 - [x] Capability `extensions` declared. (No per-client check: hosts without the extension ignore `_meta.ui` and use the text.)
-- [x] `structuredContent` on `check_model`; [ ] on the other tools, with their views.
+- [x] `structuredContent` on `check_model`, `find_loins`, `describe_model`, `find_properties`, and `describe_property`.
 - [x] `ui://checkmate/report` view and resource, protocol tests (`CheckMateMcpServerTest`). Not yet seen in a real host.
 - [x] App-only `app_report_page` and report-view "load more".
-- [ ] `ui://checkmate/loins` view and its app-only tools.
-- [ ] `ui://checkmate/model` view.
+- [x] `ui://checkmate/loins` view and resource (`loins.html`), protocol-tested.
+- [x] `ui://checkmate/model` view and resource (`model.html`), protocol-tested.
+- [x] JSON resources (`checkmate://model/current`, `checkmate://report/last.json`) and prompts (`check-loin`, `explain-element`).
 - [ ] Antigravity plugin task and Claude Desktop test (Windows).
 - [ ] Decide how to integrate the MCP changes into `0.4`.
 - [ ] Modern (2026-07-28) server over Streamable HTTP, when the SDK API is stable.

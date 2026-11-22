@@ -7,6 +7,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.bimportal.client.model.NamesInLanguageDto;
+import com.bimportal.client.model.PropertyDto;
+import com.bimportal.client.model.PropertyGroupDto;
+import com.bimportal.client.model.PropertyOrGroupForPublicDto;
 import com.bimportal.client.model.SimpleAiaProjectPublicDto;
 import com.bimportal.client.model.SimpleLoinPublicDto;
 import com.bimportal.hackathon.catalogue.CatalogueFilter;
@@ -16,6 +20,9 @@ import com.bimportal.hackathon.ids.ModelElement;
 import com.bimportal.hackathon.ids.ModelElement.ModelProperty;
 import com.bimportal.hackathon.ids.PropertyKey;
 import com.bimportal.hackathon.ifc.LoadedModel;
+import com.bimportal.hackathon.properties.PortalProperties;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
 import java.io.IOException;
 import java.io.InputStream;
@@ -178,6 +185,132 @@ class CheckMateToolsTest {
         .contains("Objekttyp: Kappe", "Verlangt:", "Im Modell: 1 von 1 Elementen anwendbar");
     tools.check(List.of(KAPPE.toString()), List.of(), 3);
     verify(client, times(1)).exportLoinIds(KAPPE);
+  }
+
+  @Test
+  void providesStructuredModelAndReportJsonData() throws IOException {
+    ObjectMapper mapper = new ObjectMapper();
+    Path ids = Files.write(folder.resolve("kappe.ids"), resource(KAPPE_IDS));
+    CheckMateTools tools =
+        tools(Portal.none(), kappe("k1", "Kappe Nord", "1"), kappe("k2", "Kappe Süd", "2"), slab());
+
+    Map<String, Object> modelData = tools.modelData();
+    assertThat(modelData.get("name")).isEqualTo("Kappen.ifc");
+    assertThat(modelData.get("schema")).isEqualTo("IFC2X3");
+    assertThat(modelData.get("elementCount")).isEqualTo(3);
+    assertThat(modelData.get("mappingName")).isNotNull();
+    @SuppressWarnings("unchecked")
+    Map<String, Integer> entityCounts = (Map<String, Integer>) modelData.get("entityCounts");
+    assertThat(entityCounts).containsEntry("IfcBeam", 2).containsEntry("IfcSlab", 1);
+
+    JsonNode modelJson = mapper.readTree(tools.currentModelJson());
+    assertThat(modelJson.path("name").asText()).isEqualTo("Kappen.ifc");
+    assertThat(modelJson.path("elementCount").asInt()).isEqualTo(3);
+    assertThat(modelJson.path("entityCounts").path("IfcBeam").asInt()).isEqualTo(2);
+
+    JsonNode beforeCheck = mapper.readTree(tools.lastReportJson());
+    assertThat(beforeCheck.path("status").asText()).isEqualTo("none");
+
+    tools.check(List.of(), List.of(ids.toString()), 3);
+    JsonNode afterCheck = mapper.readTree(tools.lastReportJson());
+    assertThat(afterCheck.path("model").path("name").asText()).isEqualTo("Kappen.ifc");
+    assertThat(afterCheck.path("exitCode").asInt()).isZero();
+    assertThat(afterCheck.path("requirements")).hasSize(1);
+  }
+
+  @Test
+  void providesStructuredLoinsDataAfterSearch() {
+    UUID project = UUID.randomUUID();
+    when(client.searchProjects(any()))
+        .thenReturn(List.of(new SimpleAiaProjectPublicDto().guid(project).name("Brücke")));
+    when(client.searchLoins(any()))
+        .thenReturn(
+            List.of(
+                loin(KAPPE, "Ueberbau > Kappe", "Kappe", "LPH 8: Objektüberwachung")
+                    .domainSpecificModelTypes(List.of("Ingenieurbau"))));
+    CheckMateTools tools = tools(Portal.shared(client), kappe("k1", "Kappe Nord", "1"));
+
+    assertThat(tools.loinsData()).isEmpty();
+    tools.findLoins("Kappe", CatalogueFilter.ANY, 20, false);
+
+    Map<String, Object> data = tools.loinsData();
+    assertThat(data.get("totalLoins")).isEqualTo(1);
+    assertThat(data.get("fittingLoins")).isEqualTo(1L);
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> projects = (List<Map<String, Object>>) data.get("projects");
+    assertThat(projects).hasSize(1);
+    assertThat(projects.get(0).get("id")).isEqualTo(project.toString());
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> loins = (List<Map<String, Object>>) data.get("loins");
+    assertThat(loins).hasSize(1);
+    assertThat(loins.get(0).get("id")).isEqualTo(KAPPE.toString());
+    assertThat(loins.get(0).get("fits")).isEqualTo(true);
+    assertThat(loins.get(0).get("fitKind")).isEqualTo("CLASSIFICATION");
+    assertThat(loins.get(0).get("disciplines")).isEqualTo(List.of("Ingenieurbau"));
+    assertThat(loins.get(0).get("phases")).isEqualTo(List.of("LPH 8: Objektüberwachung"));
+  }
+
+  @Test
+  void findsAndDescribesPortalPropertiesAndGroups() {
+    UUID propGuid = UUID.randomUUID();
+    UUID groupGuid = UUID.randomUUID();
+    when(client.searchProperties(any()))
+        .thenReturn(
+            List.of(
+                new PropertyOrGroupForPublicDto()
+                    .guid(propGuid)
+                    .name("Betongüte")
+                    .dataType("IFCLABEL")));
+    when(client.searchPropertyGroups(any()))
+        .thenReturn(
+            List.of(
+                new PropertyOrGroupForPublicDto()
+                    .guid(groupGuid)
+                    .name("Pset_Bauwerk")));
+    when(client.getProperty(propGuid))
+        .thenReturn(
+            Optional.of(
+                new PropertyDto()
+                    .guid(propGuid)
+                    .namesInLanguage(
+                        List.of(new NamesInLanguageDto().language("de-DE").name("Betongüte")))
+                    .dataType("IFCLABEL")));
+    when(client.getProperty(groupGuid)).thenReturn(Optional.empty());
+    when(client.getPropertyGroup(groupGuid))
+        .thenReturn(
+            Optional.of(
+                new PropertyGroupDto()
+                    .guid(groupGuid)
+                    .namesInLanguage(
+                        List.of(new NamesInLanguageDto().language("de-DE").name("Pset_Bauwerk")))));
+
+    CheckMateTools tools =
+        new CheckMateTools(
+            new CheckService(Portal.shared(client)),
+            source -> model("Kappen.ifc"),
+            () -> model("Kappen.ifc"),
+            () -> new PortalProperties(client));
+
+    String found = tools.findProperties("Beton", "all", 10);
+    assertThat(found).contains("Merkmale", "Betongüte", "Merkmalsgruppen", "Pset_Bauwerk");
+    assertThat(tools.propertiesData()).containsKey("properties").containsKey("groups");
+
+    String propDetail = tools.describeProperty(propGuid.toString(), "auto");
+    assertThat(propDetail).contains("Betongüte", "IFCLABEL");
+    assertThat(tools.propertyDetailData()).containsEntry("guid", propGuid.toString());
+
+    // Auto mode falls back from property to property group
+    String groupDetail =
+        tools.describeProperty("https://via.bund.de/bim/merkmale/" + groupGuid, "auto");
+    assertThat(groupDetail).contains("Pset_Bauwerk");
+    assertThat(tools.propertyDetailData()).containsEntry("guid", groupGuid.toString());
+
+    assertThatThrownBy(() -> tools.findProperties("Beton", "invalid", 10))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Unbekannter Typ");
+    assertThatThrownBy(() -> tools.describeProperty("not-a-uuid", "auto"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Keine gültige GUID");
   }
 
   private CheckMateTools tools(Portal portal, ModelElement... elements) {

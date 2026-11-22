@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CheckMate LOIN-Auswahl</title>
+<style>
+  :root {
+    --bg: var(--color-background-primary, light-dark(#ffffff, #1b1b1b));
+    --bg2: var(--color-background-secondary, light-dark(#f4f5f7, #262626));
+    --fg: var(--color-text-primary, light-dark(#1b1b1b, #f2f2f2));
+    --fg2: var(--color-text-secondary, light-dark(#5b6068, #a8a8a8));
+    --line: var(--color-border-primary, light-dark(#d9dce1, #3a3a3a));
+    --accent: var(--color-accent-primary, light-dark(#0969da, #58a6ff));
+    --ok: light-dark(#1a7f37, #4ac26b);
+    --warn: light-dark(#9a6700, #d4a72c);
+    --none: light-dark(#6e7781, #8b949e);
+    --bad: light-dark(#cf222e, #ff7b72);
+    color-scheme: light dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; background: var(--bg); color: var(--fg);
+         font: 14px/1.45 var(--font-sans, system-ui, sans-serif); }
+  h1 { font-size: 15px; margin: 0 0 2px; }
+  .meta { color: var(--fg2); font-size: 12px; margin-bottom: 10px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .filter { flex: 1; min-width: 180px; padding: 6px 9px; border: 1px solid var(--line);
+            border-radius: 6px; background: var(--bg); color: var(--fg); font: inherit; }
+  .toggle { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--fg2); cursor: pointer; }
+  .btn { padding: 6px 12px; border: 1px solid var(--accent); border-radius: 6px;
+         background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .list { display: flex; flex-direction: column; gap: 6px; }
+  .item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px;
+          border: 1px solid var(--line); border-radius: 8px; background: var(--bg); cursor: pointer; }
+  .item:hover { background: var(--bg2); }
+  .item input[type="checkbox"] { margin-top: 3px; cursor: pointer; }
+  .info { flex: 1; min-width: 0; }
+  .top { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+  .name { font-weight: 600; word-break: break-word; }
+  .badge { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; color: #fff; white-space: nowrap; }
+  .CLASSIFICATION { background: var(--ok); }
+  .NAME { background: var(--warn); }
+  .NONE { background: var(--none); }
+  .PROJECT { background: var(--accent); }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .tag { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--bg2);
+         border: 1px solid var(--line); color: var(--fg2); }
+  .fit-desc { font-size: 12px; color: var(--fg2); margin-top: 3px; }
+  .empty { color: var(--fg2); font-size: 13px; padding: 8px 0; }
+  .status { font-size: 12px; color: var(--fg2); margin-top: 10px; }
+  .status.err { color: var(--bad); }
+  pre { white-space: pre-wrap; background: var(--bg2); border-radius: 6px; padding: 8px;
+        font: 12px var(--font-mono, monospace); margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>CheckMate LOIN-Auswahl</h1>
+<div id="summary" class="meta">Warte auf Katalogdaten ...</div>
+<div class="toolbar">
+  <input id="filter" class="filter" type="search" placeholder="Filtern nach Name, Fachmodell, Phase, Objekttyp ...">
+  <label class="toggle"><input id="onlyFit" type="checkbox"> Nur passende</label>
+  <button id="checkBtn" class="btn" type="button" disabled>Ausgewählte prüfen</button>
+</div>
+<div id="list" class="list"></div>
+<div id="status" class="status" hidden></div>
+<pre id="result" hidden></pre>
+<script>
+(function () {
+  "use strict";
+  var nextId = 1;
+  var pending = {};
+  var items = [];
+  var selected = {};
+
+  function send(message) { window.parent.postMessage(message, "*"); }
+  function request(method, params) {
+    var id = nextId++;
+    return new Promise(function (resolve, reject) {
+      pending[id] = { resolve: resolve, reject: reject };
+      send({ jsonrpc: "2.0", id: id, method: method, params: params });
+    });
+  }
+  function notify(method, params) { send({ jsonrpc: "2.0", method: method, params: params || {} }); }
+
+  window.addEventListener("message", function (event) {
+    var m = event.data;
+    if (!m || m.jsonrpc !== "2.0") { return; }
+    if (m.id !== undefined && !m.method && pending[m.id]) {
+      var p = pending[m.id]; delete pending[m.id];
+      if (m.error) { p.reject(new Error(m.error.message || "Fehler")); } else { p.resolve(m.result); }
+      return;
+    }
+    if (m.method === "ui/notifications/tool-result") { render(m.params); }
+    if (m.method === "ui/notifications/host-context-changed") { theme(m.params); }
+    if (m.method === "ui/resource-teardown" && m.id !== undefined) { send({ jsonrpc: "2.0", id: m.id, result: {} }); }
+  });
+
+  function theme(context) {
+    if (!context || !context.styles || !context.styles.variables) { return; }
+    var vars = context.styles.variables;
+    Object.keys(vars).forEach(function (key) {
+      if (vars[key]) { document.documentElement.style.setProperty(key, vars[key]); }
+    });
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) { e.className = cls; }
+    if (text !== undefined) { e.textContent = text; }
+    return e;
+  }
+
+  function fitBadgeText(item) {
+    if (item.kind === "PROJECT") { return "AIA-Projekt"; }
+    if (item.fitKind === "CLASSIFICATION") { return "Passt (" + (item.fitElements || 0) + ")"; }
+    if (item.fitKind === "NAME") { return "Name (" + (item.fitElements || 0) + ")"; }
+    return "Passt nicht";
+  }
+
+  function selectedIds() {
+    return Object.keys(selected).filter(function (id) { return selected[id]; });
+  }
+
+  function updateButton() {
+    var ids = selectedIds();
+    var btn = document.getElementById("checkBtn");
+    btn.disabled = ids.length === 0;
+    btn.textContent = ids.length > 0 ? "Ausgewählte prüfen (" + ids.length + ")" : "Ausgewählte prüfen";
+  }
+
+  function matches(item, query, onlyFit) {
+    if (onlyFit && item.kind !== "PROJECT" && !item.fits) { return false; }
+    if (!query) { return true; }
+    var hay = [item.name || "", item.organisation || "", item.fitDescription || ""]
+      .concat(item.disciplines || [], item.phases || [], item.purposes || [], item.objectTypes || [])
+      .join(" ").toLowerCase();
+    return hay.indexOf(query) !== -1;
+  }
+
+  function renderList() {
+    var box = document.getElementById("list");
+    box.textContent = "";
+    var query = (document.getElementById("filter").value || "").trim().toLowerCase();
+    var onlyFit = document.getElementById("onlyFit").checked;
+    var visible = items.filter(function (item) { return matches(item, query, onlyFit); });
+    if (!visible.length) {
+      box.appendChild(el("div", "empty", "Keine passenden Einträge für den aktuellen Filter."));
+      return;
+    }
+    visible.forEach(function (item) {
+      var row = el("label", "item");
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!selected[item.id];
+      cb.addEventListener("change", function () {
+        selected[item.id] = cb.checked;
+        updateButton();
+      });
+      row.appendChild(cb);
+
+      var info = el("div", "info");
+      var top = el("div", "top");
+      top.appendChild(el("span", "badge " + (item.kind === "PROJECT" ? "PROJECT" : (item.fitKind || "NONE")), fitBadgeText(item)));
+      top.appendChild(el("span", "name", item.name || item.id));
+      info.appendChild(top);
+
+      var tags = el("div", "tags");
+      (item.disciplines || []).forEach(function (d) { tags.appendChild(el("span", "tag", d)); });
+      (item.phases || []).forEach(function (p) { tags.appendChild(el("span", "tag", p)); });
+      (item.purposes || []).forEach(function (u) { tags.appendChild(el("span", "tag", u)); });
+      (item.objectTypes || []).forEach(function (o) { tags.appendChild(el("span", "tag", "Objekt: " + o)); });
+      if (tags.children.length) { info.appendChild(tags); }
+      if (item.fitDescription) { info.appendChild(el("div", "fit-desc", item.fitDescription)); }
+
+      row.appendChild(info);
+      box.appendChild(row);
+    });
+  }
+
+  function render(result) {
+    var data = result && result.structuredContent;
+    var box = document.getElementById("list");
+    box.textContent = "";
+    items = [];
+    selected = {};
+    if (!data || (!data.loins && !data.projects)) {
+      var text = (result && result.content && result.content[0] && result.content[0].text) || "Keine Daten.";
+      box.appendChild(el("pre", "", text));
+      updateButton();
+      return;
+    }
+    document.getElementById("summary").textContent =
+      (data.totalLoins || 0) + " LOIN(s), " + (data.filteredLoins || 0) + " nach Filter, "
+      + (data.fittingLoins || 0) + " passend zum Modell · " + ((data.projects || []).length) + " AIA-Projekt(e)";
+
+    (data.projects || []).forEach(function (p) {
+      items.push({ id: p.id, name: p.name, kind: "PROJECT", fits: true });
+    });
+    (data.loins || []).forEach(function (l) {
+      items.push({
+        id: l.id, name: l.name, kind: "LOIN",
+        organisation: l.organisation,
+        objectTypes: l.objectTypes || [],
+        disciplines: l.disciplines || [],
+        phases: l.phases || [],
+        purposes: l.purposes || [],
+        fits: !!l.fits,
+        fitKind: l.fitKind || "NONE",
+        fitElements: l.fitElements || 0,
+        fitDescription: l.fitDescription || ""
+      });
+    });
+    updateButton();
+    renderList();
+  }
+
+  document.getElementById("filter").addEventListener("input", renderList);
+  document.getElementById("onlyFit").addEventListener("change", renderList);
+  document.getElementById("checkBtn").addEventListener("click", function () {
+    var ids = selectedIds();
+    if (!ids.length) { return; }
+    var btn = document.getElementById("checkBtn");
+    var status = document.getElementById("status");
+    var resultBox = document.getElementById("result");
+    btn.disabled = true;
+    status.hidden = false;
+    status.className = "status";
+    status.textContent = "Prüfe " + ids.length + " ausgewählte Anforderung(en) ...";
+    resultBox.hidden = true;
+    request("tools/call", { name: "check_model", arguments: { ids: ids } }).then(function (r) {
+      var text = (r && r.content || []).map(function (c) { return c.text || ""; }).join("\n");
+      status.textContent = r && r.isError ? "Prüfung fehlgeschlagen:" : "Prüfung abgeschlossen:";
+      if (r && r.isError) { status.className = "status err"; }
+      resultBox.hidden = false;
+      resultBox.textContent = text || "Keine Ausgabe.";
+      updateButton();
+    }, function (e) {
+      status.className = "status err";
+      status.textContent = e.message || "Fehler bei der Prüfung.";
+      updateButton();
+    });
+  });
+
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "checkmate-loins", version: "0.3.2" },
+    appCapabilities: {}
+  }).then(function (init) {
+    theme(init && init.hostContext);
+    notify("ui/notifications/initialized");
+  }, function () {});
+
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () {
+      notify("ui/notifications/size-changed", {
+        width: Math.ceil(document.documentElement.scrollWidth),
+        height: Math.ceil(document.documentElement.scrollHeight)
+      });
+    }).observe(document.body);
+  }
+})();
+</script>
+</body>
+</html>

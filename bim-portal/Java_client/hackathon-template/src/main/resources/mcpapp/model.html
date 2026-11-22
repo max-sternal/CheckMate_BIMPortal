@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CheckMate Modellübersicht</title>
+<style>
+  :root {
+    --bg: var(--color-background-primary, light-dark(#ffffff, #1b1b1b));
+    --bg2: var(--color-background-secondary, light-dark(#f4f5f7, #262626));
+    --fg: var(--color-text-primary, light-dark(#1b1b1b, #f2f2f2));
+    --fg2: var(--color-text-secondary, light-dark(#5b6068, #a8a8a8));
+    --line: var(--color-border-primary, light-dark(#d9dce1, #3a3a3a));
+    --accent: var(--color-accent-primary, light-dark(#0969da, #58a6ff));
+    --bad: light-dark(#cf222e, #ff7b72);
+    color-scheme: light dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; background: var(--bg); color: var(--fg);
+         font: 14px/1.45 var(--font-sans, system-ui, sans-serif); }
+  h1 { font-size: 15px; margin: 0 0 6px; }
+  h2 { font-size: 13px; margin: 14px 0 6px; color: var(--fg2); text-transform: uppercase; letter-spacing: 0.03em; }
+  .header-card { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px;
+                 background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; }
+  .model-name { font-weight: 600; font-size: 15px; margin-right: 4px; word-break: break-word; }
+  .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+  .schema { background: var(--accent); color: #fff; }
+  .stat { background: var(--bg); border: 1px solid var(--line); color: var(--fg); }
+  .bars { display: flex; flex-direction: column; gap: 5px; }
+  .bar-row { display: grid; grid-template-columns: minmax(120px, 190px) 1fr 48px; gap: 8px;
+             align-items: center; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+  .bar-row:hover { background: var(--bg2); }
+  .bar-label { font-size: 12px; font-family: var(--font-mono, monospace); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { height: 12px; background: var(--bg2); border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 5px; min-width: 3px; }
+  .bar-count { font-size: 12px; color: var(--fg2); text-align: right; font-variant-numeric: tabular-nums; }
+  .search-form { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .input { flex: 1; min-width: 130px; padding: 6px 9px; border: 1px solid var(--line);
+           border-radius: 6px; background: var(--bg); color: var(--fg); font: inherit; }
+  .btn { padding: 6px 12px; border: 1px solid var(--accent); border-radius: 6px;
+         background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { background: var(--bg2); color: var(--fg); border: 1px solid var(--line);
+                   border-radius: 6px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; margin-top: 6px; }
+  .meta { color: var(--fg2); font-size: 12px; margin-bottom: 6px; }
+  .err { color: var(--bad); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); word-break: break-word; }
+  th { color: var(--fg2); font-weight: 600; }
+  td.mono { font-family: var(--font-mono, monospace); }
+  pre { white-space: pre-wrap; background: var(--bg2); border-radius: 6px; padding: 8px;
+        font: 12px var(--font-mono, monospace); }
+</style>
+</head>
+<body>
+<h1>CheckMate Modellübersicht</h1>
+<div id="header" class="header-card">
+  <span id="modelName" class="model-name">Warte auf Modelldaten ...</span>
+  <span id="schemaBadge" class="badge schema" hidden></span>
+  <span id="countBadge" class="badge stat" hidden></span>
+  <span id="mappingBadge" class="badge stat" hidden></span>
+</div>
+<h2>Entity-Verteilung</h2>
+<div id="bars" class="bars"></div>
+<button id="toggleAll" class="btn-secondary" type="button" hidden></button>
+<h2>Elemente durchsuchen</h2>
+<form id="searchForm" class="search-form">
+  <input id="entityInput" class="input" type="text" placeholder="Entity, z. B. IfcWall">
+  <input id="nameInput" class="input" type="text" placeholder="Name enthält ...">
+  <button id="searchBtn" class="btn" type="submit">Suchen</button>
+</form>
+<div id="searchMeta" class="meta" hidden></div>
+<div id="elements"></div>
+<script>
+(function () {
+  "use strict";
+  var nextId = 1;
+  var pending = {};
+  var allEntities = [];
+  var showAll = false;
+
+  function send(message) { window.parent.postMessage(message, "*"); }
+  function request(method, params) {
+    var id = nextId++;
+    return new Promise(function (resolve, reject) {
+      pending[id] = { resolve: resolve, reject: reject };
+      send({ jsonrpc: "2.0", id: id, method: method, params: params });
+    });
+  }
+  function notify(method, params) { send({ jsonrpc: "2.0", method: method, params: params || {} }); }
+
+  window.addEventListener("message", function (event) {
+    var m = event.data;
+    if (!m || m.jsonrpc !== "2.0") { return; }
+    if (m.id !== undefined && !m.method && pending[m.id]) {
+      var p = pending[m.id]; delete pending[m.id];
+      if (m.error) { p.reject(new Error(m.error.message || "Fehler")); } else { p.resolve(m.result); }
+      return;
+    }
+    if (m.method === "ui/notifications/tool-result") { render(m.params); }
+    if (m.method === "ui/notifications/host-context-changed") { theme(m.params); }
+    if (m.method === "ui/resource-teardown" && m.id !== undefined) { send({ jsonrpc: "2.0", id: m.id, result: {} }); }
+  });
+
+  function theme(context) {
+    if (!context || !context.styles || !context.styles.variables) { return; }
+    var vars = context.styles.variables;
+    Object.keys(vars).forEach(function (key) {
+      if (vars[key]) { document.documentElement.style.setProperty(key, vars[key]); }
+    });
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) { e.className = cls; }
+    if (text !== undefined) { e.textContent = text; }
+    return e;
+  }
+
+  function renderBars() {
+    var box = document.getElementById("bars");
+    box.textContent = "";
+    var toggle = document.getElementById("toggleAll");
+    if (!allEntities.length) {
+      box.appendChild(el("div", "meta", "Keine Entities im Modell."));
+      toggle.hidden = true;
+      return;
+    }
+    var max = allEntities[0][1] || 1;
+    var limit = showAll ? allEntities.length : Math.min(allEntities.length, 15);
+    allEntities.slice(0, limit).forEach(function (pair) {
+      var entity = pair[0];
+      var count = pair[1];
+      var row = el("div", "bar-row");
+      row.title = "Elemente vom Typ " + entity + " anzeigen";
+      row.appendChild(el("div", "bar-label", entity));
+      var track = el("div", "bar-track");
+      var fill = el("div", "bar-fill");
+      fill.style.width = Math.max(2, Math.round((count / max) * 100)) + "%";
+      track.appendChild(fill);
+      row.appendChild(track);
+      row.appendChild(el("div", "bar-count", String(count)));
+      row.addEventListener("click", function () {
+        document.getElementById("entityInput").value = entity;
+        searchElements();
+      });
+      box.appendChild(row);
+    });
+    if (allEntities.length > 15) {
+      toggle.hidden = false;
+      toggle.textContent = showAll ? "Weniger anzeigen" : "Alle " + allEntities.length + " Entities anzeigen";
+    } else {
+      toggle.hidden = true;
+    }
+  }
+
+  function render(result) {
+    var data = result && result.structuredContent;
+    var bars = document.getElementById("bars");
+    if (!data || !data.name) {
+      bars.textContent = "";
+      var text = (result && result.content && result.content[0] && result.content[0].text) || "Keine Daten.";
+      bars.appendChild(el("pre", "", text));
+      return;
+    }
+    document.getElementById("modelName").textContent = data.name;
+    var schema = document.getElementById("schemaBadge");
+    schema.hidden = !data.schema;
+    schema.textContent = data.schema || "";
+    var count = document.getElementById("countBadge");
+    count.hidden = false;
+    count.textContent = (data.elementCount || 0) + " Elemente";
+    var mapping = document.getElementById("mappingBadge");
+    mapping.hidden = !data.mappingName;
+    mapping.textContent = "Mapping: " + (data.mappingName || "");
+
+    var counts = data.entityCounts || {};
+    allEntities = Object.keys(counts).map(function (k) { return [k, counts[k]]; });
+    allEntities.sort(function (a, b) { return b[1] - a[1] || a[0].localeCompare(b[0]); });
+    showAll = false;
+    renderBars();
+  }
+
+  function searchElements() {
+    var entity = (document.getElementById("entityInput").value || "").trim();
+    var name = (document.getElementById("nameInput").value || "").trim();
+    var btn = document.getElementById("searchBtn");
+    var meta = document.getElementById("searchMeta");
+    var out = document.getElementById("elements");
+    btn.disabled = true;
+    meta.hidden = false;
+    meta.className = "meta";
+    meta.textContent = "Suche Elemente ...";
+    out.textContent = "";
+
+    var args = { limit: 50 };
+    if (entity) { args.entity = entity; }
+    if (name) { args.name = name; }
+    request("tools/call", { name: "list_elements", arguments: args }).then(function (r) {
+      btn.disabled = false;
+      var text = (r && r.content || []).map(function (c) { return c.text || ""; }).join("\n");
+      if (r && r.isError) {
+        meta.className = "meta err";
+        meta.textContent = text || "Fehler bei der Suche.";
+        return;
+      }
+      var lines = text.split("\n").filter(function (l) { return l.length > 0; });
+      meta.textContent = lines[0] || "Keine Ergebnisse.";
+      var rows = lines.slice(1);
+      if (!rows.length) { return; }
+      var table = document.createElement("table");
+      var thead = document.createElement("thead");
+      var hr = document.createElement("tr");
+      ["GlobalId", "Entity", "Name", "PredefinedType"].forEach(function (h) { hr.appendChild(el("th", "", h)); });
+      thead.appendChild(hr);
+      table.appendChild(thead);
+      var tbody = document.createElement("tbody");
+      rows.forEach(function (line) {
+        var parts = line.split(" | ");
+        var tr = document.createElement("tr");
+        tr.appendChild(el("td", "mono", parts[0] || ""));
+        tr.appendChild(el("td", "mono", parts[1] || ""));
+        tr.appendChild(el("td", "", parts[2] || ""));
+        tr.appendChild(el("td", "", parts[3] || ""));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      out.appendChild(table);
+    }, function (e) {
+      btn.disabled = false;
+      meta.className = "meta err";
+      meta.textContent = e.message || "Fehler bei der Suche.";
+    });
+  }
+
+  document.getElementById("toggleAll").addEventListener("click", function () {
+    showAll = !showAll;
+    renderBars();
+  });
+  document.getElementById("searchForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    searchElements();
+  });
+
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "checkmate-model", version: "0.3.2" },
+    appCapabilities: {}
+  }).then(function (init) {
+    theme(init && init.hostContext);
+    notify("ui/notifications/initialized");
+  }, function () {});
+
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () {
+      notify("ui/notifications/size-changed", {
+        width: Math.ceil(document.documentElement.scrollWidth),
+        height: Math.ceil(document.documentElement.scrollHeight)
+      });
+    }).observe(document.body);
+  }
+})();
+</script>
+</body>
+</html>

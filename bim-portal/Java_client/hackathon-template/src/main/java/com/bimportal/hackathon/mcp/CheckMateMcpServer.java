@@ -3,20 +3,28 @@ package com.bimportal.hackathon.mcp;
 import com.bimportal.hackathon.catalogue.CatalogueFilter;
 import com.bimportal.hackathon.check.CheckService;
 import com.bimportal.hackathon.ifc.LoadedModel;
+import com.bimportal.hackathon.properties.PortalProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.server.McpServer;
+import io.modelcontextprotocol.server.McpServerFeatures.SyncPromptSpecification;
 import io.modelcontextprotocol.server.McpServerFeatures.SyncResourceSpecification;
 import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.McpSyncServerExchange;
 import io.modelcontextprotocol.server.transport.StdioServerTransportProvider;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.GetPromptResult;
+import io.modelcontextprotocol.spec.McpSchema.Prompt;
+import io.modelcontextprotocol.spec.McpSchema.PromptArgument;
+import io.modelcontextprotocol.spec.McpSchema.PromptMessage;
 import io.modelcontextprotocol.spec.McpSchema.ReadResourceResult;
 import io.modelcontextprotocol.spec.McpSchema.Resource;
+import io.modelcontextprotocol.spec.McpSchema.Role;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
+import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import io.modelcontextprotocol.spec.McpSchema.TextResourceContents;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpSchema.ToolAnnotations;
@@ -32,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * CheckMate as an MCP server: an AI app starts it and calls its tools over stdin/stdout. Tools and
@@ -44,10 +53,12 @@ public final class CheckMateMcpServer {
       "CheckMate checks IFC building models against the requirements of the German BIM Portal"
           + " (LOINs and AIA projects, delivered as IDS). Typical order: describe_model or"
           + " load_model; find_loins, or IDs the user gives; describe_requirements to see what a"
-          + " LOIN asks for; check_model; element_report for single elements. Reports and messages"
-          + " are in German. 'nicht prüfbar' means the specification selected no element - that"
-          + " is not a pass. Models name properties differently than the portal: load_mapping shows"
-          + " or changes the JSON mapping that translates them (reports say 'als ...' when it was used).";
+          + " LOIN asks for; find_properties and describe_property to inspect BIM Portal Merkmale"
+          + " and Merkmalsgruppen; check_model; element_report for single elements. Reports and"
+          + " messages are in German. 'nicht prüfbar' means the specification selected no element"
+          + " - that is not a pass. Models name properties differently than the portal:"
+          + " load_mapping shows or changes the JSON mapping that translates them (reports say"
+          + " 'als ...' when it was used).";
 
   /**
    * Longest tool answer in characters, about 15,000 tokens. The full report of an AIA project runs
@@ -61,11 +72,32 @@ public final class CheckMateMcpServer {
   /** MIME type of an MCP App view. */
   static final String UI_MIME = "text/html;profile=mcp-app";
 
+  /** MIME type of JSON data resources. */
+  static final String JSON_MIME = "application/json";
+
   /** The view that shows a check; {@code check_model} points to it. */
   static final String REPORT_VIEW = "ui://checkmate/report";
 
+  /** The view that lets the user pick LOINs; {@code find_loins} points to it. */
+  static final String LOINS_VIEW = "ui://checkmate/loins";
+
+  /** The view that shows the loaded model; {@code describe_model} points to it. */
+  static final String MODEL_VIEW = "ui://checkmate/model";
+
+  /** Read-only JSON resource for the currently loaded model. */
+  static final String MODEL_RESOURCE = "checkmate://model/current";
+
+  /** Read-only JSON resource for the last check report. */
+  static final String REPORT_RESOURCE = "checkmate://report/last.json";
+
   /** Findings per specification that the view receives. */
   static final int VIEW_EXAMPLES = 10;
+
+  private static final Map<String, String> TOOL_VIEWS =
+      Map.of(
+          "check_model", REPORT_VIEW,
+          "find_loins", LOINS_VIEW,
+          "describe_model", MODEL_VIEW);
 
   private static final String VERSION = "0.3.2";
 
@@ -76,12 +108,20 @@ public final class CheckMateMcpServer {
           "list_elements",
           "find_loins",
           "describe_requirements",
+          "find_properties",
+          "describe_property",
           "element_report",
           "server_status");
 
   /** Tools that reach the BIM Portal or the network. */
   private static final Set<String> OPEN_WORLD =
-      Set.of("load_model", "find_loins", "describe_requirements", "check_model");
+      Set.of(
+          "load_model",
+          "find_loins",
+          "describe_requirements",
+          "find_properties",
+          "describe_property",
+          "check_model");
 
   private static final Map<String, String> TITLES =
       Map.ofEntries(
@@ -90,6 +130,8 @@ public final class CheckMateMcpServer {
           Map.entry("list_elements", "Elemente auflisten"),
           Map.entry("find_loins", "LOINs finden"),
           Map.entry("describe_requirements", "Anforderungen beschreiben"),
+          Map.entry("find_properties", "Merkmale finden"),
+          Map.entry("describe_property", "Merkmal beschreiben"),
           Map.entry("check_model", "Modell prüfen"),
           Map.entry("element_report", "Elementbericht"),
           Map.entry("load_mapping", "Mapping laden"),
@@ -108,7 +150,8 @@ public final class CheckMateMcpServer {
         new CheckMateTools(
             new CheckService(BimPortalClientBuilder::buildAuthenticatedOrPublic),
             LoadedModel::read,
-            LoadedModel::configured);
+            LoadedModel::configured,
+            () -> new PortalProperties(BimPortalClientBuilder.buildAuthenticatedOrPublic()));
     start(tools, System.in, protocol);
     // The transport's threads keep the process alive until the AI app closes stdin.
   }
@@ -129,9 +172,41 @@ public final class CheckMateMcpServer {
             ServerCapabilities.builder()
                 .tools(false)
                 .resources(false, false)
+                .prompts(false)
                 .extensions(Map.of(UI_EXTENSION, Map.of()))
                 .build())
-        .resources(reportView())
+        .resources(
+            viewResource(
+                REPORT_VIEW,
+                "checkmate_report",
+                "CheckMate Prüfbericht",
+                "Interaktive Ansicht des Prüfberichts von check_model",
+                "/mcpapp/report.html"),
+            viewResource(
+                LOINS_VIEW,
+                "checkmate_loins",
+                "CheckMate LOIN-Auswahl",
+                "Interaktive Auswahl von LOINs und AIA-Projekten aus find_loins",
+                "/mcpapp/loins.html"),
+            viewResource(
+                MODEL_VIEW,
+                "checkmate_model",
+                "CheckMate Modellübersicht",
+                "Interaktive Übersicht des geladenen IFC-Modells aus describe_model",
+                "/mcpapp/model.html"),
+            jsonResource(
+                MODEL_RESOURCE,
+                "checkmate_model_current",
+                "Aktuelles IFC-Modell (JSON)",
+                "Metadaten und Entity-Verteilung des aktuell geladenen IFC-Modells als JSON",
+                tools::currentModelJson),
+            jsonResource(
+                REPORT_RESOURCE,
+                "checkmate_report_last",
+                "Letzter Prüfbericht (JSON)",
+                "Vollständiger letzter Prüfbericht als JSON",
+                tools::lastReportJson))
+        .prompts(checkLoinPrompt(), explainElementPrompt())
         .toolCall(
             tool(
                 "load_model",
@@ -149,7 +224,7 @@ public final class CheckMateMcpServer {
                     + " entities.",
                 Map.of(),
                 List.of()),
-            handler(args -> tools.describeModel()))
+            handler(args -> tools.describeModel(), args -> tools.modelData()))
         .toolCall(
             tool(
                 "list_elements",
@@ -189,7 +264,8 @@ public final class CheckMateMcpServer {
                             string(args, "phase"),
                             string(args, "purpose")),
                         integer(args, "limit", 20),
-                        bool(args, "include_unfitting"))))
+                        bool(args, "include_unfitting")),
+                args -> tools.loinsData()))
         .toolCall(
             tool(
                 "describe_requirements",
@@ -199,6 +275,38 @@ public final class CheckMateMcpServer {
                 Map.of("id", text("ID of a LOIN or AIA project, or a link holding one")),
                 List.of("id")),
             handler(args -> tools.describeRequirements(string(args, "id"))))
+        .toolCall(
+            tool(
+                "find_properties",
+                "Search Merkmale (properties) and/or Merkmalsgruppen (property groups) in the"
+                    + " German BIM Portal by name or keyword. Useful to look up official"
+                    + " definitions, units, allowed values, or mapping candidates.",
+                properties(
+                    "search", text("Search term for property or group names"),
+                    "kind", text("'all' (default), 'property' (Merkmale), or 'group' (Gruppen)"),
+                    "limit", number("Most entries to return per kind, default 20")),
+                List.of()),
+            handler(
+                args ->
+                    tools.findProperties(
+                        string(args, "search"),
+                        string(args, "kind"),
+                        integer(args, "limit", 20)),
+                args -> tools.propertiesData()))
+        .toolCall(
+            tool(
+                "describe_property",
+                "Describe a single Merkmal (property) or Merkmalsgruppe (property group) from the"
+                    + " German BIM Portal by its GUID or portal link: definition, data type,"
+                    + " units, allowed values, and parent/member relationships.",
+                properties(
+                    "guid", text("GUID of a Merkmal or Merkmalsgruppe, or a portal link"),
+                    "kind", text("'auto' (default), 'property', or 'group'")),
+                List.of("guid")),
+            handler(
+                args ->
+                    tools.describeProperty(string(args, "guid"), string(args, "kind")),
+                args -> tools.propertyDetailData()))
         .toolCall(
             tool(
                 "check_model",
@@ -293,9 +401,10 @@ public final class CheckMateMcpServer {
                     READ_ONLY.contains(name),
                     OPEN_WORLD.contains(name),
                     null));
-    if (name.equals("check_model")) {
+    String view = TOOL_VIEWS.get(name);
+    if (view != null) {
       // Hosts that render MCP Apps show the view; the others ignore it and use the text.
-      builder.meta(Map.of("ui", Map.of("resourceUri", REPORT_VIEW), "ui/resourceUri", REPORT_VIEW));
+      builder.meta(Map.of("ui", Map.of("resourceUri", view), "ui/resourceUri", view));
     }
     return builder.build();
   }
@@ -318,27 +427,132 @@ public final class CheckMateMcpServer {
         .build();
   }
 
-  /** The check view, an MCP App: one HTML file, no network, talks to the host by postMessage. */
-  private static SyncResourceSpecification reportView() {
+  /** An MCP App view: one HTML file, no network, talks to the host by postMessage. */
+  private static SyncResourceSpecification viewResource(
+      String uri, String name, String title, String description, String classpathHtml) {
+    Map<String, Object> uiMeta = Map.of("ui", Map.of("prefersBorder", true));
     Resource resource =
-        Resource.builder()
-            .uri(REPORT_VIEW)
-            .name("checkmate_report")
-            .title("CheckMate Prüfbericht")
-            .description("Interaktive Ansicht des Prüfberichts von check_model")
+        Resource.builder(uri, name)
+            .title(title)
+            .description(description)
             .mimeType(UI_MIME)
-            .meta(Map.of("ui", Map.of("prefersBorder", true)))
+            .meta(uiMeta)
             .build();
     return new SyncResourceSpecification(
         resource,
         (exchange, request) ->
-            new ReadResourceResult(
+            ReadResourceResult.builder(
+                    List.of(new TextResourceContents(uri, UI_MIME, html(classpathHtml), uiMeta)))
+                .build());
+  }
+
+  /** A read-only JSON resource backed by the current session state. */
+  private static SyncResourceSpecification jsonResource(
+      String uri, String name, String title, String description, Supplier<String> jsonSupplier) {
+    Resource resource =
+        Resource.builder(uri, name)
+            .title(title)
+            .description(description)
+            .mimeType(JSON_MIME)
+            .build();
+    return new SyncResourceSpecification(
+        resource,
+        (exchange, request) ->
+            ReadResourceResult.builder(
+                    List.of(new TextResourceContents(uri, JSON_MIME, jsonSupplier.get(), null)))
+                .build());
+  }
+
+  private static SyncPromptSpecification checkLoinPrompt() {
+    Prompt prompt =
+        Prompt.builder("check-loin")
+            .title("LOIN-Prüfung durchführen")
+            .description(
+                "Inspiziert das aktuelle IFC-Modell, findet passende LOINs im BIM-Portal, führt"
+                    + " die Prüfung durch und erklärt die Ergebnisse auf Deutsch.")
+            .arguments(
                 List.of(
-                    new TextResourceContents(
-                        REPORT_VIEW,
-                        UI_MIME,
-                        html("/mcpapp/report.html"),
-                        Map.of("ui", Map.of("prefersBorder", true))))));
+                    PromptArgument.builder("phase")
+                        .description("Optionale Leistungsphase, z. B. LPH 5 oder LPH 8")
+                        .required(false)
+                        .build(),
+                    PromptArgument.builder("discipline")
+                        .description("Optionales Fachmodell, z. B. Ingenieurbau")
+                        .required(false)
+                        .build()))
+            .build();
+    return new SyncPromptSpecification(
+        prompt,
+        (exchange, request) -> {
+          Map<String, Object> args =
+              request.arguments() == null ? Map.of() : request.arguments();
+          String phase = string(args, "phase");
+          String discipline = string(args, "discipline");
+          StringBuilder filterHint = new StringBuilder();
+          if (phase != null && !phase.isBlank()) {
+            filterHint.append(" Filter phase='").append(phase.trim()).append("'.");
+          }
+          if (discipline != null && !discipline.isBlank()) {
+            filterHint.append(" Filter discipline='").append(discipline.trim()).append("'.");
+          }
+          String text =
+              "Prüfe das aktuelle IFC-Modell gegen passende LOINs aus dem deutschen BIM-Portal:\n"
+                  + "1. Rufe describe_model auf, um Schema, Objektanzahl und häufigste Entities zu"
+                  + " erfassen.\n"
+                  + "2. Suche mit find_loins nach passenden LOINs für das Modell."
+                  + filterHint
+                  + "\n"
+                  + "3. Prüfe das Modell mit check_model gegen die am besten passenden LOINs.\n"
+                  + "4. Fasse das Gesamtergebnis verständlich auf Deutsch zusammen, erkläre"
+                  + " fehlende oder fehlerhafte Merkmale und weise ausdrücklich darauf hin, dass"
+                  + " 'nicht prüfbar' kein Bestehen bedeutet.";
+          return GetPromptResult.builder(
+                  List.of(
+                      PromptMessage.builder(Role.USER, TextContent.builder(text).build()).build()))
+              .description("Anleitung zur LOIN-Prüfung des aktuellen IFC-Modells")
+              .build();
+        });
+  }
+
+  private static SyncPromptSpecification explainElementPrompt() {
+    Prompt prompt =
+        Prompt.builder("explain-element")
+            .title("Elementbefunde erklären")
+            .description(
+                "Ruft element_report für ein Element auf und erklärt unerfüllte Merkmale"
+                    + " verständlich auf Deutsch.")
+            .arguments(
+                List.of(
+                    PromptArgument.builder("element")
+                        .description("GlobalId oder Namensteil des zu prüfenden Elements")
+                        .required(true)
+                        .build()))
+            .build();
+    return new SyncPromptSpecification(
+        prompt,
+        (exchange, request) -> {
+          Map<String, Object> args =
+              request.arguments() == null ? Map.of() : request.arguments();
+          String element = string(args, "element");
+          String target =
+              element == null || element.isBlank() ? "<Element>" : "'" + element.trim() + "'";
+          String text =
+              "Untersuche die Prüfbefunde für das IFC-Element "
+                  + target
+                  + ":\n"
+                  + "1. Rufe element_report mit element="
+                  + target
+                  + " auf.\n"
+                  + "2. Erkläre auf Deutsch, welche Anforderungen erfüllt sind und welche Merkmale"
+                  + " fehlen oder falsche Werte tragen.\n"
+                  + "3. Gib konkrete Hinweise, welche PropertySets und Merkmale im Modell ergänzt"
+                  + " oder korrigiert werden müssen.";
+          return GetPromptResult.builder(
+                  List.of(
+                      PromptMessage.builder(Role.USER, TextContent.builder(text).build()).build()))
+              .description("Anleitung zur Erklärung von Prüfbefunden eines Elements")
+              .build();
+        });
   }
 
   private static String html(String resource) {
