@@ -3,11 +3,12 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightVersions from 'starlight-versions';
 
-const publishedVersion = process.env.CHECKMATE_DOCS_LATEST ?? 'v0.4';
+const publishedVersion = process.env.CHECKMATE_DOCS_LATEST ?? 'v0.4-alpha';
 const is031 = publishedVersion === 'v0.3.1';
 const is032 = publishedVersion === 'v0.3.2';
 const currentBranch = is031 ? '0.3.1' : is032 ? '0.3.2' : '0.4';
 const currentVersionLabel = is031 ? '0.3.1' : is032 ? '0.3.2' : '0.4';
+const hasV04AlphaArchive = is031 || is032;
 
 // https://astro.build/config
 export default defineConfig({
@@ -17,8 +18,14 @@ export default defineConfig({
 		starlight({
 			plugins: [
 				starlightVersions({
-					current: { label: 'Latest', redirect: 'root' },
+					current: {
+						label: is031 ? 'Latest (v0.3.1)' : is032 ? 'Latest (v0.3.2)' : 'v0.4-alpha',
+						redirect: 'root',
+					},
 					versions: [
+						...(hasV04AlphaArchive
+							? [{ slug: 'v0.4-alpha', label: 'v0.4-alpha (Pre-Release)', redirect: 'root' }]
+							: []),
 						{ slug: 'v0.3.2', label: 'v0.3.2', redirect: 'root' },
 						{ slug: 'v0.3.1', label: 'v0.3.1', redirect: 'root' },
 						{ slug: 'v0.2.0', label: 'v0.2.0', redirect: 'root' },
@@ -112,8 +119,8 @@ export default defineConfig({
 					translations: { en: 'MCP Interface' },
 					items: [
 						{
-							label: 'MCP-Server & 3D MCP Apps',
-							translations: { en: 'MCP Server & 3D MCP Apps' },
+							label: is031 ? 'MCP-Server' : 'MCP-Server & 3D MCP Apps',
+							translations: { en: is031 ? 'MCP Server' : 'MCP Server & 3D MCP Apps' },
 							slug: 'mcp/overview',
 						},
 						{

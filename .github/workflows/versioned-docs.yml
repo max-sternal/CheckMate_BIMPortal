@@ -2,7 +2,7 @@ name: Deploy Versioned Documentation
 
 on:
   push:
-    branches: ["0.3.2"]
+    branches: ["0.3.2", "0.4"]
     paths:
       - "website/**"
       - ".github/workflows/versioned-docs.yml"
