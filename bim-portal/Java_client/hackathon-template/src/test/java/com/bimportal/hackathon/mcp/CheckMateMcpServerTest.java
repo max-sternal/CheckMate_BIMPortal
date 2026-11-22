@@ -78,6 +78,7 @@ class CheckMateMcpServerTest {
             "describe_requirements",
             "check_model",
             "element_report",
+            "app_report_page",
             "load_mapping",
             "server_status");
     JsonNode check = tools.get(5).path("inputSchema");
@@ -104,6 +105,17 @@ class CheckMateMcpServerTest {
     JsonNode spec =
         checked.path("structuredContent").path("runs").path(0).path("specifications").path(0);
     assertThat(spec.path("verdict").asText()).isEqualTo("PASSED");
+    JsonNode appTool = tools.get(7);
+    assertThat(appTool.path("name").asText()).isEqualTo("app_report_page");
+    assertThat(appTool.path("_meta").path("ui").path("visibility"))
+        .extracting(JsonNode::asText)
+        .containsExactly("app");
+    assertThat(checkTool.path("_meta").path("ui").has("visibility")).isFalse();
+    assertThat(spec.path("unmetTotal").asInt()).isZero();
+    JsonNode page = call("app_report_page", Map.of("run", 0, "spec", 0)).path("structuredContent");
+    assertThat(page.path("total").asInt()).isZero();
+    assertThat(call("app_report_page", Map.of("run", 3, "spec", 0)).path("isError").asBoolean())
+        .isTrue();
     JsonNode view =
         request("resources/read", Map.of("uri", "ui://checkmate/report"))
             .path("result")

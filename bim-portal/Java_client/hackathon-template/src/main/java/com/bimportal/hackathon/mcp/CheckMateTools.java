@@ -219,20 +219,8 @@ public final class CheckMateTools {
         spec.put("failing", result.failingElements());
         spec.put("passing", result.passingElements());
         spec.put("summary", result.summary());
-        spec.put(
-            "unmet",
-            result.findings().stream()
-                .filter(f -> !f.status().ok())
-                .limit(Math.max(examples, 0))
-                .map(
-                    f -> {
-                      Map<String, Object> finding = new LinkedHashMap<>();
-                      finding.put("elementId", f.elementId());
-                      finding.put("element", f.elementLabel());
-                      finding.put("line", f.requirementLine());
-                      return finding;
-                    })
-                .toList());
+        spec.put("unmetTotal", unmetFindings(result).size());
+        spec.put("unmet", unmetPage(result, 0, examples));
         specs.add(spec);
       }
       runData.put("specifications", specs);
@@ -240,6 +228,56 @@ public final class CheckMateTools {
     }
     data.put("runs", runs);
     return data;
+  }
+
+  private static List<Finding> unmetFindings(CheckResult result) {
+    return result.findings().stream().filter(f -> !f.status().ok()).toList();
+  }
+
+  private static List<Map<String, Object>> unmetPage(CheckResult result, int offset, int limit) {
+    return unmetFindings(result).stream()
+        .skip(Math.max(offset, 0))
+        .limit(Math.max(limit, 0))
+        .map(
+            f -> {
+              Map<String, Object> finding = new LinkedHashMap<>();
+              finding.put("elementId", f.elementId());
+              finding.put("element", f.elementLabel());
+              finding.put("line", f.requirementLine());
+              return finding;
+            })
+        .toList();
+  }
+
+  /**
+   * More unmet findings of one specification of the last check, for a view that loads them on
+   * demand instead of carrying them all.
+   *
+   * @param run index of the run, as in {@link #reportData}
+   * @param spec index of the specification within the run
+   * @param offset findings to skip
+   * @param limit findings to return
+   * @return {@code run}, {@code spec}, {@code offset}, {@code total} and {@code unmet}
+   */
+  public synchronized Map<String, Object> reportPage(int run, int spec, int offset, int limit) {
+    if (lastReport == null) {
+      throw new IllegalStateException("Noch keine Prüfung - zuerst check_model aufrufen.");
+    }
+    if (run < 0 || run >= lastReport.runs().size()) {
+      throw new IllegalArgumentException("Kein Lauf " + run + " in der letzten Prüfung.");
+    }
+    List<CheckResult> results = lastReport.runs().get(run).results();
+    if (spec < 0 || spec >= results.size()) {
+      throw new IllegalArgumentException("Keine Spezifikation " + spec + " in Lauf " + run + ".");
+    }
+    CheckResult result = results.get(spec);
+    Map<String, Object> page = new LinkedHashMap<>();
+    page.put("run", run);
+    page.put("spec", spec);
+    page.put("offset", Math.max(offset, 0));
+    page.put("total", unmetFindings(result).size());
+    page.put("unmet", unmetPage(result, offset, limit));
+    return page;
   }
 
   /**

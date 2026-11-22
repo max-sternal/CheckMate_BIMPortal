@@ -96,6 +96,34 @@ class CheckMateToolsTest {
   }
 
   @Test
+  void aViewLoadsUnmetFindingsPageByPage() throws IOException {
+    Path ids = Files.write(folder.resolve("kappe.ids"), resource(KAPPE_IDS));
+    CheckMateTools tools =
+        tools(
+            Portal.none(),
+            kappe("k1", "Kappe 1", null),
+            kappe("k2", "Kappe 2", null),
+            kappe("k3", "Kappe 3", null));
+    assertThatThrownBy(() -> tools.reportPage(0, 0, 0, 10))
+        .hasMessageContaining("zuerst check_model");
+
+    tools.check(List.of(), List.of(ids.toString()), 3);
+    Map<String, Object> data = tools.reportData(2);
+    Map<String, Object> spec =
+        ((List<Map<String, Object>>)
+                ((List<Map<String, Object>>) data.get("runs")).get(0).get("specifications"))
+            .get(0);
+
+    assertThat(spec.get("unmetTotal")).isEqualTo(3);
+    assertThat((List<?>) spec.get("unmet")).hasSize(2);
+    Map<String, Object> rest = tools.reportPage(0, 0, 2, 25);
+    assertThat(rest.get("total")).isEqualTo(3);
+    assertThat((List<?>) rest.get("unmet")).hasSize(1);
+    assertThatThrownBy(() -> tools.reportPage(0, 5, 0, 1))
+        .hasMessageContaining("Keine Spezifikation");
+  }
+
+  @Test
   void theFullReportListsEveryFinding() throws IOException {
     Path ids = Files.write(folder.resolve("kappe.ids"), resource(KAPPE_IDS));
     CheckMateTools tools = tools(Portal.none(), kappe("k1", "Kappe Nord", "1"));

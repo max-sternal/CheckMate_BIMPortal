@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * CheckMate as an MCP server: an AI app starts it and calls its tools over stdin/stdout. Tools and
@@ -85,16 +84,17 @@ public final class CheckMateMcpServer {
       Set.of("load_model", "find_loins", "describe_requirements", "check_model");
 
   private static final Map<String, String> TITLES =
-      Map.of(
-          "load_model", "Modell laden",
-          "describe_model", "Modell beschreiben",
-          "list_elements", "Elemente auflisten",
-          "find_loins", "LOINs finden",
-          "describe_requirements", "Anforderungen beschreiben",
-          "check_model", "Modell prüfen",
-          "element_report", "Elementbericht",
-          "load_mapping", "Mapping laden",
-          "server_status", "Status");
+      Map.ofEntries(
+          Map.entry("load_model", "Modell laden"),
+          Map.entry("describe_model", "Modell beschreiben"),
+          Map.entry("list_elements", "Elemente auflisten"),
+          Map.entry("find_loins", "LOINs finden"),
+          Map.entry("describe_requirements", "Anforderungen beschreiben"),
+          Map.entry("check_model", "Modell prüfen"),
+          Map.entry("element_report", "Elementbericht"),
+          Map.entry("load_mapping", "Mapping laden"),
+          Map.entry("server_status", "Status"),
+          Map.entry("app_report_page", "Mehr Befunde laden"));
 
   private CheckMateMcpServer() {}
 
@@ -223,7 +223,7 @@ public final class CheckMateMcpServer {
                         strings(args, "ids"),
                         strings(args, "ids_files"),
                         integer(args, "examples", 3)),
-                () -> tools.reportData(VIEW_EXAMPLES)))
+                args -> tools.reportData(VIEW_EXAMPLES)))
         .toolCall(
             tool(
                 "element_report",
@@ -232,6 +232,25 @@ public final class CheckMateMcpServer {
                 Map.of("element", text("GlobalId or part of the element name")),
                 List.of("element")),
             handler(args -> tools.elementReport(string(args, "element"))))
+        .toolCall(
+            appTool(
+                "app_report_page",
+                "For the check view only: more unmet findings of one specification of the last"
+                    + " check.",
+                properties(
+                    "run", number("Index of the run, from the check data"),
+                    "spec", number("Index of the specification within the run"),
+                    "offset", number("Findings to skip"),
+                    "limit", number("Findings to return, default 25")),
+                List.of("run", "spec")),
+            handler(
+                args -> "Weitere Befunde der Prüfung (nur für die Ansicht).",
+                args ->
+                    tools.reportPage(
+                        integer(args, "run", -1),
+                        integer(args, "spec", -1),
+                        integer(args, "offset", 0),
+                        integer(args, "limit", 25))))
         .toolCall(
             tool(
                 "load_mapping",
@@ -281,6 +300,24 @@ public final class CheckMateMcpServer {
     return builder.build();
   }
 
+  /**
+   * A tool only a view may call ({@code visibility: ["app"]}): hosts keep it out of the AI's tool
+   * list. It still answers with text, as every tool does.
+   */
+  private static Tool appTool(
+      String name, String description, Map<String, Object> properties, List<String> required) {
+    Map<String, Object> schema = new LinkedHashMap<>();
+    schema.put("type", "object");
+    schema.put("properties", properties);
+    schema.put("required", required);
+    return Tool.builder(name, schema)
+        .title(TITLES.get(name))
+        .description(description)
+        .annotations(new ToolAnnotations(TITLES.get(name), true, false, true, false, null))
+        .meta(Map.of("ui", Map.of("resourceUri", REPORT_VIEW, "visibility", List.of("app"))))
+        .build();
+  }
+
   /** The check view, an MCP App: one HTML file, no network, talks to the host by postMessage. */
   private static SyncResourceSpecification reportView() {
     Resource resource =
@@ -326,7 +363,8 @@ public final class CheckMateMcpServer {
    * views, and the AI, read the text; the view reads {@code structuredContent}.
    */
   private static BiFunction<McpSyncServerExchange, CallToolRequest, CallToolResult> handler(
-      Function<Map<String, Object>, String> work, Supplier<Map<String, Object>> data) {
+      Function<Map<String, Object>, String> work,
+      Function<Map<String, Object>, Map<String, Object>> data) {
     return (exchange, request) -> {
       Map<String, Object> args = request.arguments() == null ? Map.of() : request.arguments();
       try {
@@ -334,7 +372,7 @@ public final class CheckMateMcpServer {
         CallToolResult.Builder result =
             CallToolResult.builder().addTextContent(answer).isError(false);
         if (data != null) {
-          Map<String, Object> structured = data.get();
+          Map<String, Object> structured = data.apply(args);
           if (!structured.isEmpty()) {
             result.structuredContent(structured);
           }
