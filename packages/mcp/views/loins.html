@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CheckMate 0.4 — BIM-Portal LOIN &amp; AIA Auswahl</title>
+<style>
+  :root {
+    --bg: var(--color-background-primary, light-dark(#ffffff, #16181d));
+    --bg2: var(--color-background-secondary, light-dark(#f3f5f8, #21252d));
+    --fg: var(--color-text-primary, light-dark(#16181d, #f2f4f8));
+    --fg2: var(--color-text-secondary, light-dark(#586069, #9da5b4));
+    --line: var(--color-border-primary, light-dark(#d8dee4, #333945));
+    --ok: #2da44e;
+    --accent: #3b82f6;
+    color-scheme: light dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 10px 12px; background: var(--bg); color: var(--fg);
+         font: 13px/1.45 var(--font-sans, system-ui, sans-serif); }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+  h1 { font-size: 15px; margin: 0; }
+  .meta { color: var(--fg2); font-size: 12px; margin-bottom: 8px; }
+  .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; margin-bottom: 8px; }
+  input, select { padding: 5px 8px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+  button.primary { padding: 5px 12px; background: var(--accent); color: #fff; border: 0; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  button.primary:disabled { opacity: 0.45; cursor: default; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  td, th { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--fg2); font-weight: 600; }
+  .fit { color: var(--ok); font-weight: 600; }
+  .nofit { color: var(--fg2); }
+  #status { margin-top: 8px; padding: 6px 8px; background: var(--bg2); border-radius: 6px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>BIM-Portal LOIN &amp; AIA-Projekte</h1>
+  <button class="primary" id="checkBtn" disabled>Auswahl prüfen (0)</button>
+</div>
+<div id="meta" class="meta">Warte auf Katalogdaten ...</div>
+
+<div class="filters">
+  <input id="search" placeholder="Suchbegriff (z. B. Kappe) ...">
+  <input id="discipline" placeholder="Fachmodell (z. B. Ingenieurbau)">
+  <input id="phase" placeholder="Phase (z. B. LPH 8)">
+  <input id="purpose" placeholder="Anwendungsfall">
+</div>
+
+<table>
+  <thead><tr><th></th><th>Typ</th><th>Name</th><th>Eignung im Modell</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<div id="status" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+  var nextId = 1, pending = {}, selected = {};
+
+  function send(m) { window.parent.postMessage(m, "*"); }
+  function request(method, params) {
+    var id = nextId++;
+    return new Promise(function (resolve, reject) {
+      pending[id] = { resolve: resolve, reject: reject };
+      send({ jsonrpc: "2.0", id: id, method: method, params: params });
+    });
+  }
+  function notify(method, params) { send({ jsonrpc: "2.0", method: method, params: params || {} }); }
+
+  window.addEventListener("message", function (event) {
+    var m = event.data;
+    if (!m || m.jsonrpc !== "2.0") return;
+    if (m.id !== undefined && !m.method && pending[m.id]) {
+      var p = pending[m.id]; delete pending[m.id];
+      if (m.error) p.reject(new Error(m.error.message || "Fehler")); else p.resolve(m.result);
+      return;
+    }
+    if (m.method === "ui/notifications/tool-result") render(m.params);
+    if (m.method === "ui/notifications/host-context-changed") theme(m.params);
+    if (m.method === "ui/resource-teardown" && m.id !== undefined) send({ jsonrpc: "2.0", id: m.id, result: {} });
+  });
+
+  function theme(context) {
+    var vars = context && context.styles && context.styles.variables;
+    if (!vars) return;
+    Object.keys(vars).forEach(function (k) { if (vars[k]) document.documentElement.style.setProperty(k, vars[k]); });
+  }
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function updateButton() {
+    var ids = Object.keys(selected).filter(function (k) { return selected[k]; });
+    var btn = $("checkBtn");
+    btn.disabled = ids.length === 0;
+    btn.textContent = "Auswahl prüfen (" + ids.length + ")";
+  }
+
+  function render(result) {
+    var d = result && result.structuredContent;
+    if (!d) return;
+    $("meta").textContent = (d.modelSummary || "") + " · " + (d.totalLoins || 0) + " LOIN(s), " + (d.fittingCount || 0) + " passend";
+    var rows = $("rows");
+    rows.textContent = "";
+
+    (d.projects || []).forEach(function (p) {
+      var tr = el("tr");
+      var tdCheck = el("td");
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!selected[p.guid];
+      cb.addEventListener("change", function () { selected[p.guid] = cb.checked; updateButton(); });
+      tdCheck.appendChild(cb);
+      tr.appendChild(tdCheck);
+      tr.appendChild(el("td", "", "AIA-Projekt"));
+      tr.appendChild(el("td", "", p.name));
+      tr.appendChild(el("td", "nofit", p.organisation || ""));
+      rows.appendChild(tr);
+    });
+
+    (d.loins || []).forEach(function (l) {
+      var tr = el("tr");
+      var tdCheck = el("td");
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!selected[l.guid];
+      cb.addEventListener("change", function () { selected[l.guid] = cb.checked; updateButton(); });
+      tdCheck.appendChild(cb);
+      tr.appendChild(tdCheck);
+      tr.appendChild(el("td", "", "LOIN"));
+      tr.appendChild(el("td", "", l.name));
+      tr.appendChild(el("td", l.fits ? "fit" : "nofit", l.fitDescription));
+      rows.appendChild(tr);
+    });
+  }
+
+  function applyFilter() {
+    request("tools/call", {
+      name: "app_set_filter",
+      arguments: {
+        search: $("search").value,
+        discipline: $("discipline").value,
+        phase: $("phase").value,
+        purpose: $("purpose").value,
+        include_unfitting: true
+      }
+    }).then(function (r) { render(r); }, function () {});
+  }
+
+  var timer;
+  ["search", "discipline", "phase", "purpose"].forEach(function (id) {
+    $(id).addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(applyFilter, 350); });
+  });
+
+  $("checkBtn").addEventListener("click", function () {
+    var ids = Object.keys(selected).filter(function (k) { return selected[k]; });
+    if (!ids.length) return;
+    var st = $("status");
+    st.hidden = false;
+    st.textContent = "Prüfe " + ids.length + " Anforderung(en) ...";
+    request("tools/call", { name: "app_check_selected", arguments: { ids: ids } }).then(function (r) {
+      var text = (r.content || []).map(function (c) { return c.text || ""; }).join("\n");
+      st.textContent = (r.structuredContent && r.structuredContent.verdict) || text;
+      request("ui/update-model-context", {
+        content: [{ type: "text", text: text }],
+        structuredContent: r.structuredContent
+      }).catch(function () {});
+    }, function (e) { st.textContent = "Fehler: " + e.message; });
+  });
+
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "checkmate-loins", version: "0.4.0" },
+    appCapabilities: { availableDisplayModes: ["inline", "fullscreen"] }
+  }).then(function (init) {
+    theme(init && init.hostContext);
+    notify("ui/notifications/initialized");
+  }, function () {});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CheckMate 0.4 — 3D Prüfbericht &amp; AIA/LOIN Markierungen</title>
+<style>
+  :root {
+    --bg: var(--color-background-primary, light-dark(#ffffff, #16181d));
+    --bg2: var(--color-background-secondary, light-dark(#f3f5f8, #21252d));
+    --fg: var(--color-text-primary, light-dark(#16181d, #f2f4f8));
+    --fg2: var(--color-text-secondary, light-dark(#586069, #9da5b4));
+    --line: var(--color-border-primary, light-dark(#d8dee4, #333945));
+    --ok: #2da44e;
+    --bad: #e53935;
+    --warn: #d29922;
+    --none: #6e7781;
+    --accent: #3b82f6;
+    color-scheme: light dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 10px 12px; background: var(--bg); color: var(--fg);
+         font: 13px/1.45 var(--font-sans, system-ui, -apple-system, sans-serif); }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  h1 { font-size: 15px; margin: 0; display: flex; align-items: center; gap: 6px; }
+  .tag { font-size: 11px; padding: 1px 7px; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 600; }
+  .meta { color: var(--fg2); font-size: 12px; margin-bottom: 8px; }
+  .verdict { padding: 7px 10px; background: var(--bg2); border-radius: 8px; margin-bottom: 10px; font-weight: 600; border-left: 4px solid var(--accent); }
+  .grid { display: grid; grid-template-columns: minmax(280px, 1.15fr) minmax(260px, 1fr); gap: 10px; align-items: start; }
+  @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
+  .viewer-box { border: 1px solid var(--line); border-radius: 8px; background: #12151c; overflow: hidden; position: relative; }
+  .viewer-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: rgba(0,0,0,0.45); color: #e5e7eb; font-size: 11px; gap: 6px; flex-wrap: wrap; }
+  .legend { display: flex; gap: 8px; align-items: center; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 3px; }
+  .dot.bad { background: #ff4747; } .dot.ok { background: #34d399; } .dot.none { background: #9ca3af; }
+  canvas { display: block; width: 100%; height: 340px; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  .viewer-btns { display: flex; gap: 4px; }
+  button.btn { padding: 3px 8px; background: var(--bg2); color: var(--fg); border: 1px solid var(--line); border-radius: 5px; cursor: pointer; font: inherit; font-size: 11px; }
+  button.btn:hover { border-color: var(--accent); }
+  button.btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .run { margin: 8px 0 4px; font-weight: 600; }
+  .run.err { color: var(--bad); }
+  .spec { border: 1px solid var(--line); border-radius: 8px; margin: 6px 0; background: var(--bg); }
+  .spec > summary { cursor: pointer; padding: 7px 10px; display: flex; gap: 8px; align-items: baseline; }
+  .badge { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; color: #fff; white-space: nowrap; }
+  .PASSED { background: var(--ok); } .FAILED { background: var(--bad); }
+  .PARTLY_EVALUATED { background: var(--warn); } .NOT_APPLICABLE { background: var(--none); }
+  .label { flex: 1; word-break: break-word; font-weight: 500; }
+  .count { color: var(--fg2); font-size: 11px; white-space: nowrap; }
+  .body { padding: 4px 10px 8px; border-top: 1px solid var(--line); }
+  .summary { color: var(--fg2); font-size: 12px; margin: 4px 0; }
+  .diag { background: var(--bg2); border-radius: 6px; padding: 6px 8px; font-size: 12px; margin: 6px 0; }
+  .diag ul { margin: 4px 0 0 16px; padding: 0; }
+  .unmet { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto; }
+  .unmet li { padding: 4px 0; border-bottom: 1px dashed var(--line); }
+  .unmet button { all: unset; cursor: pointer; color: var(--fg); display: block; width: 100%; }
+  .unmet button:hover { color: var(--accent); }
+  .elem { font-weight: 600; }
+  .line { color: var(--fg2); font-size: 11px; display: block; }
+  .more { margin-top: 6px; cursor: pointer; color: var(--fg); background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; font-size: 12px; }
+  pre#detail { white-space: pre-wrap; background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: 12px var(--font-mono, monospace); margin-top: 8px; max-height: 180px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>CheckMate Prüfbericht <span class="tag">0.4 · IFClite 3D</span></h1>
+  <div class="viewer-btns">
+    <button class="btn" id="btnAll">Alle zeigen</button>
+    <button class="btn" id="btnFailed">Nur Fehler (Rot)</button>
+    <button class="btn" id="btnReset">Kamera Reset</button>
+  </div>
+</div>
+<div id="header" class="meta">Warte auf Prüfdaten ...</div>
+<div id="verdict" class="verdict" hidden></div>
+
+<div class="grid">
+  <div class="viewer-box">
+    <div class="viewer-bar">
+      <div class="legend">
+        <span><i class="dot bad"></i>LOIN/AIA Fehler</span>
+        <span><i class="dot ok"></i>Erfüllt</span>
+        <span><i class="dot none"></i>Ungeprüft</span>
+      </div>
+      <span id="status3d">Lade 3D-Geometrie ...</span>
+    </div>
+    <canvas id="canvas3d" width="540" height="340"></canvas>
+  </div>
+  <div>
+    <div id="runs"></div>
+    <pre id="detail" hidden></pre>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var nextId = 1, pending = {};
+  var meshes3d = [], selectedGlobalId = null, filterFailedOnly = false;
+  var rotX = -0.55, rotY = 0.65, zoom = 1.0, panX = 0, panY = 0;
+  var bboxCenter = [0, 0, 0], bboxRadius = 10;
+
+  function send(m) { window.parent.postMessage(m, "*"); }
+  function request(method, params) {
+    var id = nextId++;
+    return new Promise(function (resolve, reject) {
+      pending[id] = { resolve: resolve, reject: reject };
+      send({ jsonrpc: "2.0", id: id, method: method, params: params });
+    });
+  }
+  function notify(method, params) { send({ jsonrpc: "2.0", method: method, params: params || {} }); }
+
+  window.addEventListener("message", function (event) {
+    var m = event.data;
+    if (!m || m.jsonrpc !== "2.0") return;
+    if (m.id !== undefined && !m.method && pending[m.id]) {
+      var p = pending[m.id]; delete pending[m.id];
+      if (m.error) p.reject(new Error(m.error.message || "Fehler")); else p.resolve(m.result);
+      return;
+    }
+    if (m.method === "ui/notifications/tool-result") render(m.params);
+    if (m.method === "ui/notifications/host-context-changed") theme(m.params);
+    if (m.method === "ui/resource-teardown" && m.id !== undefined) send({ jsonrpc: "2.0", id: m.id, result: {} });
+  });
+
+  function theme(context) {
+    var vars = context && context.styles && context.styles.variables;
+    if (!vars) return;
+    Object.keys(vars).forEach(function (k) { if (vars[k]) document.documentElement.style.setProperty(k, vars[k]); });
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  // --- WebGL 3D Renderer for IFClite Meshes with AIA/LOIN Status Coloring ---
+  var canvas = document.getElementById("canvas3d");
+  var gl = canvas.getContext("webgl", { antialias: true });
+  var prog = null, gpuBuffers = [];
+
+  function initWebGL() {
+    if (!gl) return;
+    var vs = "attribute vec3 aPos; attribute vec3 aNorm; uniform float uRotX, uRotY, uZoom, uAspect; uniform vec2 uPan; uniform vec3 uCenter; uniform float uRadius; varying vec3 vNorm; void main() { vec3 p = (aPos - uCenter) / uRadius; float cy = cos(uRotY), sy = sin(uRotY); float cx = cos(uRotX), sx = sin(uRotX); vec3 r1 = vec3(p.x * cy - p.y * sy, p.x * sy + p.y * cy, p.z); vec3 r2 = vec3(r1.x, r1.y * cx - r1.z * sx, r1.y * sx + r1.z * cx); vec3 n1 = vec3(aNorm.x * cy - aNorm.y * sy, aNorm.x * sy + aNorm.y * cy, aNorm.z); vNorm = vec3(n1.x, n1.y * cx - n1.z * sx, n1.y * sx + n1.z * cx); gl_Position = vec4((r2.x * uZoom / uAspect) + uPan.x, (r2.z * uZoom) + uPan.y, r2.y * 0.25, 1.0); }";
+    var fs = "precision mediump float; varying vec3 vNorm; uniform vec4 uColor; void main() { vec3 l = normalize(vec3(0.4, -0.6, 0.7)); float d = abs(dot(normalize(vNorm), l)) * 0.65 + 0.35; gl_FragColor = vec4(uColor.rgb * d, uColor.a); }";
+    function compile(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+    prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(prog);
+    gl.enable(gl.DEPTH_TEST);
+  }
+  initWebGL();
+
+  function uploadMeshes(list) {
+    meshes3d = list || [];
+    gpuBuffers = [];
+    if (!gl || !prog || !meshes3d.length) { drawScene(); return; }
+    var minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    meshes3d.forEach(function (m) {
+      var p = m.positions;
+      for (var i = 0; i < p.length; i += 3) {
+        if (p[i] < minX) minX = p[i]; if (p[i] > maxX) maxX = p[i];
+        if (p[i+1] < minY) minY = p[i+1]; if (p[i+1] > maxY) maxY = p[i+1];
+        if (p[i+2] < minZ) minZ = p[i+2]; if (p[i+2] > maxZ) maxZ = p[i+2];
+      }
+      var pb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, pb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(m.positions), gl.STATIC_DRAW);
+      var nb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, nb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(m.normals), gl.STATIC_DRAW);
+      var ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(m.indices), gl.STATIC_DRAW);
+      gpuBuffers.push({ pb: pb, nb: nb, ib: ib, count: m.indices.length, globalId: m.globalId, status: m.status, name: m.name });
+    });
+    if (isFinite(minX)) {
+      bboxCenter = [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2];
+      var dx = maxX - minX, dy = maxY - minY, dz = maxZ - minZ;
+      bboxRadius = Math.max(0.5, Math.sqrt(dx*dx + dy*dy + dz*dz) * 0.55);
+    }
+    drawScene();
+  }
+
+  function drawScene() {
+    if (!gl || !prog) return;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0.08, 0.09, 0.12, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    if (!gpuBuffers.length) return;
+
+    gl.useProgram(prog);
+    gl.uniform1f(gl.getUniformLocation(prog, "uRotX"), rotX);
+    gl.uniform1f(gl.getUniformLocation(prog, "uRotY"), rotY);
+    gl.uniform1f(gl.getUniformLocation(prog, "uZoom"), zoom);
+    gl.uniform1f(gl.getUniformLocation(prog, "uAspect"), canvas.width / canvas.height);
+    gl.uniform2f(gl.getUniformLocation(prog, "uPan"), panX, panY);
+    gl.uniform3f(gl.getUniformLocation(prog, "uCenter"), bboxCenter[0], bboxCenter[1], bboxCenter[2]);
+    gl.uniform1f(gl.getUniformLocation(prog, "uRadius"), bboxRadius);
+
+    var aPos = gl.getAttribLocation(prog, "aPos");
+    var aNorm = gl.getAttribLocation(prog, "aNorm");
+    var uColor = gl.getUniformLocation(prog, "uColor");
+    gl.enableVertexAttribArray(aPos);
+    gl.enableVertexAttribArray(aNorm);
+
+    gpuBuffers.forEach(function (b) {
+      if (filterFailedOnly && b.status !== "FAILED" && b.globalId !== selectedGlobalId) return;
+      var col = [0.62, 0.66, 0.72, 0.55];
+      if (b.status === "FAILED") col = [0.95, 0.24, 0.24, 1.0];
+      else if (b.status === "PASSED") col = [0.20, 0.82, 0.48, 0.9];
+      if (selectedGlobalId && b.globalId === selectedGlobalId) col = [1.0, 0.82, 0.15, 1.0];
+      else if (selectedGlobalId) col[3] = 0.22;
+
+      gl.uniform4f(uColor, col[0], col[1], col[2], col[3]);
+      gl.bindBuffer(gl.ARRAY_BUFFER, b.pb);
+      gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, b.nb);
+      gl.vertexAttribPointer(aNorm, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.ib);
+      gl.drawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0);
+    });
+  }
+
+  var drag = false, lastX = 0, lastY = 0, shiftDrag = false;
+  canvas.addEventListener("mousedown", function (e) { drag = true; shiftDrag = e.shiftKey; lastX = e.clientX; lastY = e.clientY; });
+  window.addEventListener("mouseup", function () { drag = false; });
+  window.addEventListener("mousemove", function (e) {
+    if (!drag) return;
+    var dx = e.clientX - lastX, dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    if (shiftDrag) { panX += dx * 0.004; panY -= dy * 0.004; }
+    else { rotY += dx * 0.01; rotX = Math.max(-1.5, Math.min(1.5, rotX + dy * 0.01)); }
+    drawScene();
+  });
+  canvas.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    zoom = Math.max(0.2, Math.min(6.0, zoom * (e.deltaY < 0 ? 1.12 : 0.89)));
+    drawScene();
+  }, { passive: false });
+
+  document.getElementById("btnAll").addEventListener("click", function () {
+    filterFailedOnly = false; selectedGlobalId = null; drawScene();
+  });
+  document.getElementById("btnFailed").addEventListener("click", function () {
+    filterFailedOnly = !filterFailedOnly;
+    this.classList.toggle("on", filterFailedOnly);
+    drawScene();
+  });
+  document.getElementById("btnReset").addEventListener("click", function () {
+    rotX = -0.55; rotY = 0.65; zoom = 1.0; panX = 0; panY = 0; selectedGlobalId = null; drawScene();
+  });
+
+  function load3dGeometry() {
+    var st = document.getElementById("status3d");
+    st.textContent = "Lade 3D-Meshes (IFClite WASM) ...";
+    request("tools/call", { name: "app_element_mesh", arguments: {} }).then(function (r) {
+      var d = r && r.structuredContent;
+      if (d && d.meshes) {
+        uploadMeshes(d.meshes);
+        var failedCount = d.meshes.filter(function (m) { return m.status === "FAILED"; }).length;
+        st.textContent = d.totalElementsWithGeometry + " 3D-Bauteile" + (failedCount ? " · " + failedCount + " rot markiert" : "");
+      } else {
+        st.textContent = "Keine 3D-Daten";
+      }
+    }, function (e) { st.textContent = "3D: " + e.message; });
+  }
+
+  function addFinding(list, f) {
+    var item = el("li");
+    var button = el("button");
+    button.appendChild(el("span", "elem", "🎯 " + f.element));
+    button.appendChild(el("span", "line", f.line));
+    button.title = "In 3D hervorheben & Elementbericht laden";
+    button.addEventListener("click", function () {
+      selectedGlobalId = f.elementId;
+      drawScene();
+      elementReport(f.elementId);
+    });
+    item.appendChild(button);
+    list.appendChild(item);
+  }
+
+  function loadMore(run, spec, offset, total, list, more) {
+    request("tools/call", { name: "app_report_page", arguments: { run: run, spec: spec, offset: offset, limit: 25 } })
+      .then(function (r) {
+        var page = r.structuredContent || {};
+        (page.unmet || []).forEach(function (f) { addFinding(list, f); });
+        var left = total - list.children.length;
+        if (left > 0 && (page.unmet || []).length) {
+          more.textContent = "Weitere laden (" + left + " übrig)";
+          more.disabled = false;
+        } else {
+          more.remove();
+        }
+      }, function (e) { more.textContent = e.message; });
+  }
+
+  function render(result) {
+    var data = result && result.structuredContent;
+    var runsBox = document.getElementById("runs");
+    runsBox.textContent = "";
+    if (!data || !data.runs) {
+      var text = (result && result.content && result.content[0] && result.content[0].text) || "Keine Daten.";
+      runsBox.appendChild(el("pre", "", text));
+      return;
+    }
+    document.getElementById("header").textContent = (data.header || []).join(" · ") + (data.mapping ? " · Mapping: " + data.mapping : "");
+    var verdict = document.getElementById("verdict");
+    verdict.hidden = false;
+    verdict.textContent = data.verdict || "";
+
+    data.runs.forEach(function (run, runIndex) {
+      runsBox.appendChild(el("div", "run" + (run.error ? " err" : ""), run.name + (run.error ? " - " + run.error : "")));
+      (run.specifications || []).forEach(function (spec, specIndex) {
+        var box = el("details", "spec");
+        box.open = true;
+        var head = el("summary");
+        head.appendChild(el("span", "badge " + spec.verdict, spec.verdictLabel));
+        head.appendChild(el("span", "label", spec.label));
+        head.appendChild(el("span", "count", spec.applicable + "/" + spec.examined
+          + (spec.failing ? " · " + spec.failing + " Fehler" : "")));
+        box.appendChild(head);
+
+        var body = el("div", "body");
+        body.appendChild(el("div", "summary", spec.summary));
+
+        if (spec.diagnosis && ((spec.diagnosis.facets && spec.diagnosis.facets.length) || (spec.diagnosis.nearMisses && spec.diagnosis.nearMisses.length))) {
+          var diag = el("div", "diag");
+          diag.appendChild(el("strong", "", "Diagnose (0 anwendbar):"));
+          var ul = el("ul");
+          (spec.diagnosis.facets || []).forEach(function (f) { ul.appendChild(el("li", "", f.line)); });
+          (spec.diagnosis.nearMisses || []).forEach(function (nm) {
+            var li = el("li");
+            var btn = el("button", "btn", "🎯 " + nm.line);
+            btn.addEventListener("click", function () { selectedGlobalId = nm.elementId; drawScene(); });
+            li.appendChild(btn);
+            ul.appendChild(li);
+          });
+          diag.appendChild(ul);
+          body.appendChild(diag);
+        }
+
+        var unmet = spec.unmet || [];
+        if (unmet.length) {
+          var list = el("ul", "unmet");
+          unmet.forEach(function (f) { addFinding(list, f); });
+          body.appendChild(list);
+          var total = spec.unmetTotal || unmet.length;
+          if (unmet.length < total) {
+            var more = el("button", "more", "Weitere laden (" + (total - unmet.length) + " übrig)");
+            more.addEventListener("click", function () {
+              more.disabled = true;
+              loadMore(runIndex, specIndex, list.children.length, total, list, more);
+            });
+            body.appendChild(more);
+          }
+        }
+        box.appendChild(body);
+        runsBox.appendChild(box);
+      });
+    });
+
+    load3dGeometry();
+  }
+
+  function elementReport(id) {
+    var detail = document.getElementById("detail");
+    detail.hidden = false;
+    detail.textContent = "Lade Elementbericht für " + id + " ...";
+    request("tools/call", { name: "element_report", arguments: { element: id } }).then(function (r) {
+      detail.textContent = (r.content || []).map(function (c) { return c.text || ""; }).join("\n");
+    }, function (e) { detail.textContent = e.message; });
+  }
+
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "checkmate-report-3d", version: "0.4.0" },
+    appCapabilities: { availableDisplayModes: ["inline", "fullscreen"] }
+  }).then(function (init) {
+    theme(init && init.hostContext);
+    notify("ui/notifications/initialized");
+  }, function () {});
+
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () {
+      notify("ui/notifications/size-changed", {
+        width: Math.ceil(document.documentElement.scrollWidth),
+        height: Math.ceil(document.documentElement.scrollHeight)
+      });
+    }).observe(document.body);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "checkmate": {
+      "command": "node",
+      "args": [
+        "--import",
+        "tsx",
+        "packages/mcp/src/index.ts"
+      ],
+      "env": {
+        "CHECKMATE_MAPPING": "default"
+      }
+    }
+  }
+}

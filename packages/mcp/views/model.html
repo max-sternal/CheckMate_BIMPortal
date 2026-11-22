@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CheckMate 0.4 — 3D Modell &amp; Bauteile</title>
+<style>
+  :root {
+    --bg: var(--color-background-primary, light-dark(#ffffff, #16181d));
+    --bg2: var(--color-background-secondary, light-dark(#f3f5f8, #21252d));
+    --fg: var(--color-text-primary, light-dark(#16181d, #f2f4f8));
+    --fg2: var(--color-text-secondary, light-dark(#586069, #9da5b4));
+    --line: var(--color-border-primary, light-dark(#d8dee4, #333945));
+    --bar: #3b82f6;
+    color-scheme: light dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 10px 12px; background: var(--bg); color: var(--fg);
+         font: 13px/1.45 var(--font-sans, system-ui, sans-serif); }
+  h1 { font-size: 15px; margin: 0 0 2px; }
+  .meta { color: var(--fg2); font-size: 12px; margin-bottom: 8px; }
+  .grid { display: grid; grid-template-columns: minmax(280px, 1.1fr) minmax(260px, 1fr); gap: 10px; align-items: start; }
+  @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
+  .viewer-box { border: 1px solid var(--line); border-radius: 8px; background: #12151c; overflow: hidden; }
+  .viewer-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: rgba(0,0,0,0.45); color: #e5e7eb; font-size: 11px; }
+  canvas { display: block; width: 100%; height: 320px; cursor: grab; }
+  .entity { display: grid; grid-template-columns: 155px 1fr 42px; gap: 6px; align-items: center;
+            width: 100%; padding: 2px 4px; border: 0; background: none; color: var(--fg);
+            font: inherit; text-align: left; cursor: pointer; border-radius: 4px; }
+  .entity:hover, .entity.on { background: var(--bg2); }
+  .track { background: var(--bg2); border-radius: 4px; height: 8px; }
+  .fill { background: var(--bar); height: 8px; border-radius: 4px; }
+  .num { text-align: right; color: var(--fg2); font-size: 11px; }
+  .tools { display: flex; gap: 6px; margin: 8px 0 6px; }
+  input { flex: 1; padding: 4px 8px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+  button.act { padding: 4px 10px; background: var(--bg2); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  td, th { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); word-break: break-word; }
+  th { color: var(--fg2); font-weight: 600; }
+  tr.row { cursor: pointer; } tr.row:hover { background: var(--bg2); }
+  .count { color: var(--fg2); font-size: 12px; margin: 4px 0; }
+</style>
+</head>
+<body>
+<h1>CheckMate 0.4 — 3D Modellübersicht</h1>
+<div id="summary" class="meta">Warte auf ein Modell ...</div>
+
+<div class="grid">
+  <div class="viewer-box">
+    <div class="viewer-bar">
+      <span id="status3d">3D-Vorschau (IFClite)</span>
+      <button class="act" id="reset3d" style="padding:1px 6px;font-size:11px">Reset</button>
+    </div>
+    <canvas id="canvas3d" width="520" height="320"></canvas>
+  </div>
+  <div>
+    <div id="entities"></div>
+    <div class="tools">
+      <input id="name" placeholder="Name enthält ...">
+      <button class="act" id="clear">Alle Entities</button>
+    </div>
+    <div id="count" class="count"></div>
+    <table id="table" hidden><thead><tr><th>Entity</th><th>Name</th><th>Typ</th></tr></thead><tbody id="rows"></tbody></table>
+    <button class="act" id="more" hidden>Weitere laden</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var nextId = 1, pending = {}, entity = "", loaded = 0, total = 0, PAGE = 40;
+  var selectedGlobalId = null, rotX = -0.55, rotY = 0.65, zoom = 1.0, panX = 0, panY = 0;
+  var bboxCenter = [0, 0, 0], bboxRadius = 10, gpuBuffers = [];
+
+  function send(m) { window.parent.postMessage(m, "*"); }
+  function request(method, params) {
+    var id = nextId++;
+    return new Promise(function (resolve, reject) {
+      pending[id] = { resolve: resolve, reject: reject };
+      send({ jsonrpc: "2.0", id: id, method: method, params: params });
+    });
+  }
+  function notify(method, params) { send({ jsonrpc: "2.0", method: method, params: params || {} }); }
+
+  window.addEventListener("message", function (event) {
+    var m = event.data;
+    if (!m || m.jsonrpc !== "2.0") return;
+    if (m.id !== undefined && !m.method && pending[m.id]) {
+      var p = pending[m.id]; delete pending[m.id];
+      if (m.error) p.reject(new Error(m.error.message || "Fehler")); else p.resolve(m.result);
+      return;
+    }
+    if (m.method === "ui/notifications/tool-result") render(m.params);
+    if (m.method === "ui/notifications/host-context-changed") theme(m.params);
+    if (m.method === "ui/resource-teardown" && m.id !== undefined) send({ jsonrpc: "2.0", id: m.id, result: {} });
+  });
+
+  function theme(context) {
+    var vars = context && context.styles && context.styles.variables;
+    if (!vars) return;
+    Object.keys(vars).forEach(function (k) { if (vars[k]) document.documentElement.style.setProperty(k, vars[k]); });
+  }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function $(id) { return document.getElementById(id); }
+
+  var canvas = $("canvas3d");
+  var gl = canvas.getContext("webgl", { antialias: true });
+  var prog = null;
+  if (gl) {
+    var vs = "attribute vec3 aPos; attribute vec3 aNorm; uniform float uRotX, uRotY, uZoom, uAspect; uniform vec2 uPan; uniform vec3 uCenter; uniform float uRadius; varying vec3 vNorm; void main() { vec3 p = (aPos - uCenter) / uRadius; float cy = cos(uRotY), sy = sin(uRotY); float cx = cos(uRotX), sx = sin(uRotX); vec3 r1 = vec3(p.x * cy - p.y * sy, p.x * sy + p.y * cy, p.z); vec3 r2 = vec3(r1.x, r1.y * cx - r1.z * sx, r1.y * sx + r1.z * cx); vec3 n1 = vec3(aNorm.x * cy - aNorm.y * sy, aNorm.x * sy + aNorm.y * cy, aNorm.z); vNorm = vec3(n1.x, n1.y * cx - n1.z * sx, n1.y * sx + n1.z * cx); gl_Position = vec4((r2.x * uZoom / uAspect) + uPan.x, (r2.z * uZoom) + uPan.y, r2.y * 0.25, 1.0); }";
+    var fs = "precision mediump float; varying vec3 vNorm; uniform vec4 uColor; void main() { vec3 l = normalize(vec3(0.4, -0.6, 0.7)); float d = abs(dot(normalize(vNorm), l)) * 0.65 + 0.35; gl_FragColor = vec4(uColor.rgb * d, uColor.a); }";
+    function compile(t, s) { var sh = gl.createShader(t); gl.shaderSource(sh, s); gl.compileShader(sh); return sh; }
+    prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(prog);
+    gl.enable(gl.DEPTH_TEST);
+  }
+
+  function uploadMeshes(list) {
+    gpuBuffers = [];
+    if (!gl || !prog || !list.length) return;
+    var minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    list.forEach(function (m) {
+      var p = m.positions;
+      for (var i = 0; i < p.length; i += 3) {
+        if (p[i] < minX) minX = p[i]; if (p[i] > maxX) maxX = p[i];
+        if (p[i+1] < minY) minY = p[i+1]; if (p[i+1] > maxY) maxY = p[i+1];
+        if (p[i+2] < minZ) minZ = p[i+2]; if (p[i+2] > maxZ) maxZ = p[i+2];
+      }
+      var pb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, pb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(m.positions), gl.STATIC_DRAW);
+      var nb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, nb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(m.normals), gl.STATIC_DRAW);
+      var ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(m.indices), gl.STATIC_DRAW);
+      gpuBuffers.push({ pb: pb, nb: nb, ib: ib, count: m.indices.length, globalId: m.globalId, entityName: m.entityName, status: m.status });
+    });
+    if (isFinite(minX)) {
+      bboxCenter = [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2];
+      var dx = maxX - minX, dy = maxY - minY, dz = maxZ - minZ;
+      bboxRadius = Math.max(0.5, Math.sqrt(dx*dx + dy*dy + dz*dz) * 0.55);
+    }
+    drawScene();
+  }
+
+  function drawScene() {
+    if (!gl || !prog) return;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0.08, 0.09, 0.12, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    if (!gpuBuffers.length) return;
+    gl.useProgram(prog);
+    gl.uniform1f(gl.getUniformLocation(prog, "uRotX"), rotX);
+    gl.uniform1f(gl.getUniformLocation(prog, "uRotY"), rotY);
+    gl.uniform1f(gl.getUniformLocation(prog, "uZoom"), zoom);
+    gl.uniform1f(gl.getUniformLocation(prog, "uAspect"), canvas.width / canvas.height);
+    gl.uniform2f(gl.getUniformLocation(prog, "uPan"), panX, panY);
+    gl.uniform3f(gl.getUniformLocation(prog, "uCenter"), bboxCenter[0], bboxCenter[1], bboxCenter[2]);
+    gl.uniform1f(gl.getUniformLocation(prog, "uRadius"), bboxRadius);
+    var aPos = gl.getAttribLocation(prog, "aPos"), aNorm = gl.getAttribLocation(prog, "aNorm"), uColor = gl.getUniformLocation(prog, "uColor");
+    gl.enableVertexAttribArray(aPos); gl.enableVertexAttribArray(aNorm);
+    gpuBuffers.forEach(function (b) {
+      var col = [0.58, 0.72, 0.92, 0.85];
+      if (b.status === "FAILED") col = [0.95, 0.24, 0.24, 1.0];
+      else if (b.status === "PASSED") col = [0.20, 0.82, 0.48, 0.9];
+      if (selectedGlobalId && b.globalId === selectedGlobalId) col = [1.0, 0.82, 0.15, 1.0];
+      else if (entity && b.entityName.toLowerCase() !== entity.toLowerCase()) col[3] = 0.15;
+      gl.uniform4f(uColor, col[0], col[1], col[2], col[3]);
+      gl.bindBuffer(gl.ARRAY_BUFFER, b.pb); gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, b.nb); gl.vertexAttribPointer(aNorm, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.ib); gl.drawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0);
+    });
+  }
+
+  var drag = false, lx = 0, ly = 0;
+  canvas.addEventListener("mousedown", function (e) { drag = true; lx = e.clientX; ly = e.clientY; });
+  window.addEventListener("mouseup", function () { drag = false; });
+  window.addEventListener("mousemove", function (e) {
+    if (!drag) return;
+    rotY += (e.clientX - lx) * 0.01;
+    rotX = Math.max(-1.5, Math.min(1.5, rotX + (e.clientY - ly) * 0.01));
+    lx = e.clientX; ly = e.clientY;
+    drawScene();
+  });
+  canvas.addEventListener("wheel", function (e) { e.preventDefault(); zoom = Math.max(0.2, Math.min(6, zoom * (e.deltaY < 0 ? 1.12 : 0.89))); drawScene(); }, { passive: false });
+  $("reset3d").addEventListener("click", function () { rotX = -0.55; rotY = 0.65; zoom = 1; selectedGlobalId = null; drawScene(); });
+
+  function render(result) {
+    var data = result && result.structuredContent;
+    if (!data || !data.entities) return;
+    $("summary").textContent = data.summary;
+    var box = $("entities");
+    box.textContent = "";
+    var max = data.entities.reduce(function (a, e) { return Math.max(a, e.count); }, 1);
+    data.entities.forEach(function (e) {
+      var row = el("button", "entity");
+      row.appendChild(el("span", "", e.name));
+      var track = el("span", "track");
+      var fill = el("span", "fill");
+      fill.style.display = "block";
+      fill.style.width = Math.max(2, Math.round(100 * e.count / max)) + "%";
+      track.appendChild(fill);
+      row.appendChild(track);
+      row.appendChild(el("span", "num", String(e.count)));
+      row.addEventListener("click", function () {
+        entity = e.name;
+        Array.prototype.forEach.call(box.children, function (c) { c.classList.remove("on"); });
+        row.classList.add("on");
+        drawScene();
+        reload();
+      });
+      box.appendChild(row);
+    });
+
+    request("tools/call", { name: "app_element_mesh", arguments: {} }).then(function (r) {
+      var d = r && r.structuredContent;
+      if (d && d.meshes) {
+        uploadMeshes(d.meshes);
+        $("status3d").textContent = d.totalElementsWithGeometry + " 3D-Bauteile geladen";
+      }
+    }, function () {});
+  }
+
+  function reload() { $("rows").textContent = ""; loaded = 0; page(); }
+  function page() {
+    var more = $("more");
+    more.disabled = true;
+    request("tools/call", { name: "app_element_page", arguments: { entity: entity, name: $("name").value, offset: loaded, limit: PAGE } })
+      .then(function (r) {
+        var d = r.structuredContent || {};
+        total = d.total || 0;
+        (d.elements || []).forEach(function (e) {
+          var tr = el("tr", "row");
+          tr.appendChild(el("td", "", e.entity));
+          tr.appendChild(el("td", "", e.name || ""));
+          tr.appendChild(el("td", "", e.predefinedType || ""));
+          tr.addEventListener("click", function () { selectedGlobalId = e.id; drawScene(); });
+          $("rows").appendChild(tr);
+        });
+        loaded += (d.elements || []).length;
+        $("table").hidden = false;
+        $("count").textContent = loaded + " von " + total + " Element(en)" + (entity ? " · " + entity : "");
+        more.hidden = loaded >= total;
+        more.disabled = false;
+      }, function (e) { $("count").textContent = e.message; more.disabled = false; });
+  }
+
+  var timer;
+  $("name").addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(reload, 300); });
+  $("clear").addEventListener("click", function () {
+    entity = ""; selectedGlobalId = null;
+    Array.prototype.forEach.call($("entities").children, function (c) { c.classList.remove("on"); });
+    drawScene(); reload();
+  });
+  $("more").addEventListener("click", page);
+
+  request("ui/initialize", {
+    protocolVersion: "2026-01-26",
+    appInfo: { name: "checkmate-model-3d", version: "0.4.0" },
+    appCapabilities: { availableDisplayModes: ["inline", "fullscreen"] }
+  }).then(function (init) {
+    theme(init && init.hostContext);
+    notify("ui/notifications/initialized");
+  }, function () {});
+})();
+</script>
+</body>
+</html>
