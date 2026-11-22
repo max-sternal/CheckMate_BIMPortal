@@ -1,0 +1,9 @@
+packages:
+  - 'packages/*'
+  - 'website'
+minimumReleaseAgeExclude:
+  - '@ifc-lite/bcf@5.2.2'
+  - '@ifc-lite/geometry@8.3.0'
+  - '@ifc-lite/wasm@13.0.0'
+onlyBuiltDependencies:
+  - esbuild

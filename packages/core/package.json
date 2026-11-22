@@ -1,0 +1,23 @@
+{
+  "name": "@checkmate/core",
+  "version": "0.4.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@checkmate/bimportal": "workspace:*",
+    "@ifc-lite/bcf": "^5.2.2",
+    "@ifc-lite/data": "^7.0.0",
+    "@ifc-lite/geometry": "^8.3.0",
+    "@ifc-lite/ids": "^3.5.0",
+    "@ifc-lite/parser": "^10.0.0",
+    "@ifc-lite/rules": "^0.8.1",
+    "fflate": "^0.8.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@checkmate/cli",
+  "version": "0.4.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "checkmate": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@checkmate/bimportal": "workspace:*",
+    "@checkmate/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

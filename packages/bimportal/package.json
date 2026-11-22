@@ -1,0 +1,16 @@
+{
+  "name": "@checkmate/bimportal",
+  "version": "0.4.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

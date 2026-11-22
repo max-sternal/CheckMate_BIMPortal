@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Hand-written for CheckMate's tests, not downloaded from the portal: an IDS 1.0 file the way
+  other tools write them. Valid against the IDS 1.0 XSD (checked with ifctester 0.9, see README.md).
+
+  1 Platten          IFC2X3 IFC4  - several schemas in one specification
+  2 Waende           IFC4         - entity as xs:enumeration; a value restriction and an attribute
+                                    facet in the requirements, which CheckMate does not evaluate
+  3 Klassifiziert    IFC4         - applicability by classification, not evaluated
+  4 Keine Proxies    IFC4         - maxOccurs="0", not evaluated
+  5 Bruecken         IFC4X3_ADD2
+-->
+<ids xmlns="http://standards.buildingsmart.org/IDS"
+     xmlns:xs="http://www.w3.org/2001/XMLSchema"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://standards.buildingsmart.org/IDS http://standards.buildingsmart.org/IDS/1.0/ids.xsd">
+  <info>
+    <title>CheckMate Testanforderungen</title>
+    <version>1.2</version>
+  </info>
+  <specifications>
+    <specification name="Platten" ifcVersion="IFC2X3 IFC4">
+      <applicability minOccurs="0" maxOccurs="unbounded">
+        <entity>
+          <name><simpleValue>IFCSLAB</simpleValue></name>
+        </entity>
+      </applicability>
+      <requirements>
+        <property dataType="IFCBOOLEAN" cardinality="required">
+          <propertySet><simpleValue>Pset_SlabCommon</simpleValue></propertySet>
+          <baseName><simpleValue>LoadBearing</simpleValue></baseName>
+        </property>
+      </requirements>
+    </specification>
+    <specification name="Waende" ifcVersion="IFC4">
+      <applicability minOccurs="0" maxOccurs="unbounded">
+        <entity>
+          <name>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="IFCWALL"/>
+              <xs:enumeration value="IFCWALLSTANDARDCASE"/>
+            </xs:restriction>
+          </name>
+        </entity>
+      </applicability>
+      <requirements>
+        <attribute cardinality="required">
+          <name><simpleValue>Name</simpleValue></name>
+        </attribute>
+        <property dataType="IFCLABEL" cardinality="required">
+          <propertySet><simpleValue>Pset_WallCommon</simpleValue></propertySet>
+          <baseName><simpleValue>FireRating</simpleValue></baseName>
+          <value>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="REI30"/>
+              <xs:enumeration value="REI60"/>
+            </xs:restriction>
+          </value>
+        </property>
+      </requirements>
+    </specification>
+    <specification name="Klassifiziert" ifcVersion="IFC4">
+      <applicability minOccurs="0" maxOccurs="unbounded">
+        <classification>
+          <system><simpleValue>Uniclass 2015</simpleValue></system>
+        </classification>
+      </applicability>
+      <requirements>
+        <property cardinality="required">
+          <propertySet><simpleValue>Pset_ManufacturerTypeInformation</simpleValue></propertySet>
+          <baseName><simpleValue>Manufacturer</simpleValue></baseName>
+        </property>
+      </requirements>
+    </specification>
+    <specification name="Keine Proxies" ifcVersion="IFC4">
+      <applicability minOccurs="0" maxOccurs="0">
+        <entity>
+          <name><simpleValue>IFCBUILDINGELEMENTPROXY</simpleValue></name>
+        </entity>
+      </applicability>
+    </specification>
+    <specification name="Bruecken" ifcVersion="IFC4X3_ADD2">
+      <applicability minOccurs="0" maxOccurs="unbounded">
+        <entity>
+          <name><simpleValue>IFCBRIDGE</simpleValue></name>
+        </entity>
+      </applicability>
+      <requirements>
+        <property dataType="IFCLABEL" cardinality="required">
+          <propertySet><simpleValue>Pset_BridgeCommon</simpleValue></propertySet>
+          <baseName><simpleValue>Reference</simpleValue></baseName>
+        </property>
+      </requirements>
+    </specification>
+  </specifications>
+</ids>
