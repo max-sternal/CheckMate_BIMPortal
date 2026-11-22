@@ -35,3 +35,4 @@ website/.astro/
 
 
 **/node_modules/
+packages/web/public/*.ifc

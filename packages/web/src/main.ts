@@ -385,3 +385,23 @@ document.getElementById('idsFile')?.addEventListener('change', async (e) => {
     currentIdsXml = xml;
   }
 });
+
+async function runDemo(): Promise<void> {
+  const metaEl = document.getElementById('modelMeta')!;
+  metaEl.textContent = 'Lade mitgeliefertes BIM.Hamburg Brückenmodell (bruecke-tbw1-mit-merkmalen.ifc) ...';
+  try {
+    const res = await fetch('./bruecke-tbw1-mit-merkmalen.ifc');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buf = new Uint8Array(await res.arrayBuffer());
+    await loadAndCheck(buf, 'bruecke-tbw1-mit-merkmalen.ifc', DEMO_BRIDGE_IDS);
+  } catch (err) {
+    metaEl.textContent = `Demo-Laden fehlgeschlagen: ${(err as Error).message}`;
+  }
+}
+
+document.getElementById('runDemoBtn')?.addEventListener('click', () => {
+  void runDemo();
+});
+
+// Auto-start the 3D bridge demo on page load
+void runDemo();
