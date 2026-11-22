@@ -27,6 +27,7 @@ for (const relativePath of [
 	'package-lock.json',
 	'astro.config.mjs',
 	'src/content.config.ts',
+	'src/styles/custom.css',
 	'src/content/versions',
 	'src/assets/v0.3.1',
 	...['v0.1.0', 'v0.2.0', 'v0.3.1'].flatMap((version) => [

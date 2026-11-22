@@ -56,3 +56,26 @@
 	background: var(--sl-color-accent-low);
 	color: var(--sl-color-accent-high);
 }
+
+@media (max-width: 49.99rem) {
+	header .header {
+		gap: 0.25rem;
+	}
+
+	header .right-group {
+		display: flex !important;
+		gap: 0;
+	}
+
+	header .right-group > :not(starlight-version-select):not(script) {
+		display: none;
+	}
+
+	header .site-title img {
+		display: none;
+	}
+
+	header .site-title span {
+		font-size: 0.95rem;
+	}
+}

@@ -14,7 +14,7 @@ export default defineConfig({
 		starlight({
 			plugins: [
 				starlightVersions({
-					current: { label: `Aktuell (${publishedVersion})`, redirect: 'root' },
+					current: { label: 'Latest', redirect: 'root' },
 					versions: [
 						{ slug: 'v0.3.1', label: 'v0.3.1', redirect: 'root' },
 						{ slug: 'v0.2.0', label: 'v0.2.0', redirect: 'root' },
