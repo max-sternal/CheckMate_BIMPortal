@@ -113,6 +113,12 @@ class LoinCheckCliTest {
   }
 
   @Test
+  void printsTheFullReportOnRequest() {
+    assertThat(Arguments.parse("--full", "Kappe").full()).isTrue();
+    assertThat(Arguments.parse("Kappe").full()).isFalse();
+  }
+
+  @Test
   void writesJsonOnlyForChecks() {
     assertThat(Arguments.parse("--json", "build/bericht.json", "Kappe").json())
         .isEqualTo("build/bericht.json");

@@ -19,11 +19,13 @@ import com.bimportal.hackathon.ids.IdsDocument;
 import com.bimportal.hackathon.ids.IdsParser;
 import com.bimportal.hackathon.ids.ModelElement;
 import com.bimportal.hackathon.ids.PortalRequirements;
+import com.bimportal.hackathon.check.CheckService;
+import com.bimportal.hackathon.check.Source;
 import com.bimportal.hackathon.ids.RequirementsException;
 import com.bimportal.hackathon.report.CheckReport;
 import com.bimportal.hackathon.report.CheckReport.Run;
+import com.bimportal.hackathon.report.ReportText;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
-import com.pb40.bimportal.client.EnhancedBimPortalClient;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,7 +37,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.time.OffsetDateTime;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import test.fx.RequirementSource.Loaded;
@@ -69,17 +70,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
 /**
- * The CheckMate window.
- *
- * <p>Left the requirements: a search over the portal's AIA projects and LOINs (or an ID), the
- * catalogue filters, and the list sorted by fit to the model. In the middle the elements a check is
- * about, one tab each. Below the summary table and the report. Buttons load a model from a file or
- * a link, or an IDS file.
- *
- * <p>Everything slow - the portal, downloads, the check - runs off the FX thread ({@code
- * inBackground}); the check itself comes from the {@code ids} and {@code report} packages, so this
- * class only collects input and shows results. The class filter at the top and {@link
- * #createObjectTab} are left from the original template (STATUS #4, docs/WORKFLOW.md).
+ * The CheckMate window: requirements on the left, the checked elements in the middle, summary and
+ * report below. It only collects input and shows results; the check runs in the core packages.
  */
 public class ElementUI extends VBox {
 
@@ -112,10 +104,11 @@ public class ElementUI extends VBox {
   private ModelFit fit;
 
   /**
-   * Requirements downloaded in this session, by GUID: a LOIN that was looked at is not downloaded
-   * again for its check. Only what is looked at or checked is ever downloaded.
+   * Requirements, search and check, the same as for the CLI. It downloads each LOIN once: one that
+   * was looked at is not downloaded again for its check.
    */
-  private final Map<UUID, IdsDocument> downloaded = new ConcurrentHashMap<>();
+  private final CheckService service =
+      new CheckService(BimPortalClientBuilder::buildAuthenticatedOrPublic);
 
   private final ComboBox<String> disciplineFilter = filterBox(ALL_DISCIPLINES);
   private final ComboBox<String> phaseFilter = filterBox(ALL_PHASES);
@@ -407,9 +400,6 @@ public class ElementUI extends VBox {
     }
   }
 
-  /** What a search found: AIA projects and LOINs. */
-  private record Found(List<PortalProject> projects, List<CatalogueEntry> loins) {}
-
   /**
    * Look AIA projects and LOINs up in the BIM Portal and offer them for checking, projects first:
    * there are few, and each stands for many LOINs.
@@ -422,19 +412,10 @@ public class ElementUI extends VBox {
     reportArea.setText(all ? "Lade alle LOINs ..." : "Suche LOINs zu '" + term + "' ...");
 
     inBackground(
-        () ->
-            withPortal(
-                client ->
-                    new Found(
-                        PortalRequirements.searchProjects(client, term).stream()
-                            .map(PortalProject::of)
-                            .toList(),
-                        PortalRequirements.search(client, term).stream()
-                            .map(CatalogueEntry::of)
-                            .toList())),
+        () -> service.search(term),
         found -> {
           catalogue = found.loins();
-          projects = found.projects();
+          projects = found.projects().stream().map(PortalProject::of).toList();
           offerFilterValues();
           refreshList();
           reportArea.setText(
@@ -527,7 +508,7 @@ public class ElementUI extends VBox {
       case Loaded loaded ->
           show(LoinDescription.describe(loaded.document(), against.schema(), against.elements()));
       case PortalLoin loin -> {
-        IdsDocument known = downloaded.get(loin.guid());
+        IdsDocument known = service.known(loin.source()).orElse(null);
         show(describe(loin, known, against));
         if (known == null) {
           inBackground(
@@ -565,30 +546,16 @@ public class ElementUI extends VBox {
     reportArea.setText(String.join("\n", lines));
   }
 
-  /**
-   * The requirements of a list entry, downloaded once per session. Called off the FX thread; two
-   * calls for the same LOIN at once share one download.
-   */
+  /** The requirements of a list entry, downloaded once. Called off the FX thread. */
   private IdsDocument requirements(RequirementSource source) {
-    return switch (source) {
-      case Loaded loaded -> loaded.document();
-      case PortalLoin loin ->
-          downloaded.computeIfAbsent(
-              loin.guid(),
-              guid -> withPortal(client -> PortalRequirements.loin(client, guid, loin.name())));
-      case PortalProject project ->
-          downloaded.computeIfAbsent(
-              project.guid(),
-              guid ->
-                  withPortal(client -> PortalRequirements.project(client, guid, project.name())));
-    };
+    return service.requirements(source.source());
   }
 
   /** Fetch a LOIN or an AIA project by its ID and check the model against it. */
   private void loadById(UUID id) {
     reportArea.setText("Lade " + id + " aus dem BIM Portal ...");
     inBackground(
-        () -> withPortal(client -> PortalRequirements.requirements(client, id)),
+        () -> service.requirements(new Source.PortalId(id.toString())),
         document -> offerAndCheck(new Loaded(document)));
   }
 
@@ -622,16 +589,6 @@ public class ElementUI extends VBox {
     loinView.getSelectionModel().clearAndSelect(0);
     loinView.scrollTo(0);
     validateSelected();
-  }
-
-  /** Run something against the portal with a client of its own, logged out afterwards. */
-  private static <T> T withPortal(Function<EnhancedBimPortalClient, T> work) {
-    EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
-    try {
-      return work.apply(client);
-    } finally {
-      client.logout();
-    }
   }
 
   /** What the check is run against, for the top of the report panel. */
@@ -751,7 +708,7 @@ public class ElementUI extends VBox {
       return new SummaryRow(
           result.verdict(),
           result.verdict().label(),
-          result.specification().name() + " (" + result.specification().ifcVersion() + ")",
+          result.specification().label(),
           result.applicableElements() + " von " + result.examinedElements(),
           String.valueOf(result.passingElements()),
           String.valueOf(result.failingElements()),
@@ -863,65 +820,21 @@ public class ElementUI extends VBox {
     if (row.requirements() == null) {
       reportArea.setText(lastCheck.text());
     } else {
-      List<String> lines = new ArrayList<>(lastCheck.report().header());
-      lines.add("Anforderungen: " + row.requirements());
-      lines.addAll(row.results().get(0).report());
-      reportArea.setText(String.join("\n", lines));
+      show(ReportText.single(lastCheck.report(), row.requirements(), row.results().get(0)));
     }
     showCheckedElements(row.results(), lastCheck.model());
   }
 
-  /**
-   * Run the selected entries against the model.
-   *
-   * <p>Called off the FX thread: what was not looked at yet is downloaded from the portal now, and
-   * every check walks every element. With several specifications - several LOINs, or an AIA
-   * project - the report starts with one line per specification.
-   */
+  /** Run the selected entries against the model. Called off the FX thread. */
   private Checked check(
       List<RequirementSource> sources, LoadedModel against, OffsetDateTime checkedAt) {
-    List<Run> runs = new ArrayList<>();
-    List<String> details = new ArrayList<>();
-    for (RequirementSource source : sources) {
-      if (!details.isEmpty()) {
-        details.add("");
-      }
-      try {
-        IdsDocument requirements = requirements(source);
-        List<CheckResult> results = requirements.check(against.schema(), against.elements());
-        runs.add(Run.checked(requirements, results));
-        details.add("Anforderungen: " + requirements.describe());
-        if (results.size() > 1) {
-          details.add(CheckResult.tally(results, against.schema()));
-          results.forEach(result -> details.add("   " + result.overviewLine()));
-        }
-        for (CheckResult result : results) {
-          if (results.size() > 1) {
-            details.add("");
-          }
-          details.addAll(result.report());
-        }
-      } catch (RuntimeException e) {
-        // No IDS for a LOIN, or none for this schema, is an ordinary outcome here - it belongs
-        // in the report rather than in a stack trace. RequirementsException messages name the
-        // source.
-        String message =
-            e instanceof RequirementsException ? e.getMessage() : source.label() + ": " + e;
-        runs.add(Run.failed(source.label(), message));
-        details.add(message);
-      }
-    }
-
-    CheckReport report = new CheckReport(checkedAt, against.info(), runs);
-    List<String> lines = new ArrayList<>(report.header());
-    List<CheckResult> all = report.results();
-    if (sources.size() > 1 && !all.isEmpty()) {
-      lines.add(sources.size() + " Einträge geprüft - " + report.verdict());
-      all.forEach(result -> lines.add("   " + result.overviewLine()));
-    }
-    lines.add("");
-    lines.addAll(details);
-    return new Checked(report, String.join("\n", lines), against);
+    CheckReport report =
+        service.check(
+            sources.stream().map(RequirementSource::source).toList(),
+            against.info(),
+            against.elements(),
+            checkedAt);
+    return new Checked(report, String.join("\n", ReportText.full(report)), against);
   }
 
   /**

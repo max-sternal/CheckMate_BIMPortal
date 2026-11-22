@@ -134,6 +134,8 @@ JAVA_TOOL_OPTIONS="-Dstdout.encoding=UTF-8" ./gradlew -q --console=plain :hackat
   `--loin`; any other search term finds AIA projects and LOINs.
 - With several specifications (an AIA project), a tally line comes first:
   `36 Spezifikation(en) für IFC4: 36 nicht erfüllt`.
+- `--full` prints the whole report, exactly as the GUI shows it, instead of a few examples per
+  specification. All options: `docs/WORKFLOW.md`, section 2.5.
 - `--suggest` checks nothing and downloads no requirements: it lists the catalogue's LOINs whose
   object type occurs in the model, best first, each line starting with the ID for `--loin`.
   `--discipline`, `--phase` and `--purpose` filter by a part of the value; they also narrow the
@@ -175,7 +177,7 @@ From `bim-portal/Java_client/`:
 ./gradlew --console=plain :hackathon-template:test
 ```
 
-198 tests as of 2026-11-21; only `BasicExampleIntegrationTest` is skipped (an `assumeTrue`
+208 tests as of 2026-11-22; only `BasicExampleIntegrationTest` is skipped (an `assumeTrue`
 guard: it needs credentials). Without the Apstex JARs the `test/fx` tests are not built, and
 without the downloaded sample models (`./gradlew :hackathon-template:downloadTestModels`) the
 tests that need them are skipped with a message. Results are in

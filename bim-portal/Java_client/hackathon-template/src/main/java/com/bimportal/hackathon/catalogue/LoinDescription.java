@@ -96,7 +96,7 @@ public final class LoinDescription {
       lines.add(specifications.size() + " Spezifikationen für " + schema + ":");
       for (IdsSpecification specification : specifications) {
         CheckResult result = IdsValidator.check(specification, model, schema);
-        lines.add("   " + specification.name() + " - " + applicable(result));
+        lines.add("   " + specification.label() + " - " + applicable(result));
       }
       return lines;
     }

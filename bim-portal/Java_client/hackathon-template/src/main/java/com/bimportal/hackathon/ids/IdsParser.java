@@ -164,7 +164,8 @@ public final class IdsParser {
         requires.properties(),
         requires.entity(),
         new Unsupported(unsupportedApplicability, unsupportedRequirements),
-        emptyToNull(specification.getAttribute("identifier")));
+        emptyToNull(specification.getAttribute("identifier")),
+        emptyToNull(specification.getAttribute("instructions")));
   }
 
   /** The facets of an applicability or requirements block that the check evaluates. */

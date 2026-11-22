@@ -9,7 +9,7 @@ are referred to by their number there ("STATUS #2") instead of being repeated.
 You give CheckMate an IFC model and the requirements it has to meet: one or more LOINs from the
 BIM Portal. For each element, CheckMate says whether the requirements are met, and if not, why.
 
-The check is one core with three front ends:
+The check is one core with three front ends, which only collect input and present results:
 
 - the JavaFX GUI,
 - the headless CLI, for scripts and pipelines,
@@ -136,16 +136,38 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
 - The report starts with the date and the model, then names each set of requirements with its
   version and source: "CheckMate-Prüfung vom 21.11.2026 23:05", "Modell: Infra-Bridge.ifc -
   Schema IFC4, 77 Objekte", "Anforderungen: ...".
+- Each specification is named with its schema and the phases (LPH) it is for: "Ueberbau > Kappe
+  (Ingenieurbau): LPH 8-9 (IFC2X3, LPH 8-9)". The portal states the phases in each
+  specification's `instructions` text ("Projektphasen: LPH 9: ..., LPH 8: ..."), not in an IDS
+  field; IDS files without it show no phases.
+- Every front end gets its report from the same place: `CheckService` checks, `ReportText` writes
+  the text (in full for the GUI, briefly for the CLI), `ReportJson` the JSON.
 - GUI: a table above the report, one row per specification and one for all of them: verdict,
   applicable elements, elements without and with defects. Clicking a row narrows the report and
   the element tabs to it. Element tabs and report share a split pane whose divider can be dragged.
+- CLI options (Gradle task `runLoinCheck`, e.g. `--args="--loin <ID> --json build/r.json"`):
+  - `--model <file or link>`: the model; without it the one `CHECKMATE_IFC` names, or the bundled
+    one. Relative paths are relative to `hackathon-template/`.
+  - `--loin <ID or link>`, `--aia <ID or link>`: a LOIN or AIA project from the portal; both take
+    either kind and may be repeated. Search words holding an ID count as `--loin`.
+  - `--ids <file>`: a local IDS file or a ZIP of them; may be repeated.
+  - search words: check every AIA project and LOIN the portal finds for them. Without any
+    requirements given, the search term is "Kappe".
+  - `--discipline`, `--phase`, `--purpose`: narrow a search by the catalogue's metadata; a part of
+    the value is enough. Values with spaces need quotes: `--phase 'LPH 5'`.
+  - `--suggest`: list the LOINs that fit the model, with their IDs; checks nothing.
+  - `--full`: the whole report, exactly as the GUI shows it, instead of a few examples per
+    specification.
+  - `--json <file>`: also write the report as JSON.
 - CLI: the text report, `--json <file>` for the same as JSON, and an exit code: 0 everything met;
   1 the model or some requirements could not be read or checked; 2 unknown argument; 3 at least
   one specification not met; 4 nothing violated, but not everything confirmed (not applicable,
   partly evaluated, or nothing checked). Through `gradlew` every non-zero code becomes Gradle's
   own 1; the real one is in Gradle's message ("finished with non-zero exit value 3"), in the
   report's last line and in the JSON's `exitCode`.
-- Main classes: [`CheckReport`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/report/CheckReport.java),
+- Main classes: [`CheckService`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/check/CheckService.java),
+  [`CheckReport`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/report/CheckReport.java),
+  [`ReportText`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/report/ReportText.java),
   [`ReportJson`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/report/ReportJson.java),
   [`CheckResult`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/CheckResult.java),
   [`ElementUI`](../bim-portal/Java_client/hackathon-template/src/main/java/test/fx/ElementUI.java),
@@ -270,9 +292,10 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [x] Text report in the GUI and the CLI.
 - [x] Summary table across several LOINs (GUI), with a "Gesamt" row; clicking a row narrows report and element tabs. The text report starts with a tally and one line per specification with its verdict.
 - [x] All checked elements: 20 get a tab each, with what every specification said about them; one more tab lists the rest with how many lines are open.
-- [x] Report header with date and model; each set of requirements with name, version and source.
+- [x] Report header with date and model; each set of requirements with name, version and source; each specification with its phases (LPH).
+- [x] One `CheckService` and one `ReportText` for every front end; the CLI's `--full` prints exactly the GUI's report.
 - [x] CLI: `--json <file>`, and exit codes 0 / 1 / 2 / 3 / 4 (section 2.5).
-- [ ] Pass the exit code through to scripts: `gradlew` turns every non-zero code into 1. A start script (the `application` plugin's `installDist`) for `LoinCheckCli` would keep it; that changes `build.gradle.kts`.
+- [ ] Pass the exit code through to scripts: `gradlew` turns every non-zero code into 1. A start script (the `application` plugin's `installDist`) for `LoinCheckCli` would keep it; that changes `build.gradle.kts`. Deferred (2026-11-22) until CheckMate runs in scripts or pipelines.
 - [ ] Disable "Validate LOIN" while a check runs; a double-click currently starts a second check.
 
 ### Front ends and quality
@@ -306,6 +329,12 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
   the case differs, the finding says so, the same way the data type hint explains a strict verdict.
 - 2026-11-21, property names: exactly as asked, as in IDS. Other spellings are shown so they can
   be fixed, not accepted. The alias mapping stays until a decision (STATUS #14).
+- 2026-11-22, one core for every front end: GUI, CLI and the MCP server only collect input and
+  present results; checking (`CheckService`) and writing the report (`ReportText`, `ReportJson`)
+  happen once, in the core.
+- 2026-11-22, start script and IFC library: no start script until CheckMate runs in scripts or
+  pipelines. Apstex stays the IFC library for now; switching to IfcOpenShell is an open decision
+  (STATUS #15).
 - 2026-11-21, exit codes: 3 when a specification is not met, 4 when nothing is violated but not
   everything is confirmed. "Nicht prüfbar" is never 0, in line with the rule that it is never
   reported as passed. Read errors (1) take precedence, since the report is then incomplete.

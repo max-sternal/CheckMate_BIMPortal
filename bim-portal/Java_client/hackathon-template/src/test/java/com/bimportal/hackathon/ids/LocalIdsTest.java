@@ -15,6 +15,7 @@ import com.bimportal.hackathon.ids.IdsSpecification.PropertyRequirement;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -113,6 +114,40 @@ class LocalIdsTest {
   void evaluatesEverythingThePortalWrites(String download) throws Exception {
     assertThat(specifications(download))
         .allSatisfy(specification -> assertThat(specification.unsupported().isEmpty()).isTrue());
+  }
+
+  @Test
+  void readsThePhasesThePortalStatesInTheInstructions() throws Exception {
+    IdsSpecification kappe = specifications(KAPPE_LPH_8_9).get(0);
+    IdsSpecification schaft = specifications(SCHAFT_LPH_1_9).get(0);
+
+    assertThat(kappe.phases()).containsExactly(8, 9);
+    assertThat(kappe.phasesLabel()).isEqualTo("LPH 8-9");
+    assertThat(kappe.label()).isEqualTo("Ueberbau > Kappe (Ingenieurbau): LPH 8-9 (IFC4, LPH 8-9)");
+    assertThat(schaft.phasesLabel()).isEqualTo("LPH 1-9");
+    assertThat(specifications(FENSTER).get(0).phasesLabel()).isEqualTo("LPH 3");
+    // A hand-written IDS states none.
+    assertThat(specification("Platten").phases()).isEmpty();
+    assertThat(specification("Platten").label()).isEqualTo("Platten (IFC2X3 IFC4)");
+  }
+
+  @Test
+  void writesPhasesWithGapsCompactly() {
+    IdsSpecification specification =
+        new IdsSpecification(
+            "Test",
+            "IFC4",
+            List.of(),
+            null,
+            List.of(),
+            null,
+            IdsSpecification.Unsupported.NONE,
+            null,
+            "Projektphasen: LPH 5: Ausführungsplanung, LPH 3: Entwurfsplanung, LPH 1: x,"
+                + " LPH 4: y; Anwendungsfälle: LPH 8 steht hier nur im Text");
+
+    assertThat(specification.phases()).containsExactly(1, 3, 4, 5);
+    assertThat(specification.phasesLabel()).isEqualTo("LPH 1, 3-5");
   }
 
   @Test

@@ -31,7 +31,7 @@ import java.util.List;
  *   "requirements": [
  *     {"name": ..., "title": ..., "version": ..., "source": ..., "error": null,
  *      "specifications": [
- *        {"name": ..., "ifcVersion": ..., "identifier": ..., "verdict": "FAILED",
+ *        {"name": ..., "ifcVersion": ..., "identifier": ..., "phases": [8, 9], "verdict": "FAILED",
  *         "verdictLabel": "nicht erfüllt", "examinedElements": 303, "applicableElements": 6,
  *         "failingElements": 2, "summary": ..., "notes": [...], "diagnosis": [...],
  *         "findings": [{"elementId": ..., "element": ..., "requirement": ...,
@@ -92,6 +92,8 @@ public final class ReportJson {
     node.put("name", result.specification().name());
     node.put("ifcVersion", result.specification().ifcVersion());
     node.put("identifier", result.specification().identifier());
+    ArrayNode phases = node.putArray("phases");
+    result.specification().phases().forEach(phases::add);
     node.put("verdict", result.verdict().name());
     node.put("verdictLabel", result.verdict().label());
     node.put("examinedElements", result.examinedElements());

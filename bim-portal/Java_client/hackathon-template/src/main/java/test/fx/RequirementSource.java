@@ -1,8 +1,8 @@
 package test.fx;
 
-import com.bimportal.client.model.SimpleAiaProjectPublicDto;
 import com.bimportal.hackathon.catalogue.CatalogueEntry;
 import com.bimportal.hackathon.catalogue.ModelFit.Fit;
+import com.bimportal.hackathon.check.Source;
 import com.bimportal.hackathon.ids.IdsDocument;
 import java.util.UUID;
 
@@ -18,6 +18,9 @@ sealed interface RequirementSource {
 
   /** How the entry reads in the list. */
   String label();
+
+  /** What the check service checks against. */
+  Source source();
 
   /**
    * A LOIN from the portal's catalogue; its IDS is downloaded when it is looked at or checked.
@@ -35,6 +38,11 @@ sealed interface RequirementSource {
     }
 
     @Override
+    public Source source() {
+      return new Source.Loin(entry.guid(), entry.name());
+    }
+
+    @Override
     public String label() {
       return fit.fits() ? entry.name() + "  -  " + fit.describe() : entry.name();
     }
@@ -43,8 +51,13 @@ sealed interface RequirementSource {
   /** An AIA project from a portal search: all its LOINs at once, fetched when it is checked. */
   record PortalProject(UUID guid, String name) implements RequirementSource {
 
-    static PortalProject of(SimpleAiaProjectPublicDto project) {
-      return new PortalProject(project.getGuid(), project.getName());
+    static PortalProject of(Source.AiaProject project) {
+      return new PortalProject(project.guid(), project.name());
+    }
+
+    @Override
+    public Source source() {
+      return new Source.AiaProject(guid, name);
     }
 
     @Override
@@ -59,6 +72,11 @@ sealed interface RequirementSource {
     @Override
     public String label() {
       return document.describe();
+    }
+
+    @Override
+    public Source source() {
+      return new Source.Read(document);
     }
   }
 }

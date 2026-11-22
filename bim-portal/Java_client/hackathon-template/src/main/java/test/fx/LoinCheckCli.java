@@ -1,19 +1,18 @@
 package test.fx;
 
-import com.bimportal.client.model.SimpleAiaProjectPublicDto;
-import com.bimportal.client.model.SimpleLoinPublicDto;
 import com.bimportal.hackathon.catalogue.CatalogueEntry;
 import com.bimportal.hackathon.catalogue.CatalogueFilter;
 import com.bimportal.hackathon.catalogue.ModelFit;
 import com.bimportal.hackathon.catalogue.ModelFit.Ranked;
-import com.bimportal.hackathon.ids.CheckResult;
-import com.bimportal.hackathon.ids.IdsDocument;
-import com.bimportal.hackathon.ids.IdsParser;
+import com.bimportal.hackathon.check.CheckService;
+import com.bimportal.hackathon.check.CheckService.Found;
+import com.bimportal.hackathon.check.CheckService.Portal;
+import com.bimportal.hackathon.check.Source;
 import com.bimportal.hackathon.ids.PortalRequirements;
 import com.bimportal.hackathon.ids.RequirementsException;
 import com.bimportal.hackathon.report.CheckReport;
-import com.bimportal.hackathon.report.CheckReport.Run;
 import com.bimportal.hackathon.report.ReportJson;
+import com.bimportal.hackathon.report.ReportText;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
 import java.io.IOException;
@@ -23,50 +22,10 @@ import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
- * Runs the LOIN check without a GUI: checks an IFC model against LOINs and AIA projects named by
- * ID, local IDS files and AIA project ZIPs, or what a portal search finds, and reports each.
- *
- * <p>Headless on purpose - this is the path that works in a container, and the one to reach for
- * when a report has to be reproducible rather than clicked together.
- *
- * <pre>
- *   ./gradlew :hackathon-template:runLoinCheck --args="Kappe"
- *   ./gradlew :hackathon-template:runLoinCheck --args="--loin be959b9d-daef-5315-9aba-f60b6ad54ccb"
- *   ./gradlew :hackathon-template:runLoinCheck --args="--aia e6f69257-dfda-441b-97bb-e9df44c5cf8b"
- *   ./gradlew :hackathon-template:runLoinCheck --args="--ids anforderungen.ids"
- *   ./gradlew :hackathon-template:runLoinCheck --args="--suggest --phase LPH 5"
- *   ./gradlew :hackathon-template:runLoinCheck --args="--model test-models/ifc4/Bridge.ifc Kappe"
- *   ./gradlew :hackathon-template:runLoinCheck --args="--model https://github.com/o/r/blob/a.ifc"
- *   CHECKMATE_IFC=/models/bruecke.ifc ./gradlew :hackathon-template:runLoinCheck --args="Kappe"
- * </pre>
- *
- * <p>Without {@code --model}, the model {@code CHECKMATE_IFC} names is checked, or the bundled one.
- * {@code --loin} and {@code --aia} both take any ID from the portal, a LOIN's or an AIA project's;
- * the two names are only for reading. {@code --ids} takes an IDS file or a ZIP of them, such as
- * an AIA project's ZIP downloaded from the portal. Without any of these and without a search term,
- * the search term is "Kappe". A search term holding an ID counts as {@code --loin}, as in the GUI;
- * any other finds AIA projects and LOINs. A relative path is relative to {@code
- * hackathon-template/}, where Gradle runs the task.
- *
- * <p>{@code --suggest} checks nothing and downloads no requirements: it lists the catalogue's
- * LOINs whose object type occurs in the model, best first, with their IDs to pass to {@code
- * --loin}. {@code --discipline}, {@code --phase} and {@code --purpose} narrow that list, and the
- * LOINs a search checks, by the catalogue's metadata; a part of the value is enough ({@code LPH
- * 5}). Without a search term, {@code --suggest} goes through the whole catalogue.
- *
- * <p>{@code --json <Datei>} also writes the report as JSON (see {@link ReportJson}); the text
- * still goes to the console, which the portal client and the IFC toolbox write to as well.
- *
- * <p>Exit codes, see {@link CheckReport#exitCode()}: 0 every specification checked was met; 1 the
- * model or any of the requirements could not be read or checked (no such LOIN or project, no IDS
- * file to download, a file that is not IDS, no specification for the model's schema) - the others
- * are still checked; 2 arguments it does not understand; 3 at least one specification not met; 4
- * none violated, but not everything confirmed (a specification applied to no element, was
- * evaluated only in part, or nothing was checked). {@code --suggest} checks nothing and ends with
- * 0.
+ * CheckMate without a window: reads the command line, loads the model, and prints what {@link
+ * CheckService} reports. Options, exit codes and examples: {@code docs/WORKFLOW.md}, section 2.5.
  */
 public final class LoinCheckCli {
 
@@ -80,24 +39,23 @@ public final class LoinCheckCli {
       "Aufruf: runLoinCheck --args=\"[--model <IFC-Datei oder Link>] [--loin <LOIN-ID oder Link>]"
           + " [--aia <AIA-Projekt-ID oder Link>] [--ids <IDS-Datei oder ZIP>] [--suggest]"
           + " [--discipline <Fachmodell>] [--phase <Leistungsphase>] [--purpose <Anwendungsfall>]"
-          + " [--json <Datei>] [Suchbegriff ...]\"\n"
+          + " [--json <Datei>] [--full] [Suchbegriff ...]\"\n"
           + "--loin, --aia und --ids dürfen mehrfach stehen.";
 
   private LoinCheckCli() {}
 
   /**
-   * The command line: an optional model, the requirements, and a search term of any number of
-   * words.
+   * The command line.
    *
    * @param model a path or a link; null for the configured model
-   * @param portalIds IDs of LOINs or AIA projects, or texts holding one, such as links copied from
-   *     the portal
+   * @param portalIds IDs of LOINs or AIA projects, or texts holding one
    * @param idsFiles paths of local IDS files or ZIPs of them
-   * @param search the search term; null when the requirements are given by ID or file only;
-   *     empty for the whole catalogue
-   * @param suggest list the fitting LOINs instead of checking the search's
+   * @param search the search term; null when the requirements are given by ID or file only, empty
+   *     for the whole catalogue
+   * @param suggest list the fitting LOINs instead of checking
    * @param filter the context the LOINs of a search or suggestion have to fit
    * @param json where to write the report as JSON; null for no JSON
+   * @param full print the whole report, as the GUI shows it, instead of a few examples
    */
   record Arguments(
       String model,
@@ -106,11 +64,12 @@ public final class LoinCheckCli {
       String search,
       boolean suggest,
       CatalogueFilter filter,
-      String json) {
+      String json,
+      boolean full) {
 
-    /** Arguments that check, without filters and JSON. */
+    /** Arguments that check, without filters, JSON or full report. */
     Arguments(String model, List<String> portalIds, List<String> idsFiles, String search) {
-      this(model, portalIds, idsFiles, search, false, CatalogueFilter.ANY, null);
+      this(model, portalIds, idsFiles, search, false, CatalogueFilter.ANY, null, false);
     }
 
     static Arguments parse(String... args) {
@@ -119,6 +78,7 @@ public final class LoinCheckCli {
       List<String> idsFiles = new ArrayList<>();
       List<String> words = new ArrayList<>();
       boolean suggest = false;
+      boolean full = false;
       String discipline = null;
       String phase = null;
       String purpose = null;
@@ -126,6 +86,7 @@ public final class LoinCheckCli {
       for (int i = 0; i < args.length; i++) {
         switch (args[i]) {
           case "--suggest" -> suggest = true;
+          case "--full" -> full = true;
           case "--json" -> json = value(args, ++i, "--json braucht eine Datei.");
           case "--discipline" ->
               discipline = value(args, ++i, "--discipline braucht ein Fachmodell.");
@@ -172,7 +133,8 @@ public final class LoinCheckCli {
           search,
           suggest,
           new CatalogueFilter(discipline, phase, purpose),
-          json);
+          json,
+          full);
     }
 
     private static boolean containsId(String text) {
@@ -219,80 +181,103 @@ public final class LoinCheckCli {
       return;
     }
 
-    if (arguments.suggest()) {
-      System.out.println("Modell: " + model.summary() + "\n");
-      EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
-      try {
-        suggest(client, arguments.search(), arguments.filter(), model);
-      } finally {
+    // One client for the whole run, and only when the portal is needed at all.
+    EnhancedBimPortalClient client =
+        arguments.needsPortal() ? BimPortalClientBuilder.buildAuthenticatedOrPublic() : null;
+    int exitCode;
+    try {
+      CheckService service =
+          new CheckService(client == null ? Portal.none() : Portal.shared(client));
+      exitCode =
+          arguments.suggest()
+              ? suggest(service, arguments, model)
+              : check(service, arguments, model, checkedAt);
+    } finally {
+      if (client != null) {
         client.logout();
       }
-      System.exit(CheckReport.PASSED);
-      return;
-    }
-
-    CheckReport report = check(arguments, model, checkedAt);
-    System.out.println(
-        "Ergebnis: " + report.verdict() + " (Exit-Code " + report.exitCode() + ")");
-    int exitCode = report.exitCode();
-    if (arguments.json() != null) {
-      exitCode = writeJson(report, Path.of(arguments.json()), exitCode);
     }
     System.exit(exitCode);
   }
 
-  /** Check the model against everything the arguments name, printing as it goes. */
-  private static CheckReport check(
-      Arguments arguments, LoadedModel model, OffsetDateTime checkedAt) {
-    CheckReport header = new CheckReport(checkedAt, model.info(), List.of());
-    header.header().forEach(System.out::println);
-    System.out.println();
+  /**
+   * Check everything the arguments name. Briefly, each set of requirements is printed as soon as
+   * it is checked; in full, the whole report at the end.
+   *
+   * @return the exit code
+   */
+  private static int check(
+      CheckService service, Arguments arguments, LoadedModel model, OffsetDateTime checkedAt) {
+    String schema = model.schema();
+    if (!arguments.full()) {
+      new CheckReport(checkedAt, model.info(), List.of()).header().forEach(System.out::println);
+      System.out.println();
+    }
 
-    List<Run> runs = new ArrayList<>();
-    for (String file : arguments.idsFiles()) {
-      runs.add(report(file, () -> IdsParser.read(Path.of(file)), model));
+    List<Source> sources = new ArrayList<>();
+    arguments.idsFiles().forEach(file -> sources.add(new Source.IdsFile(Path.of(file))));
+    arguments.portalIds().forEach(id -> sources.add(new Source.PortalId(id)));
+    if (arguments.search() != null) {
+      sources.addAll(search(service, arguments.search(), arguments.filter(), !arguments.full()));
     }
-    if (arguments.needsPortal()) {
-      EnhancedBimPortalClient client = BimPortalClientBuilder.buildAuthenticatedOrPublic();
-      try {
-        for (String id : arguments.portalIds()) {
-          runs.add(report(id, () -> PortalRequirements.requirements(client, id), model));
-        }
-        if (arguments.search() != null) {
-          runs.addAll(search(client, arguments.search(), arguments.filter(), model));
-        }
-      } finally {
-        client.logout();
-      }
+
+    CheckReport report =
+        service.check(
+            sources,
+            model.info(),
+            model.elements(),
+            checkedAt,
+            run -> {
+              if (!arguments.full()) {
+                ReportText.brief(run, schema, EXAMPLES).forEach(System.out::println);
+              }
+            });
+    if (arguments.full()) {
+      ReportText.full(report).forEach(System.out::println);
+      System.out.println();
     }
-    return new CheckReport(checkedAt, model.info(), runs);
+    System.out.println(ReportText.verdictLine(report));
+
+    int exitCode = report.exitCode();
+    if (arguments.json() != null) {
+      exitCode = writeJson(report, Path.of(arguments.json()), exitCode);
+    }
+    return exitCode;
+  }
+
+  /** The AIA projects and filtered LOINs a search finds, projects first. */
+  private static List<Source> search(
+      CheckService service, String term, CatalogueFilter filter, boolean tell) {
+    Found found = service.search(term);
+    List<CatalogueEntry> loins = filter.apply(found.loins());
+    if (tell) {
+      System.out.println(
+          "Suche '"
+              + term
+              + "': "
+              + found.loins().size()
+              + " LOIN(s)"
+              + (filter.isAny() ? "" : ", " + loins.size() + " nach Filter")
+              + ", "
+              + found.projects().size()
+              + " AIA-Projekt(e)\n");
+    }
+    List<Source> sources = new ArrayList<>(found.projects());
+    loins.forEach(loin -> sources.add(new Source.Loin(loin.guid(), loin.name())));
+    return sources;
   }
 
   /**
-   * Write the report as JSON.
+   * List the catalogue's LOINs that fit the model, best first, without downloading any. Each line
+   * starts with the ID, ready for {@code --loin}.
    *
-   * @return the exit code to end with: 1 when the file cannot be written, else the given one
+   * @return the exit code: 0, nothing is checked
    */
-  private static int writeJson(CheckReport report, Path file, int exitCode) {
-    try {
-      Files.writeString(file, ReportJson.write(report), StandardCharsets.UTF_8);
-      System.out.println("JSON: " + file.toAbsolutePath());
-      return exitCode;
-    } catch (IOException e) {
-      System.err.println("Der Bericht lässt sich nicht nach " + file + " schreiben: " + e);
-      return CheckReport.NOT_READ;
-    }
-  }
-
-  /**
-   * List the catalogue's LOINs that fit the model, best first, without downloading any.
-   *
-   * <p>Each line starts with the ID, so it can be passed to {@code --loin} as it is.
-   */
-  private static void suggest(
-      EnhancedBimPortalClient client, String term, CatalogueFilter filter, LoadedModel model) {
-    List<CatalogueEntry> found =
-        PortalRequirements.search(client, term).stream().map(CatalogueEntry::of).toList();
+  private static int suggest(CheckService service, Arguments arguments, LoadedModel model) {
+    System.out.println("Modell: " + model.summary() + "\n");
+    String term = arguments.search();
+    CatalogueFilter filter = arguments.filter();
+    List<CatalogueEntry> found = service.search(term).loins();
     List<CatalogueEntry> filtered = filter.apply(found);
     List<Ranked> ranked = ModelFit.of(model.elements()).rank(filtered);
     long fitting = ranked.stream().filter(r -> r.fit().fits()).count();
@@ -319,90 +304,22 @@ public final class LoinCheckCli {
                         + r.entry().name()
                         + (r.fit().fits() ? "  -  " + r.fit().describe() : "")));
     System.out.println("\nPrüfen mit: runLoinCheck --args=\"--loin <ID> [--loin <ID> ...]\"");
+    return CheckReport.PASSED;
   }
 
   /**
-   * Check the model against every AIA project and LOIN a search finds, projects first. The filter
-   * narrows the LOINs.
-   */
-  private static List<Run> search(
-      EnhancedBimPortalClient client, String term, CatalogueFilter filter, LoadedModel model) {
-    List<SimpleAiaProjectPublicDto> projects = PortalRequirements.searchProjects(client, term);
-    List<SimpleLoinPublicDto> found = PortalRequirements.search(client, term);
-    List<SimpleLoinPublicDto> loins =
-        found.stream().filter(loin -> filter.accepts(CatalogueEntry.of(loin))).toList();
-    System.out.println(
-        "Suche '"
-            + term
-            + "': "
-            + found.size()
-            + " LOIN(s)"
-            + (filter.isAny() ? "" : ", " + loins.size() + " nach Filter")
-            + ", "
-            + projects.size()
-            + " AIA-Projekt(e)\n");
-
-    List<Run> runs = new ArrayList<>();
-    for (SimpleAiaProjectPublicDto project : projects) {
-      runs.add(
-          report(
-              project.getName(),
-              () -> PortalRequirements.project(client, project.getGuid(), project.getName()),
-              model));
-    }
-    for (SimpleLoinPublicDto loin : loins) {
-      runs.add(
-          report(
-              loin.getName(),
-              () -> PortalRequirements.loin(client, loin.getGuid(), loin.getName()),
-              model));
-    }
-    return runs;
-  }
-
-  /**
-   * Read one set of requirements, check the model against it and print the outcome.
+   * Write the report as JSON.
    *
-   * @param name what the requirements are called before they are read, for error messages
+   * @return the exit code to end with: 1 when the file cannot be written, else the given one
    */
-  private static Run report(String name, Supplier<IdsDocument> requirements, LoadedModel model) {
+  private static int writeJson(CheckReport report, Path file, int exitCode) {
     try {
-      IdsDocument document = requirements.get();
-      List<CheckResult> results = document.check(model.schema(), model.elements());
-      System.out.println("Anforderungen: " + document.describe());
-      if (results.size() > 1) {
-        System.out.println(CheckResult.tally(results, model.schema()) + "\n");
-      }
-      results.forEach(LoinCheckCli::print);
-      return Run.checked(document, results);
-    } catch (RequirementsException e) {
-      System.out.println(e.getMessage() + "\n");
-      return Run.failed(name, e.getMessage());
-    } catch (RuntimeException e) {
-      System.out.println(name + ": " + e + "\n");
-      return Run.failed(name, e.toString());
+      Files.writeString(file, ReportJson.write(report), StandardCharsets.UTF_8);
+      System.out.println("JSON: " + file.toAbsolutePath());
+      return exitCode;
+    } catch (IOException e) {
+      System.err.println("Der Bericht lässt sich nicht nach " + file + " schreiben: " + e);
+      return CheckReport.NOT_READ;
     }
-  }
-
-  private static void print(CheckResult result) {
-    System.out.println(result.summary());
-    result.notes().forEach(note -> System.out.println("   " + note));
-
-    if (result.notApplicable()) {
-      // Nothing was checked, so the only thing worth printing is what stood in the way.
-      result.diagnosis().lines().forEach(System.out::println);
-    } else {
-      result.findings().stream()
-          .filter(finding -> !finding.status().ok())
-          .limit(EXAMPLES)
-          .forEach(finding -> System.out.println("   " + finding.line()));
-
-      if (result.passed()) {
-        System.out.println("   alle Anforderungen erfüllt");
-      } else if (!result.complete() && result.findings().stream().allMatch(f -> f.status().ok())) {
-        System.out.println("   alle ausgewerteten Anforderungen erfüllt");
-      }
-    }
-    System.out.println();
   }
 }

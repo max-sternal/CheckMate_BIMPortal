@@ -13,10 +13,11 @@ an AI assistant can answer questions about a model.
 | Path | What it is |
 |---|---|
 | `bim-portal/Java_client/hackathon-template/` | CheckMate (Gradle module `hackathon-template`) |
-| `…/src/main/java/com/bimportal/hackathon/ids/` | the core: reading IDS, the check; no GUI, no IFC library |
-| `…/src/main/java/com/bimportal/hackathon/catalogue/` | choosing LOINs from the portal's catalogue |
-| `…/src/main/java/com/bimportal/hackathon/report/` | the result of a run: verdict, exit code, JSON |
-| `…/src/main/java/test/fx/` | GUI, CLI, and reading IFC models (name is a leftover, STATUS #13) |
+| `…/src/main/java/com/bimportal/hackathon/ids/` | the core: requirements from the portal or IDS files (`PortalRequirements`, `IdsParser`, `IdsArchive`), the check (`IdsValidator`, `Values`, `DataTypes`, `PropertyKey`), the result (`CheckResult`) |
+| `…/src/main/java/com/bimportal/hackathon/catalogue/` | choosing LOINs from the portal's catalogue: filters, ranking by fit (`ModelFit`), the description on click |
+| `…/src/main/java/com/bimportal/hackathon/check/` | the check as every front end runs it: requirement sources, downloading each once, checking, searching (`CheckService`, `Source`) |
+| `…/src/main/java/com/bimportal/hackathon/report/` | the result of a run: verdict, exit code, text and JSON (`CheckReport`, `ReportText`, `ReportJson`) |
+| `…/src/main/java/test/fx/` | GUI (`App`, `ElementUI`), CLI (`LoinCheckCli`), and reading IFC models with the Apstex toolbox (`IfcResources`, `IfcModelElements`, `ModelLinks`). `PropertyUtils` and `Geo` are left from the original template. The package name is a leftover (STATUS #13). |
 | `…/src/test/` | tests, with real portal downloads and own IFC case files |
 | `bim-portal/Java_client/bim-portal-enhanced/` | client for the BIM Portal's API (from the hackathon template) |
 | `bim-portal/Java_client/openapi-generated/` | generated API client, don't edit |
@@ -24,6 +25,12 @@ an AI assistant can answer questions about a model.
 | `docs/STATUS.md` | open points, including open decisions |
 | `.claude/skills/run-checkmate/` | Claude Code skill: build, run and drive the GUI |
 | `DocsBIMDeutschland/` | background material on the BIM Portal, LOIN and IDS |
+
+The packages `ids`, `catalogue`, `check` and `report` use neither the GUI nor the IFC library. GUI
+and CLI only collect their input, pass it to `CheckService`, and show the `CheckReport` it returns
+through `ReportText` or `ReportJson`; the MCP server will do the same. So every front end gets the
+same results, and the core is tested without IFC files.
+How the parts work together: [`docs/WORKFLOW.md`](docs/WORKFLOW.md), section 2.
 
 The module's own README, [`hackathon-template/README.md`](bim-portal/Java_client/hackathon-template/README.md),
 is maintained separately.

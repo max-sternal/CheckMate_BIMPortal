@@ -419,10 +419,8 @@ public record CheckResult(
   public String summary() {
     StringBuilder summary = new StringBuilder();
     summary
-        .append(specification.name())
-        .append(" (")
-        .append(specification.ifcVersion())
-        .append("): ")
+        .append(specification.label())
+        .append(": ")
         .append(applicableElements)
         .append(" von ")
         .append(examinedElements)

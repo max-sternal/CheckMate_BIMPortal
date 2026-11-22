@@ -1,9 +1,11 @@
 package com.bimportal.hackathon.ids;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,7 +30,13 @@ public record IdsSpecification(
     List<PropertyRequirement> requirements,
     EntityRequirement requiredEntity,
     Unsupported unsupported,
-    String identifier) {
+    String identifier,
+    String instructions) {
+
+  /** The portal's phase list in the instructions, up to the next part ("; Anwendungsfälle"). */
+  private static final Pattern PHASES = Pattern.compile("Projektphasen:([^;]*)");
+
+  private static final Pattern PHASE = Pattern.compile("LPH\\s*(\\d+)");
 
   /** A LOIN's GUID at the start of an identifier, as the portal writes it. */
   private static final Pattern LEADING_UUID =
@@ -54,7 +62,55 @@ public record IdsSpecification(
         requirements,
         requiredEntity,
         Unsupported.NONE,
+        null,
         null);
+  }
+
+  /**
+   * The project phases (LPH) this specification is for, sorted. The portal states them in the
+   * {@code instructions} ("Projektphasen: LPH 9: Objektbetreuung, LPH 8: ..."), a text of its own,
+   * not an IDS field; other IDS files mostly don't, and the list is empty.
+   */
+  public List<Integer> phases() {
+    if (instructions == null) {
+      return List.of();
+    }
+    Matcher phases = PHASES.matcher(instructions);
+    if (!phases.find()) {
+      return List.of();
+    }
+    TreeSet<Integer> numbers = new TreeSet<>();
+    Matcher phase = PHASE.matcher(phases.group(1));
+    while (phase.find()) {
+      numbers.add(Integer.parseInt(phase.group(1)));
+    }
+    return List.copyOf(numbers);
+  }
+
+  /** The phases compactly - {@code LPH 8-9}, {@code LPH 1, 3-5} - or empty when none are stated. */
+  public String phasesLabel() {
+    List<Integer> phases = phases();
+    if (phases.isEmpty()) {
+      return "";
+    }
+    List<String> runs = new ArrayList<>();
+    int start = phases.get(0);
+    int previous = start;
+    for (int phase : phases.subList(1, phases.size())) {
+      if (phase != previous + 1) {
+        runs.add(start == previous ? String.valueOf(start) : start + "-" + previous);
+        start = phase;
+      }
+      previous = phase;
+    }
+    runs.add(start == previous ? String.valueOf(start) : start + "-" + previous);
+    return "LPH " + String.join(", ", runs);
+  }
+
+  /** How the specification reads in a report: {@code Kappe LPH 5 (IFC4, LPH 5)}. */
+  public String label() {
+    String phases = phasesLabel();
+    return name + " (" + ifcVersion + (phases.isEmpty() ? "" : ", " + phases) + ")";
   }
 
   /**
