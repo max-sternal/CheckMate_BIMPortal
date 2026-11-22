@@ -106,10 +106,10 @@ Ollama, the tools, and what to do when the server doesn't start:
 
 ## Open decisions
 
-- **Hard-coded property name mapping.** `PropertyAliases` maps three portal property names to the
-  names one modelling convention (BIM.Hamburg, `Pset_Objektinformation/_IDEbene1..3`) uses. It
-  only helps models following that convention, and IDS knows no such mapping. How mappings should
-  be supplied is undecided: [STATUS #14](docs/STATUS.md).
+- **Property mapping.** The bundled JSON mapping translates three portal property names to the
+  BIM.Hamburg bridge convention (`Pset_Objektinformation/_IDEbene1..3`). It can be replaced or
+  disabled; IDS itself does not define aliases. Choosing an appropriate mapping remains a
+  project-specific decision: [STATUS #14](docs/STATUS.md).
 
 ## License
 

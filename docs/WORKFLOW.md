@@ -13,7 +13,7 @@ The check is one core with three front ends, which only collect input and presen
 
 - the JavaFX GUI,
 - the headless CLI, for scripts and pipelines,
-- later an MCP server, so that an LLM client can answer questions about single elements or the
+- the MCP server, so that an LLM client can answer questions about single elements or the
   whole model.
 
 ## 2. How it should work
@@ -120,9 +120,9 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
   named so it can be fixed: in the finding ("vorhanden als 'pset_test/Status' (nur
   Groß-/Kleinschreibung weicht ab)"), in the diagnosis, and in a hint naming the elements it kept
   out of the applicability.
-- Model-specific property names are mapped to the ones the LOIN asks for. The report says when a
-  mapped name was used. **This mapping is hard-coded for one modelling convention and an open
-  decision (STATUS #14).**
+- Model-specific property names can be mapped to the ones the LOIN asks for. The report says when a
+  mapped name was used. The bundled BIM.Hamburg mapping is JSON and can be replaced or disabled
+  (STATUS #14); it does not change values or data types.
 - When nothing applies, the result is "nicht prüfbar" with a diagnosis: how many elements each
   condition hits, and which elements came closest. It is never reported as passed.
 - Main classes: [`IdsValidator`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/ids/IdsValidator.java),
@@ -185,8 +185,8 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
 
 - Purpose: an AI app asks CheckMate about a model: "Which LOINs fit this bridge?", "Does it meet
   the Kappe LOIN for LPH 8?", "Why does this element fail?". The AI decides which tool to call and
-  puts the answer in its own words; CheckMate does the checking. The AI sees only the tool
-  answers, never the IFC file.
+  puts the answer in its own words; CheckMate does the checking. Tool answers can include model
+  properties and findings; what the client or provider does with them depends on its configuration.
 - MCP (Model Context Protocol) is how the app finds the tools (name, description, parameters) and
   calls them. The app starts CheckMate as a program of its own and talks to it over stdin/stdout,
   one JSON message per line. Nothing listens on the network.
@@ -250,9 +250,9 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
   `mcp-server-checkmate.log` in its `logs` folder (`%APPDATA%\Claude\logs\`, for the Store install
   `%LOCALAPPDATA%\Packages\Claude_<id>\LocalCache\Local\Claude\logs\`), including what the server
   writes to stderr.
-- Known limits: tried with Claude Desktop and Claude Code on Windows and with a script that speaks
-  the protocol (every tool, errors); not yet with Ollama (STATUS #16). Tools only: no MCP resources
-  or prompts, no progress messages during a long check. Paths are read on the machine the server
+- Known limits: the server has been tried with Claude Desktop and Claude Code on Windows; the new
+  MCP App report view has only been tested at protocol level, not yet in a host. Ollama has not
+  been tried (STATUS #16). No prompts or progress messages during a long check. Paths are read on the machine the server
   runs on.
 - Main classes: [`CheckMateMcpServer`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/mcp/CheckMateMcpServer.java)
   (tools, parameters, transport), [`CheckMateTools`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/mcp/CheckMateTools.java)
@@ -354,7 +354,8 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 
 - [x] Applicability (all conditions must hold), and one finding per element and requirement.
 - [x] Diagnosis when nothing applies: hits per condition and the closest elements.
-- [ ] **TODO, open decision (STATUS #14):** mapping of the BIM.Hamburg classification (`Pset_Objektinformation/_IDEbene1..3`) - works, but hard-coded for that one convention.
+- [x] BIM.Hamburg classification mapping (`Pset_Objektinformation/_IDEbene1..3`) is supplied as
+  JSON; other mappings can be loaded or aliases disabled (STATUS #14).
 - [x] Property set and property names compared exactly; other spellings (case, umlauts, separators, leading underscore) are named in the finding, the diagnosis and a hint, never accepted.
 - [x] Values by data type, as ifctester: text exactly (a case-only difference is named), integers exactly as numbers (`42` = `42.0`), reals and measures within a relative tolerance of 1e-6, booleans `true`/`1`/`false`/`0`. A number stored as `IfcLabel` is text.
 - [x] Data types strict, as in IDS, in the applicability and the requirements, with a hint naming the elements a related type would let through (section 5).
@@ -382,7 +383,7 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - [x] Headless CLI: `runLoinCheck`.
 - [x] Window size: the GUI opens at 1280x900 (STATUS #5). Many element tabs no longer squeeze the LOIN list.
 - [ ] GUI cleanup: chat placeholder (STATUS #3) and deciding whether to keep the class filter tab (`ElementUI.createObjectTab` now reads `ModelElement` across IFC2X3, IFC4 and IFC4X3). The "BIM Portal" button opens `https://via.bund.de/bim` (STATUS #4).
-- [x] MCP server for AI apps: stdio, seven tools on `CheckService`, `installMcp` (section 2.7).
+- [x] MCP server for AI apps: stdio, tools on `CheckService`, `installMcp` (section 2.7).
 - [x] Connect the MCP server to Claude Desktop and Claude Code (Windows).
 - [ ] Try the MCP server with Ollama through an MCP host (STATUS #16).
 - [x] Tests for the `ids` package ([`src/test/java/com/bimportal/hackathon/ids/`](../bim-portal/Java_client/hackathon-template/src/test/java/com/bimportal/hackathon/ids)), with real IDS files from the portal as test files ([`src/test/resources/ids/portal/`](../bim-portal/Java_client/hackathon-template/src/test/resources/ids/portal/README.md)).
@@ -409,7 +410,7 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
 - 2026-11-21, values: compared by data type as ifctester does, text including case. Where only
   the case differs, the finding says so, the same way the data type hint explains a strict verdict.
 - 2026-11-21, property names: exactly as asked, as in IDS. Other spellings are shown so they can
-  be fixed, not accepted. The alias mapping stays until a decision (STATUS #14).
+  be fixed, not accepted. The alias mapping later became configurable JSON (STATUS #14).
 - 2026-11-22, one core for every front end: GUI, CLI and the MCP server only collect input and
   present results; checking (`CheckService`) and writing the report (`ReportText`, `ReportJson`)
   happen once, in the core.
@@ -417,10 +418,9 @@ Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:
   pipelines. On `0.3.2`, replaced the proprietary Apstex IFC Toolbox with a pure-Java schema-driven
   STEP reader (`com.bimportal.hackathon.ifc`, schema tables for IFC2X3/4/4X3), keeping CheckMate
   100% Apache 2.0 with zero external IFC runtime (STATUS #15).
-- 2026-11-22, MCP server: the official MCP Java SDK (`mcp-core` and `mcp-json-jackson2` 2.1.0;
-  2.2.0 depends on a release candidate of Reactor), over stdio, without Spring. The tools answer
-  with the text report, not JSON: the AI reads it and answers in its own words. The server has its
-  own start script, since it can't run through Gradle.
+- 2026-11-22, MCP server: the official MCP Java SDK (`mcp-core` and `mcp-json-jackson2` 2.2.0),
+  over stdio, without Spring. Tools return text; `check_model` also returns structured data for
+  the MCP App report view. The server has its own start script, since it can't run through Gradle.
 - 2026-11-21, exit codes: 3 when a specification is not met, 4 when nothing is violated but not
   everything is confirmed. "Nicht prüfbar" is never 0, in line with the rule that it is never
   reported as passed. Read errors (1) take precedence, since the report is then incomplete.

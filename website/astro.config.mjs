@@ -36,7 +36,7 @@ export default defineConfig({
 			],
 			editLink: {
 				baseUrl:
-					'https://github.com/max-sternal/CheckMate_BIMPortal/edit/0.3.1/website/',
+					'https://github.com/max-sternal/CheckMate_BIMPortal/edit/0.3.2/website/',
 			},
 			sidebar: [
 				{
@@ -54,9 +54,19 @@ export default defineConfig({
 							slug: 'guides/versions',
 						},
 						{
-							label: 'Schnellstart (0.3.1)',
-							translations: { en: 'Quick Start (0.3.1)' },
+							label: 'Schnellstart (0.3.2)',
+							translations: { en: 'Quick Start (0.3.2)' },
 							slug: 'guides/quickstart',
+						},
+						{
+							label: 'Beispiele & Mapping',
+							translations: { en: 'Examples & Mapping' },
+							slug: 'guides/mapping',
+						},
+						{
+							label: 'Eine Prüfung nachvollziehen',
+							translations: { en: 'Walk Through a Check' },
+							slug: 'guides/example',
 						},
 					],
 				},

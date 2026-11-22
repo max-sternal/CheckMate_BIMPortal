@@ -1,13 +1,15 @@
 ---
 title: IFC und IDS
-description: IFC-Einlesen, unterstützte IDS-Anforderungen und Grenzen der Prüfung in CheckMate 0.3.1.
+description: IFC-Einlesen, unterstützte IDS-Anforderungen und Grenzen der Prüfung in CheckMate 0.3.2.
 ---
 
 ## Modell und Anforderungen
 
-CheckMate `0.3.1` liest IFC2X3-, IFC4- und IFC4X3-Modelle mit der APSTEX IFC Toolbox. Unterstützt werden lokale `.ifc`- und `.ifczip`-Dateien sowie HTTP(S)-Links. Ein Beispielmodell ist enthalten. Modellobjekte und ihre Merkmale werden für den Prüfkern als `ModelElement` aufbereitet.
+CheckMate `0.3.2` liest IFC2X3-, IFC4- und IFC4X3-Modelle mit einem eigenen Java-Reader. Unterstützt werden lokale `.ifc`- und `.ifczip`-Dateien sowie HTTP(S)-Links. Ein Beispielmodell ist enthalten. Modellobjekte und ihre Merkmale werden für den Prüfkern als `ModelElement` aufbereitet.
 
 Anforderungen stammen aus LOINs oder AIA-Projekten des BIM-Portals oder aus lokalen IDS-Dateien beziehungsweise ZIP-Archiven. Der Portal-Katalog kann nach Metadaten durchsucht werden; eine vorgeschlagene LOIN ist nicht automatisch für das Projekt verbindlich.
+
+Das Portal liefert die Anforderungen für diese Prüfung als IDS. **LOIN-XML ist ein anderes Format** und wird in `0.3.2` nicht direkt eingelesen; seine Unterstützung ist ein Ziel für `0.3.3`.
 
 - [buildingSMART: IFC-Schemaspezifikationen](https://technical.buildingsmart.org/standards/ifc/ifc-schema-specifications/) und [ISO 16739-1:2024](https://www.iso.org/standard/84123.html)
 - [buildingSMART: Information Delivery Specification](https://technical.buildingsmart.org/projects/information-delivery-specification-ids/)
@@ -15,9 +17,9 @@ Anforderungen stammen aus LOINs oder AIA-Projekten des BIM-Portals oder aus loka
 
 ## Was geprüft wird
 
-Der IDS-Parser und `IdsValidator` prüfen in `0.3.1` insbesondere Entity- und Property-Facetten, einschließlich ausgewählter `predefinedType`-Bedingungen, Datentypen, Werten und Kardinalitäten. Merkmalnamen werden grundsätzlich exakt verglichen; Schreibweisenabweichungen können als Hinweise erscheinen.
+Der IDS-Parser und `IdsValidator` prüfen in `0.3.2` insbesondere Entity- und Property-Facetten, einschließlich ausgewählter `predefinedType`-Bedingungen, Datentypen, Werten und Kardinalitäten. Merkmalnamen werden grundsätzlich exakt verglichen; Schreibweisenabweichungen können als Hinweise erscheinen.
 
-Für drei Klassifizierungsmerkmale gibt es ein fest hinterlegtes Mapping auf die Konvention des Beispiel-Brückenmodells. Seine Verwendung wird im Bericht ausgewiesen. Dieses Mapping ist keine allgemeine IDS-Regel; sein weiterer Umgang ist in [`docs/STATUS.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.1/docs/STATUS.md) offen.
+Ein austauschbares JSON-Mapping ordnet drei Klassifizierungsmerkmale standardmäßig der Konvention des Beispiel-Brückenmodells zu. Seine Verwendung wird im Bericht ausgewiesen. Das Mapping ist keine allgemeine IDS-Regel; Details stehen unter [Beispiele und Mapping](/CheckMate_BIMPortal/guides/mapping/).
 
 ## Grenzen und Ergebnisse
 
@@ -29,6 +31,6 @@ Ein positives Ergebnis bestätigt nur die ausgewerteten Anforderungen für das g
 
 ## Tests und Code
 
-Tests enthalten eigene IFC-Fixtures und exportierte Portal-Anforderungen; ausgewählte Ergebnisse werden mit [IfcOpenShell / ifctester](https://docs.ifcopenshell.org/ifctester.html) verglichen. IFC-Lesetests benötigen APSTEX, weitere Modelle können mit `:hackathon-template:downloadTestModels` geladen werden.
+Tests enthalten eigene IFC-Fixtures und exportierte Portal-Anforderungen; ausgewählte Ergebnisse werden mit [IfcOpenShell / ifctester](https://docs.ifcopenshell.org/ifctester.html) verglichen. Weitere Modelle können mit `:hackathon-template:downloadTestModels` geladen werden.
 
-Einstiegspunkte sind `IdsParser`, `IdsValidator`, `IfcModelElements` und `CheckService`. Details und Testvoraussetzungen stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.1/docs/WORKFLOW.md) und im [Schnellstart](/CheckMate_BIMPortal/guides/quickstart/).
+Einstiegspunkte sind `IdsParser`, `IdsValidator`, `IfcModelElements` und `CheckService`. Details und Testvoraussetzungen stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md) und im [Schnellstart](/CheckMate_BIMPortal/guides/quickstart/).

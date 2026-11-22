@@ -5,7 +5,7 @@ description: Set up CheckMate as a local MCP server for compatible clients.
 
 ## Install the server
 
-The [0.3.1 prerequisites](/CheckMate_BIMPortal/en/guides/quickstart/) also apply to the MCP server: JDK 21 with JavaFX and the APSTEX JARs are needed to build it.
+The [0.3.2 prerequisites](/CheckMate_BIMPortal/en/guides/quickstart/) also apply to the MCP server: JDK 21 is sufficient; JavaFX and APSTEX are not needed.
 
 ```bash
 cd bim-portal/Java_client
@@ -25,7 +25,7 @@ In Claude Desktop, open **Settings → Developer → Edit Config** and add an en
       "command": "cmd",
       "args": ["/c", "C:\\path\\to\\checkmate-mcp.bat"],
       "env": {
-        "JAVA_HOME": "C:\\path\\to\\jdk-21-fx"
+        "JAVA_HOME": "C:\\path\\to\\jdk-21"
       }
     }
   }
@@ -34,6 +34,6 @@ In Claude Desktop, open **Settings → Developer → Edit Config** and add an en
 
 If servers are already configured, add only the `checkmate` entry to the existing `mcpServers` object. Quit Claude Desktop completely and restart it. Optionally, use `CHECKMATE_IFC` in `env` to select a model.
 
-Claude Code can register the server with `claude mcp add checkmate -- cmd /c "C:\path\to\checkmate-mcp.bat"`; `claude mcp list` shows the configuration. See [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.1/docs/WORKFLOW.md) for more details.
+Claude Code can register the server with `claude mcp add checkmate -- cmd /c "C:\path\to\checkmate-mcp.bat"`; `claude mcp list` shows the configuration. See [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md) for more details.
 
 Other clients may be used if they support local MCP servers over `stdio`. Setup, permissions and data handling depend on the client and provider; compatibility must be checked for each setup.

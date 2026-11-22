@@ -1,15 +1,18 @@
 ---
 title: Versions & branches
-description: Historical project snapshots and the documented state of CheckMate 0.3.1.
+description: From the hackathon prototype to CheckMate's development goals.
 ---
 
-| Branch | Purpose |
+| Version | State and idea |
 |---|---|
-| `0.1` | Hackathon prototype and starting point for development. |
-| `0.2` | Further work on the portal client, GUI and initial IDS checking. |
-| `0.3.1` | The Java version documented here, with GUI, CLI and MCP server. Reading IFC requires APSTEX. |
-| `0.3.2`, `0.4` | Development branches for future work; their contents may change. |
+| `0.1` | Result of the 24-hour hackathon, including the prototype and presentation. |
+| `0.2` | Initial fixes to the portal client and a working checking workflow. |
+| `0.3` | A larger revision of the checking core, reports and interfaces as the foundation of the `0.3` line. |
+| `0.3.1` | Java version with GUI, CLI and MCP server; IFC loading uses APSTEX, as at the hackathon. |
+| `0.3.2` | Development state documented here: Java IFC reader without APSTEX, interchangeable JSON mappings and an initial MCP App report view. |
+| `0.3.3` | Goal: investigate and add support for current LOIN-XML; not yet available. |
+| `0.4` | Goal: better online use with a viewer and closer integration with AI clients through MCP Apps. |
 
-Reducing proprietary dependencies is a future goal, not a feature of `0.3.1`. See the [quick start](/CheckMate_BIMPortal/en/guides/quickstart/) for setup and [project status](/CheckMate_BIMPortal/en/project/roadmap/) for open issues.
+`0.3` describes the development line, not necessarily a branch of its own. `0.3.3` and `0.4` describe goals; implementation is not yet fixed. For setup and open issues, see the [quick start](/CheckMate_BIMPortal/en/guides/quickstart/) and [project status](/CheckMate_BIMPortal/en/project/roadmap/).
 
 [View repository branches](https://github.com/max-sternal/CheckMate_BIMPortal/branches)

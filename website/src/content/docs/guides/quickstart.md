@@ -1,30 +1,30 @@
 ---
-title: Schnellstart (0.3.1)
+title: Schnellstart (0.3.2)
 description: Voraussetzungen, Einrichtung und Aufruf von CheckMate.
 ---
 
-Diese Anleitung beschreibt den Branch `0.3.1`. Der Gradle Wrapper lädt Gradle und benötigte Abhängigkeiten bei Bedarf herunter.
+Diese Anleitung beschreibt den Entwicklungsstand auf Branch `0.3.2`. Der Gradle Wrapper lädt Gradle und benötigte Abhängigkeiten bei Bedarf herunter.
 
 ## Voraussetzungen
 
-- JDK 21. Zum Bauen und Starten von GUI, CLI und MCP-Server mit APSTEX wird ein JDK mit JavaFX benötigt, zum Beispiel Azul Zulu 21 JDK FX. Ohne APSTEX reicht für die Kern-Tests ein JDK 21.
-- Für das IFC-Einlesen: `com.apstex.ifctoolbox*.jar` und `com.apstex.stepparser*.jar` unter `bim-portal/Java_client/hackathon-template/lib/`. Die proprietären Bibliotheken sind nicht im Repository enthalten; die Verfügbarkeit kann beim Projektteam oder bei [APSTEX](https://www.apstex.com/) erfragt werden.
+- JDK 21 für Build, CLI und MCP-Server. Für die grafische Oberfläche wird ein JDK mit JavaFX benötigt, zum Beispiel Azul Zulu 21 JDK FX.
+- Der IFC-Reader ist in Java implementiert; APSTEX-JARs sind für `0.3.2` nicht erforderlich.
 - Für Portal-Anforderungen: Netzwerkzugriff auf das [BIM-Portal](https://via.bund.de/bim). Öffentlich sichtbare Inhalte können ohne Anmeldung abgerufen werden.
 
-Ohne APSTEX werden GUI, CLI, MCP-Server und IFC-Lesetests beim Build ausgelassen. Der Prüfkern und seine Tests können dennoch gebaut und ausgeführt werden.
+Ohne JavaFX wird beim Build nur die GUI ausgelassen; CLI, MCP-Server und IFC-Reader bleiben verfügbar. Der Build verwendet Gradle 8.14 und zielt auf Java 21. Java 25 wird von diesem Wrapper nicht unterstützt; dafür wäre ein Gradle-Upgrade nötig.
 
 ## Einrichtung und Start
 
 ```bash
 git clone https://github.com/max-sternal/CheckMate_BIMPortal.git
 cd CheckMate_BIMPortal
-git switch 0.3.1
+git switch 0.3.2
 cd bim-portal/Java_client
 
 # Tests
 ./gradlew :hackathon-template:test
 
-# Desktop-Oberfläche (JDK mit JavaFX und APSTEX erforderlich)
+# Desktop-Oberfläche (JDK mit JavaFX erforderlich)
 ./gradlew :hackathon-template:runGui
 
 # Ein IFC-Modell gegen eine lokale IDS-Datei prüfen
@@ -36,7 +36,7 @@ cd bim-portal/Java_client
   --args="--model /pfad/zum/modell.ifc --loin <LOIN-ID> --json build/report.json"
 ```
 
-Unter Windows statt `./gradlew` den Wrapper `.\gradlew.bat` verwenden und Dateipfade entsprechend anpassen. Ohne `--model` oder die Umgebungsvariable `CHECKMATE_IFC` wird das mitgelieferte Beispielmodell verwendet. Die CLI unterstützt auch `--aia` für ein Portalprojekt und `--suggest` zur Katalogauswahl; Details stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.1/docs/WORKFLOW.md).
+Unter Windows statt `./gradlew` den Wrapper `.\gradlew.bat` verwenden und Dateipfade entsprechend anpassen. Ohne `--model` oder die Umgebungsvariable `CHECKMATE_IFC` wird das mitgelieferte Beispielmodell verwendet. Relative Dateipfade beziehen sich auf `hackathon-template/`. Die CLI unterstützt auch `--aia` für ein Portalprojekt und `--suggest` zur Katalogauswahl; Details stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md).
 
 Für nicht öffentliche Portal-Inhalte kann `bim-portal/Java_client/.env_example` nach `.env` kopiert und mit Zugangsdaten ergänzt werden. Zugangsdaten niemals ins Repository übernehmen.
 

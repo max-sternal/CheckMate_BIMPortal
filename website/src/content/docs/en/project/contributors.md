@@ -52,8 +52,8 @@ This support provided an important foundation but does not imply official projec
 
 ### Licensing
 
-- **CheckMate source code:** [Apache License 2.0](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.1/LICENSE).
-- **APSTEX IFC Toolbox:** Proprietary third-party library provided for the hackathon. It is not covered by Apache 2.0 and is not distributed in the repository.
+- **CheckMate source code:** [Apache License 2.0](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/LICENSE).
+- **APSTEX IFC Toolbox:** Proprietary third-party library used for the hackathon and `0.3.1`. It is not covered by Apache 2.0 and is not distributed in the repository; `0.3.2` does not require it.
 - **IfcOpenShell / ifctester:** Open-source tools licensed under LGPL-3.0-or-later and used as external testing and reference tools.
 - **Starter kit and reference material:** Originating from *planen-bauen 4.0* / BIM Deutschland.
 
