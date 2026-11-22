@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CheckMate 0.4 — Online 3D Viewer &amp; BIM-Portal LOIN/AIA Checker (IFClite)</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #181b24;
+    --bg3: #222734;
+    --fg: #f3f4f6;
+    --fg2: #9ca3af;
+    --line: #2e3446;
+    --accent: #3b82f6;
+    --ok: #22c55e;
+    --bad: #ef4444;
+    --warn: #eab308;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.45 system-ui, -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--line); gap: 12px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 600; }
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  button, label.btn, select, input {
+    background: var(--bg3); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font: inherit; font-size: 12px;
+  }
+  button, label.btn { cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  button:hover, label.btn:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  input[type="file"] { display: none; }
+  main { flex: 1; display: grid; grid-template-columns: 1.35fr 1fr; overflow: hidden; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; grid-template-rows: 50% 50%; } }
+  .viewport { position: relative; background: #0a0c10; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
+  .viewport-overlay { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; z-index: 2; }
+  .legend, .cam-tools { pointer-events: auto; background: rgba(15,17,23,0.82); backdrop-filter: blur(6px); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; display: flex; gap: 10px; align-items: center; font-size: 12px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  .sidebar { display: flex; flex-direction: column; overflow-y: auto; padding: 14px; gap: 12px; background: var(--bg); }
+  .card { background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .card h2 { margin: 0 0 8px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .row input { flex: 1; min-width: 150px; }
+  .badge { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; color: #fff; }
+  .PASSED { background: var(--ok); } .FAILED { background: var(--bad); } .NOT_APPLICABLE { background: #6b7280; }
+  .spec-item { border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-top: 8px; background: var(--bg); }
+  .finding-btn { all: unset; display: block; width: 100%; padding: 5px 6px; border-bottom: 1px dashed var(--line); cursor: pointer; font-size: 12px; }
+  .finding-btn:hover { background: var(--bg3); color: #60a5fa; }
+  pre { margin: 0; white-space: pre-wrap; font: 11px ui-monospace, monospace; color: var(--fg2); }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span>♟️ CheckMate 0.4</span>
+    <span class="pill">TypeScript · IFClite 3D · BIM-Portal</span>
+  </div>
+  <div class="toolbar">
+    <label class="btn">📂 IFC laden <input type="file" id="ifcFile" accept=".ifc,.ifczip"></label>
+    <label class="btn">📋 IDS laden <input type="file" id="idsFile" accept=".ids,.xml,.zip"></label>
+    <select id="mappingSelect" title="Property Mapping">
+      <option value="default">Mapping: BIM.Hamburg Brücken</option>
+      <option value="none">Mapping: Keine Aliase (strikt IDS)</option>
+    </select>
+    <button class="primary" id="runDemoBtn">⚡ Demo-Prüfung (Brücke TBW1)</button>
+  </div>
+</header>
+
+<main>
+  <section class="viewport">
+    <div class="viewport-overlay">
+      <div class="legend">
+        <span><i class="dot" style="background:#ef4444"></i>AIA/LOIN Fehler</span>
+        <span><i class="dot" style="background:#22c55e"></i>Erfüllt</span>
+        <span><i class="dot" style="background:#facc15"></i>Ausgewählt</span>
+        <span><i class="dot" style="background:#94a3b8"></i>Ungeprüft</span>
+      </div>
+      <div class="cam-tools">
+        <button id="filterFailedBtn">Nur Fehler</button>
+        <button id="resetCamBtn">3D Reset</button>
+      </div>
+    </div>
+    <canvas id="viewer3d" width="900" height="650"></canvas>
+  </section>
+
+  <aside class="sidebar">
+    <div class="card">
+      <h2>1. Modell &amp; BIM-Portal LOIN / AIA</h2>
+      <div id="modelMeta" style="color:var(--fg2);margin-bottom:8px">Kein Modell geladen — klicke „Demo-Prüfung“ oder lade eine IFC-Datei.</div>
+      <div class="row">
+        <input id="portalIdInput" placeholder="BIM-Portal LOIN / AIA GUID oder Link ...">
+        <button class="primary" id="checkPortalBtn">Prüfen</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. Prüfbericht &amp; 3D-Markierungen <span id="verdictBadge"></span></h2>
+      <div id="reportContainer">Noch keine Prüfung ausgeführt.</div>
+    </div>
+
+    <div class="card">
+      <h2>3. Ausgewähltes Bauteil</h2>
+      <pre id="elementInspector">Klicke auf einen Befund oder ein Bauteil, um es in 3D gelb hervorzuheben und alle Merkmale zu sehen.</pre>
+    </div>
+  </aside>
+</main>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
