@@ -1,6 +1,6 @@
 ---
 title: CheckMate
-description: CheckMate unterstützt Planende und Prüfende beim Abgleich von IFC-Modellen und Informationsanforderungen.
+description: CheckMate unterstützt Planende und Prüfende beim Abgleich von IFC-Modellen und Informationsanforderungen – in 3D im Browser, über die CLI und per MCP.
 template: splash
 hero:
   tagline: Bürokratie-Beschleunigung statt Bürokratie-Abbau – weniger Überforderung, mehr Klarheit bei der BIM-Prüfung.
@@ -8,7 +8,7 @@ hero:
     file: ../../assets/checkmate-logo.png
     alt: CheckMate Logo
   actions:
-    - text: Schnellstart
+    - text: Schnellstart (0.4 & 0.3.2)
       link: /CheckMate_BIMPortal/guides/quickstart/
       icon: right-arrow
     - text: Grundlagen und Quellen
@@ -27,21 +27,21 @@ Modelle, Merkmale und Informationsanforderungen sollen beim Planen und Prüfen h
 
 Die Idee: **Bürokratie beschleunigen, ohne Standards abzubauen.** Klare, maschinenlesbare Anforderungen und digitale Werkzeuge unterstützen Menschen dabei, sich auf die fachliche Bewertung zu konzentrieren.
 
-CheckMate entstand beim [BIM-Portal-Hackathon 2025](https://www.bimdeutschland.de/veranstaltungen/hackathon-2025). Das unabhängige Projekt verarbeitet Anforderungen aus dem [BIM-Portal des Bundes](https://www.bimdeutschland.de/bim-portal) oder aus lokalen IDS-Dateien.
+CheckMate entstand beim [BIM-Portal-Hackathon 2025](https://www.bimdeutschland.de/veranstaltungen/hackathon-2025). Das unabhängige Projekt verarbeitet Anforderungen aus dem [BIM-Portal des Bundes](https://www.bimdeutschland.de/bim-portal) oder aus lokalen IDS- und `.rules.json`-Dateien.
 
 <CardGrid>
-  <Card title="Offene Austauschformate" icon="open-book">
-    IFC beschreibt das Modell, buildingSMART IDS die maschinenlesbaren Anforderungen. Lokale IDS-Dateien lassen sich auch unabhängig vom BIM-Portal nutzen.
+  <Card title="Offene Austauschformate & BCF" icon="open-book">
+    IFC beschreibt das Modell, buildingSMART IDS die maschinenlesbaren Anforderungen. In Version 0.4 lassen sich Abweichungen zudem direkt als BCF 2.1 (`.bcfzip`) exportieren.
   </Card>
-  <Card title="Eine Prüfung, mehrere Zugänge" icon="laptop">
-    Die JavaFX-Oberfläche, die Kommandozeile und der MCP-Server verwenden denselben regelbasierten Prüfkern.
+  <Card title="3D-Browser-Workbench, CLI & MCP" icon="laptop">
+    Die 3D-Web-Workbench (`@checkmate/web`), die Kommandozeile (`@checkmate/cli`) und der MCP-Server (`@checkmate/mcp`) verwenden denselben Prüfkern (`@checkmate/core`) auf Basis von IFClite.
   </Card>
-  <Card title="Mensch und KI im Zusammenspiel" icon="approve-check-circle">
-    Eine KI-Anwendung kann über MCP Prüfungen aufrufen und Ergebnisse erläutern. Die Prüfung erfolgt in CheckMate; die fachliche Entscheidung bleibt beim Menschen.
+  <Card title="Mensch und KI mit 3D MCP Apps" icon="approve-check-circle">
+    Eine KI-Anwendung kann über MCP Prüfungen aufrufen, 3D-Ansichten (`ui://checkmate/*`) einbetten und Ergebnisse erläutern. Die Prüfung erfolgt regelbasiert in CheckMate; die fachliche Entscheidung bleibt beim Menschen.
   </Card>
   <Card title="Offen und nachvollziehbar" icon="puzzle">
-    CheckMate ist quelloffen unter Apache 2.0. Version 0.3.2 liest IFC ohne die proprietäre APSTEX IFC Toolbox.
+    CheckMate ist quelloffen unter Apache 2.0. Sowohl die Java-Edition (`0.3.2`) als auch die TypeScript/IFClite-Edition (`0.4`) kommen vollständig ohne proprietäre Bibliotheken aus.
   </Card>
 </CardGrid>
 
-Nicht alle IDS-Anforderungen werden ausgewertet. [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/) erläutert den Prüfumfang und seine Grenzen; die [technische Übersicht](/CheckMate_BIMPortal/architecture/overview/) beschreibt Aufbau und Abhängigkeiten.
+Nicht alle IDS-Anforderungen oder fachlichen Projektregeln lassen sich automatisiert bestätigen. [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/) erläutert den Prüfumfang, das Property Mapping und die Null-Treffer-Diagnose; die [technische Übersicht](/CheckMate_BIMPortal/architecture/overview/) beschreibt Aufbau und Abhängigkeiten.

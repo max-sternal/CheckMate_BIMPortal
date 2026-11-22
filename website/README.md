@@ -13,16 +13,10 @@ npm run build
 ```
 
 The site uses `/CheckMate_BIMPortal` as its base path. The version selector uses
-Starlight Versions. Archived `v0.3.1` pages were created from its release
-snapshot; `v0.1.0` and `v0.2.0` are retrospective pages, not files from the
-historical tags.
+Starlight Versions and provides archived snapshots for `v0.3.2`, `v0.3.1`,
+`v0.2.0` and `v0.1.0` alongside the current documentation (`0.4`).
 
 `.github/workflows/versioned-docs.yml` builds and deploys all versions together.
-Its `CHECKMATE_DOCS_LATEST` setting selects the release tag used for the root
-site, currently `v0.3.1`; publishing from the `0.3.2` branch does not make its
-draft documentation current. To make `0.3.2` current, first create and push its
-release tag, then change `CHECKMATE_DOCS_LATEST` to `v0.3.2` in the workflow and
-push the change. The archived `v0.3.1` remains available.
-
-The old `.github/workflows/docs.yml` workflow must remain disabled: it deploys a
-single unversioned site and could overwrite the versioned deployment.
+Its `CHECKMATE_DOCS_LATEST` setting selects the release tag or branch used for
+the root site (`v0.3.1`, `v0.3.2`, or `0.4`), while keeping all archived
+versions accessible via the version selector dropdown.

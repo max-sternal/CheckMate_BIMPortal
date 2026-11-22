@@ -1,46 +1,47 @@
 ---
 title: Examples & mapping
-description: Properties of the Hamburg bridge model and project-specific mappings in CheckMate 0.3.2.
+description: Properties of the Hamburg bridge model and project-specific JSON mappings in CheckMate 0.4 and 0.3.2.
 ---
 
-## Why use a mapping?
+## Why a mapping?
 
-An IDS requirement identifies a property by its property set and name. A model may use different names for similar information. A mapping allows CheckMate to look for additional agreed addresses in the model; it does not change the model or the IDS file.
+An IDS requirement identifies a property by property set and base name. A model may store equivalent information under different names. A mapping allows CheckMate to look up agreed fallback addresses in the model — without modifying either the model or the IDS file.
 
 The bundled BIM.Hamburg bridge model uses this mapping:
 
-| Requirement | Address in the model |
+| Requirement (BIM Portal IDS) | Address in the model |
 |---|---|
 | `Klassifizierung/Objektgruppe` | `Pset_Objektinformation/_IDEbene1` |
 | `Klassifizierung/Objektklasse` | `Pset_Objektinformation/_IDEbene2` |
 | `Klassifizierung/Objekttyp` | `Pset_Objektinformation/_IDEbene3` |
 
-[`bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/bim-portal/Java_client/hackathon-template/src/main/resources/mapping/bim-hamburg.json) is active by default in `0.3.2`. The requested name is always checked first, followed by mapping addresses. The report identifies aliases used as `als Pset_Objektinformation/...`.
+The file [`resources/mapping/bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.4/resources/mapping/bim-hamburg.json) is active by default. CheckMate always checks the requested IDS address first; only if it is absent does `MappedDataAccessor` resolve aliases. Every alias hit is explicitly recorded in the report as `(als Pset_Objektinformation/...)`.
 
-A mapping is **not a general IDS rule**. It must be appropriate for the project and model. It maps names but does not correct values or data types. Finding an address therefore does not automatically mean a requirement is satisfied.
+A mapping is **not a general IDS rule**. It must fit the project and model context. It maps names, but does not override values or data types.
 
-## Choose a mapping
+## Selecting a mapping (Web workbench, CLI & MCP)
 
-From `bim-portal/Java_client/`:
+### 1. In the 3D browser workbench (`@checkmate/web`)
+Open tab **"4. Mapping, Rules & Export"** to view or edit the active JSON mapping live, switch between `BIM.Hamburg Brücken` and `Keine Aliase (strikt IDS)`, or upload a custom `.json` file. Clicking **"Mapping anwenden & neu prüfen"** immediately re-runs the check and updates the 3D view.
+
+### 2. Via the command line (`@checkmate/cli`)
 
 ```bash
-# Use the bundled mapping
-./gradlew :hackathon-template:runLoinCheck --args="--ids src/test/resources/ids/portal/ueberbau-kappe-lph8-9.ids --mapping default"
+# Use the bundled BIM.Hamburg mapping
+pnpm cli -- --ids resources/fixtures/ids/portal/ueberbau-kappe-lph8-9.ids --mapping default
 
-# Run the same check without aliases
-./gradlew :hackathon-template:runLoinCheck --args="--ids src/test/resources/ids/portal/ueberbau-kappe-lph8-9.ids --mapping none"
+# Run the same check without aliases (strict IDS)
+pnpm cli -- --ids resources/fixtures/ids/portal/ueberbau-kappe-lph8-9.ids --mapping none
 
-# Use a custom mapping: provide its absolute path
-./gradlew :hackathon-template:runLoinCheck --args="--ids src/test/resources/ids/portal/ueberbau-kappe-lph8-9.ids --mapping /path/to/mapping.json"
+# Use a custom mapping file
+pnpm cli -- --ids resources/fixtures/ids/portal/ueberbau-kappe-lph8-9.ids --mapping /path/to/mapping.json
 ```
 
-On Windows, use `.\gradlew.bat` and adjust the paths. The check can return a nonzero exit code, which Gradle reports as a failed task. The report gives the precise checking status.
-
-For other models, supply a JSON file:
+### 3. Structure of a mapping JSON file
 
 ```json
 {
-  "name": "Project example",
+  "name": "Project Example",
   "aliases": [
     {
       "from": "Klassifizierung/Objekttyp",
@@ -50,6 +51,6 @@ For other models, supply a JSON file:
 }
 ```
 
-`from` is the requested address, and `to` is a list of model addresses in search order. Each address has the form `PropertySet/Name`. The MCP tool `load_mapping` can also display or switch mappings; switching discards the last check report.
+`from` specifies the requested IDS address and `to` lists candidate model addresses in lookup order (`PropertySet/Name`). The MCP tool `load_mapping` can also inspect or switch the active mapping.
 
-[See the worked example](/CheckMate_BIMPortal/en/guides/example/)
+[Walk through a complete check example](/CheckMate_BIMPortal/en/guides/example/)

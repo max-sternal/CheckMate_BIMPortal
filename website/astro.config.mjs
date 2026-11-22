@@ -3,8 +3,11 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightVersions from 'starlight-versions';
 
-const publishedVersion = process.env.CHECKMATE_DOCS_LATEST ?? 'v0.3.2';
+const publishedVersion = process.env.CHECKMATE_DOCS_LATEST ?? 'v0.4';
 const is031 = publishedVersion === 'v0.3.1';
+const is032 = publishedVersion === 'v0.3.2';
+const currentBranch = is031 ? '0.3.1' : is032 ? '0.3.2' : '0.4';
+const currentVersionLabel = is031 ? '0.3.1' : is032 ? '0.3.2' : '0.4';
 
 // https://astro.build/config
 export default defineConfig({
@@ -16,6 +19,7 @@ export default defineConfig({
 				starlightVersions({
 					current: { label: 'Latest', redirect: 'root' },
 					versions: [
+						{ slug: 'v0.3.2', label: 'v0.3.2', redirect: 'root' },
 						{ slug: 'v0.3.1', label: 'v0.3.1', redirect: 'root' },
 						{ slug: 'v0.2.0', label: 'v0.2.0', redirect: 'root' },
 						{ slug: 'v0.1.0', label: 'v0.1.0', redirect: 'root' },
@@ -24,7 +28,7 @@ export default defineConfig({
 			],
 			title: 'CheckMate',
 			description:
-				'CheckMate prüft IFC-Modelle anhand von IDS-Anforderungen aus dem BIM-Portal oder lokalen Dateien.',
+				'CheckMate prüft IFC-Modelle anhand von IDS-Anforderungen aus dem BIM-Portal oder lokalen Dateien – in 3D, per CLI und über MCP.',
 			logo: {
 				src: './src/assets/checkmate-logo.png',
 				alt: 'CheckMate Logo',
@@ -49,8 +53,7 @@ export default defineConfig({
 				},
 			],
 			editLink: {
-				baseUrl:
-					`https://github.com/max-sternal/CheckMate_BIMPortal/edit/${is031 ? '0.3.1' : '0.3.2'}/website/`,
+				baseUrl: `https://github.com/max-sternal/CheckMate_BIMPortal/edit/${currentBranch}/website/`,
 			},
 			sidebar: [
 				{
@@ -68,22 +71,24 @@ export default defineConfig({
 							slug: 'guides/versions',
 						},
 						{
-							label: `Schnellstart (${is031 ? '0.3.1' : '0.3.2'})`,
-							translations: { en: `Quick Start (${is031 ? '0.3.1' : '0.3.2'})` },
+							label: `Schnellstart (${currentVersionLabel})`,
+							translations: { en: `Quick Start (${currentVersionLabel})` },
 							slug: 'guides/quickstart',
 						},
-						...(is031 ? [] : [
-						{
-							label: 'Beispiele & Mapping',
-							translations: { en: 'Examples & Mapping' },
-							slug: 'guides/mapping',
-						},
-						{
-							label: 'Eine Prüfung nachvollziehen',
-							translations: { en: 'Walk Through a Check' },
-							slug: 'guides/example',
-						},
-						]),
+						...(is031
+							? []
+							: [
+									{
+										label: 'Beispiele & Mapping',
+										translations: { en: 'Examples & Mapping' },
+										slug: 'guides/mapping',
+									},
+									{
+										label: 'Eine Prüfung nachvollziehen',
+										translations: { en: 'Walk Through a Check' },
+										slug: 'guides/example',
+									},
+								]),
 					],
 				},
 				{
@@ -107,8 +112,8 @@ export default defineConfig({
 					translations: { en: 'MCP Interface' },
 					items: [
 						{
-							label: 'MCP-Server',
-							translations: { en: 'MCP Server' },
+							label: 'MCP-Server & 3D MCP Apps',
+							translations: { en: 'MCP Server & 3D MCP Apps' },
 							slug: 'mcp/overview',
 						},
 						{

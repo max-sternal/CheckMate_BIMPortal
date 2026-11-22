@@ -1,39 +1,49 @@
 ---
 title: Set up an MCP client
-description: Set up CheckMate as a local MCP server for compatible clients.
+description: Configure CheckMate 0.4 (TypeScript/Node.js) or 0.3.2 (Java) as a local MCP server.
 ---
 
-## Install the server
+## Option A: CheckMate 0.4 (TypeScript & IFClite 3D MCP Apps)
 
-The [0.3.2 prerequisites](/CheckMate_BIMPortal/en/guides/quickstart/) also apply to the MCP server: JDK 21 is sufficient; JavaFX and APSTEX are not needed.
+After running `pnpm install` in the repository root, the MCP server can be launched directly with Node.js (`--import tsx`). A ready-to-use template is provided in [`mcp_config.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.4/mcp_config.json).
 
-```bash
-cd bim-portal/Java_client
-./gradlew :hackathon-template:installMcp
-```
-
-On Windows, use `.\gradlew.bat`. The launcher is created at `hackathon-template/build/install/checkmate-mcp/bin/checkmate-mcp`, or `checkmate-mcp.bat` on Windows. Run `installMcp` again after code changes.
-
-## Example: Claude Desktop on Windows
-
-In Claude Desktop, open **Settings → Developer → Edit Config** and add an entry to `claude_desktop_config.json`. Replace the paths with local absolute paths:
+### Claude Desktop / Antigravity (`claude_desktop_config.json` / `mcp_config.json`)
 
 ```json
 {
   "mcpServers": {
     "checkmate": {
-      "command": "cmd",
-      "args": ["/c", "C:\\path\\to\\checkmate-mcp.bat"],
+      "command": "node",
+      "args": [
+        "--import",
+        "tsx",
+        "C:\\Users\\Max\\Documents\\GitHub\\CheckMate_BIMPortal\\packages\\mcp\\src\\index.ts"
+      ],
       "env": {
-        "JAVA_HOME": "C:\\path\\to\\jdk-21"
+        "CHECKMATE_MAPPING": "default"
       }
     }
   }
 }
 ```
 
-If servers are already configured, add only the `checkmate` entry to the existing `mcpServers` object. Quit Claude Desktop completely and restart it. Optionally, use `CHECKMATE_IFC` in `env` to select a model.
+*(On Linux/macOS, use `/path/to/CheckMate_BIMPortal/packages/mcp/src/index.ts`. Optionally set `CHECKMATE_MODEL` in `env` to specify a custom default IFC file.)*
 
-Claude Code can register the server with `claude mcp add checkmate -- cmd /c "C:\path\to\checkmate-mcp.bat"`; `claude mcp list` shows the configuration. See [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md) for more details.
+### Claude Code
 
-Other clients may be used if they support local MCP servers over `stdio`. Setup, permissions and data handling depend on the client and provider; compatibility must be checked for each setup.
+```bash
+claude mcp add checkmate -- node --import tsx /path/to/CheckMate_BIMPortal/packages/mcp/src/index.ts
+```
+
+---
+
+## Option B: CheckMate 0.3.2 (Pure Java edition)
+
+For the Java edition (`0.3.2`) in `bim-portal/Java_client/`, build the launcher script via Gradle:
+
+```bash
+cd bim-portal/Java_client
+./gradlew :hackathon-template:installMcp
+```
+
+The launcher is created at `hackathon-template/build/install/checkmate-mcp/bin/checkmate-mcp` (or `checkmate-mcp.bat` on Windows); see the [0.3.2 MCP setup guide](/CheckMate_BIMPortal/en/v0.3.2/mcp/clients/) for details.

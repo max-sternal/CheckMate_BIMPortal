@@ -30,7 +30,8 @@ for (const relativePath of [
 	'src/styles/custom.css',
 	'src/content/versions',
 	'src/assets/v0.3.1',
-	...['v0.1.0', 'v0.2.0', 'v0.3.1'].flatMap((version) => [
+	'src/assets/v0.3.2',
+	...['v0.1.0', 'v0.2.0', 'v0.3.1', 'v0.3.2'].flatMap((version) => [
 		`src/content/docs/${version}`,
 		`src/content/docs/en/${version}`,
 	]),

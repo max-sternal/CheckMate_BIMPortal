@@ -1,118 +1,70 @@
-# CheckMate
+# CheckMate 0.4 (`0.4-alpha` — TypeScript + IFClite Edition)
 
 CheckMate checks an IFC model against the requirements of the German federal
-[BIM Portal](https://via.bund.de/bim): LOINs, whole AIA projects, or any IDS file. For each element
-it reports the results and any requirements it does not evaluate. Requirements can be downloaded
-as IDS (buildingSMART's Information Delivery Specification) or supplied locally. The checker
-supports a subset of IDS 1.0; selected results are compared with ifctester.
+[BIM Portal](https://via.bund.de/bim): LOINs, whole AIA projects, local IDS 1.0 files, or
+`@ifc-lite/rules` `.rules.json` rule sets.
 
-Three front ends share one check: a JavaFX GUI, a command line (CLI), and an MCP server for
-compatible AI applications. The [documentation](https://max-sternal.github.io/CheckMate_BIMPortal/)
-describes setup, the checking scope, its limitations, and the project's BIM context in German and
-English.
-The website on branch `0.3.2` documents this development state; the published
-site currently serves `v0.3.1` as latest. See [`website/README.md`](website/README.md)
-for the versioned deployment.
+Branch **`0.4`** combines CheckMate's domain workflow (`ModelFit`, `LoinDescription`,
+`PropertyMapping` / `bim-hamburg.json`, zero-applicability near-miss diagnosis, German reports and
+exit codes `0..4`) with **TypeScript and IFClite (`@ifc-lite/*`)** for interactive 3D visualization
+in the browser and inside MCP-capable AI clients.
 
-## What's where
+The pure-Java 25 edition continues in parallel on branch **`0.3.2`** (and upcoming **`0.3.3`**).
+The bilingual [documentation site](https://max-sternal.github.io/CheckMate_BIMPortal/) includes a
+version selector for `0.4`, `v0.3.2`, `v0.3.1`, `v0.2.0` and `v0.1.0`.
+
+## Workspace packages (`0.4`)
 
 | Path | What it is |
 |---|---|
-| `bim-portal/Java_client/hackathon-template/` | CheckMate (Gradle module `hackathon-template`) |
-| `…/src/main/java/com/bimportal/hackathon/ids/` | the core: requirements from the portal or IDS files (`PortalRequirements`, `IdsParser`, `IdsArchive`), the check (`IdsValidator`, `Values`, `DataTypes`, `PropertyKey`), the result (`CheckResult`) |
-| `…/src/main/java/com/bimportal/hackathon/ifc/` | pure-Java STEP IFC reader with schema tables for IFC2X3, IFC4 and IFC4X3 (`StepParser`, `IfcSchema`, `IfcModelElements`, `IfcResources`, `ModelLinks`, `LoadedModel`) |
-| `…/src/main/java/com/bimportal/hackathon/catalogue/` | choosing LOINs from the portal's catalogue: filters, ranking by fit (`ModelFit`), the description on click |
-| `…/src/main/java/com/bimportal/hackathon/check/` | the check as every front end runs it: requirement sources, downloading each once, checking, searching (`CheckService`, `Source`) |
-| `…/src/main/java/com/bimportal/hackathon/report/` | the result of a run: verdict, exit code, text and JSON (`CheckReport`, `ReportText`, `ReportJson`) |
-| `…/src/main/java/com/bimportal/hackathon/cli/` | headless command-line front end (`LoinCheckCli`) |
-| `…/src/main/java/com/bimportal/hackathon/mcp/` | the MCP server for AI apps: the tools (`CheckMateTools`) and the server over stdio (`CheckMateMcpServer`), on the official MCP Java SDK |
-| `…/src/main/java/test/fx/` | JavaFX GUI only (`App`, `ElementUI`, `RequirementSource`). The package name is a leftover (STATUS #13). |
-| `…/src/test/` | tests, with real portal downloads and own IFC case files |
-| `bim-portal/Java_client/bim-portal-enhanced/` | client for the BIM Portal's API (from the hackathon template) |
-| `bim-portal/Java_client/openapi-generated/` | generated API client, don't edit |
-| `docs/WORKFLOW.md` | how CheckMate works step by step, a checklist, and decisions |
-| `docs/STATUS.md` | open points, including open decisions |
-| `website/` | bilingual (DE/EN) Astro Starlight documentation site for GitHub Pages (`0.1`–`0.4`) |
-| `.github/workflows/` | GitHub Actions CI (Java tests + docs build) and GitHub Pages deployment |
-| `.claude/skills/run-checkmate/` | Claude Code skill: build, run and drive the GUI |
-| `DocsBIMDeutschland/` | background material on the BIM Portal, LOIN and IDS |
+| `packages/bimportal/` (`@checkmate/bimportal`) | TypeScript REST client for `https://via.bund.de/bim`, catalogue search, `CatalogueFilter`, UUID extraction and ZIP/IDS unpacking (`fflate`) |
+| `packages/core/` (`@checkmate/core`) | Browser- and Node-compatible checking engine: `LoadedModel` (`@ifc-lite/parser` + `@ifc-lite/geometry`), `PropertyMapping`, `MappedDataAccessor`, `ModelFit`, `LoinDescription`, `CheckService` (`@ifc-lite/ids` + `@ifc-lite/rules`), near-miss diagnosis, BCF 2.1 export (`@ifc-lite/bcf`), `ReportText` and `ReportJson` |
+| `packages/web/` (`@checkmate/web`) | Standalone 3D browser workbench (Vite + WebGL) with 4 tabs: Check Report & Diagnosis, BIM Portal Catalogue & `LoinDescription`, Model & Element Explorer, and Mapping / `.rules.json` / BCF Export |
+| `packages/mcp/` (`@checkmate/mcp`) | MCP server over `stdio` with 10 model tools, 5 app-only tools (`visibility: ["app"]`) and 3 interactive 3D MCP App views (`ui://checkmate/report`, `ui://checkmate/model`, `ui://checkmate/loins`) |
+| `packages/cli/` (`@checkmate/cli`) | Headless CLI (`--model`, `--ids`, `--loin`, `--aia`, `--rules`, `--mapping`, `--suggest`, `--json`, `--bcf`, `--full`) matching `0.3.2` exit codes `0..4` |
+| `resources/` | Bundled `mapping/bim-hamburg.json`, sample bridge model `models/bruecke-tbw1-mit-merkmalen.ifc` and portal/local IDS fixtures |
+| `bim-portal/Java_client/` | Pure-Java 25 edition from `0.3.2` (Gradle 9.1.0, JavaFX GUI, CLI, Java MCP server) |
+| `website/` | Bilingual (DE/EN) Astro Starlight documentation site with version selector (`0.4`, `v0.3.2`, `v0.3.1`, `v0.2.0`, `v0.1.0`) |
 
-The packages `ids`, `catalogue`, `check` and `report` use neither the GUI nor the IFC library. GUI
-and CLI only collect their input, pass it to `CheckService`, and show the `CheckReport` it returns
-through `ReportText` or `ReportJson`; the MCP server does the same. So every front end gets the
-same results, and the core is tested without IFC files.
-How the parts work together: [`docs/WORKFLOW.md`](docs/WORKFLOW.md), section 2.
+## Quick start (`0.4` — TypeScript & 3D Web Workbench)
 
-The module's own README, [`hackathon-template/README.md`](bim-portal/Java_client/hackathon-template/README.md),
-is maintained separately.
-
-## Requirements
-
-Needed:
-
-- **JDK 25** as `JAVA_HOME`: enough to build and run the pure-Java IFC reader, CLI, MCP server,
-  and all tests. No Apstex JARs or external IFC runtime are needed.
-- **JDK 25 with JavaFX**, e.g. Azul Zulu 25 "JDK FX", only for the JavaFX GUI (`runGui`). On a
-  plain JDK 25, Gradle skips only `test/fx` (the GUI) while building everything else; `runGui`
-  checks for JavaFX and says so.
-- **Network access** to `https://via.bund.de/bim` for LOINs and AIA projects. No account needed:
-  without credentials CheckMate sees everything published.
-
-Included or optional:
-
-- Gradle comes with the wrapper (`gradlew`), nothing to install.
-- Credentials for non-public content: copy `bim-portal/Java_client/.env_example` to `.env` and set
-  `BIM_PORTAL_USERNAME` and `BIM_PORTAL_PASSWORD`. Never commit `.env`.
-- Sample models for more tests (about 5 MB, from public GitHub repositories):
-  `./gradlew :hackathon-template:downloadTestModels`. Without them those tests are skipped with a
-  message.
-- Python 3 with `ifcopenshell` and `ifctester` (`pip install ifcopenshell ifctester`), only to
-  regenerate the IFC test files (`src/test/python/make_ifc_fixtures.py`) or to compare results with
-  ifctester. CheckMate itself doesn't need Python.
-
-Tested with JDK 25 and Gradle 9.1.0.
-
-## Quick start
-
-From `bim-portal/Java_client/`:
+Requires **Node.js 22+** and **pnpm**:
 
 ```bash
-./gradlew :hackathon-template:test                 # all tests
-./gradlew :hackathon-template:runGui               # the window
-./gradlew :hackathon-template:runLoinCheck --args="--loin be959b9d-daef-5315-9aba-f60b6ad54ccb"
-./gradlew :hackathon-template:runLoinCheck --args="--suggest --phase 'LPH 5'"
-./gradlew :hackathon-template:installMcp           # the MCP server for AI apps
+pnpm install                  # install workspace dependencies
+pnpm test                     # run all Vitest suites
+pnpm web:dev                  # launch 3D browser workbench at http://localhost:5173/
 ```
 
-The model is the bundled bridge model unless `CHECKMATE_IFC` names a file or a link, or `--model`
-does. CLI options and exit codes: [`LoinCheckCli`](bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/cli/LoinCheckCli.java)
-and `docs/WORKFLOW.md`, section 2.5.
+To cleanly stop `pnpm web:dev`, press **`Ctrl + C`** (or **`q` + `Enter`**) in the terminal.
 
-## Using CheckMate from an AI app
+### CLI (`@checkmate/cli`)
 
-With the MCP server, an AI app such as Claude Desktop or Claude Code checks a model for you: ask
-"Welche LOINs passen zum Modell?" or "Prüfe das Modell gegen die LOIN
-be959b9d-daef-5315-9aba-f60b6ad54ccb", and the AI calls CheckMate and explains the report.
+```bash
+pnpm cli -- --ids resources/fixtures/ids/portal/ueberbau-kappe-lph8-9.ids --mapping default
+pnpm cli -- --suggest "Kappe" --discipline "Ingenieurbau"
+pnpm cli -- --ids resources/fixtures/ids/portal/ueberbau-schaft-lph1-9.ids --bcf build/issues.bcfzip
+```
 
-1. Build it: `./gradlew :hackathon-template:installMcp`, again after code changes. The start script
-   is `bim-portal/Java_client/hackathon-template/build/install/checkmate-mcp/bin/checkmate-mcp.bat`.
-2. Register it with its full path. On Windows `cmd /c` starts the `.bat`:
-   - Claude Code, in a terminal at the repo root:
-     `claude mcp add checkmate -- cmd /c "C:\...\checkmate-mcp.bat"`
-   - Claude Desktop: Settings → Developer → Edit Config, add the `checkmate` entry from section 2.7
-     with `JAVA_HOME` (the JDK 25) in `env`, then quit the app from the tray and start it again.
-3. Check: `claude mcp list` shows `checkmate` as connected; Claude Desktop lists it under
-   Settings → Developer.
+### MCP Server (`@checkmate/mcp`)
 
-Ollama, the tools, and what to do when the server doesn't start:
-[`docs/WORKFLOW.md`](docs/WORKFLOW.md), section 2.7.
+See [`mcp_config.json`](mcp_config.json) for a ready-to-use configuration for Claude Desktop,
+Claude Code, or Antigravity:
 
-## Open decisions
+```bash
+claude mcp add checkmate -- node --import tsx /path/to/CheckMate_BIMPortal/packages/mcp/src/index.ts
+```
 
-- **Property mapping.** The bundled JSON mapping translates three portal property names to the
-  BIM.Hamburg bridge convention (`Pset_Objektinformation/_IDEbene1..3`). It can be replaced or
-  disabled; IDS itself does not define aliases. Choosing an appropriate mapping remains a
-  project-specific decision: [STATUS #14](docs/STATUS.md).
+## Quick start (`0.3.2` — Pure Java 25 Edition)
+
+From `bim-portal/Java_client/` (requires JDK 21 or JDK 25 LTS):
+
+```bash
+./gradlew :hackathon-template:test
+./gradlew :hackathon-template:runGui
+./gradlew :hackathon-template:runLoinCheck --args="--loin be959b9d-daef-5315-9aba-f60b6ad54ccb"
+./gradlew :hackathon-template:installMcp
+```
 
 ## License
 

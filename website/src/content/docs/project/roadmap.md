@@ -1,20 +1,22 @@
 ---
 title: Projektstatus
-description: Stand und offene Punkte von CheckMate 0.3.2.
+description: Stand und offene Punkte von CheckMate 0.4 und der Java-Linie 0.3.2 / 0.3.3.
 ---
 
-## Stand von 0.3.2
+## Stand von `0.4` (`0.4-alpha`)
 
-CheckMate bietet eine JavaFX-Oberfläche, eine CLI und einen MCP-Server für die Prüfung von IFC-Modellen gegen unterstützte IDS-Anforderungen. Anforderungen können aus dem BIM-Portal oder lokalen IDS-Dateien stammen. Der Java-Reader liest IFC2X3, IFC4 und IFC4X3 ohne APSTEX.
+CheckMate `0.4` verbindet den gesamten fachlichen Prüfkern aus `0.3.2` mit **TypeScript und IFClite (`@ifc-lite/*`)**:
 
-Die MCP-App-Berichtansicht ist implementiert und auf Protokollebene getestet; eine Sichtprüfung in Claude Desktop oder Antigravity steht noch aus. JSON-Mappings können geladen und gewechselt werden.
+- **3D-Browser-Workbench (`@checkmate/web`)**: 4-Reiter-Oberfläche mit WebGL-3D-Viewer, Bauteil-Inspektor (`element_report`), Live-BIM-Portal-Suche mit `ModelFit`-Sortierung, `LoinDescription`-Vorschau, Übersichtstabelle, Fast-Treffer-Diagnose (`nicht prüfbar`), Live-JSON-Mapping-Editor, `.rules.json`-Konvertierung und BCF-2.1-Download (`.bcfzip`).
+- **MCP-Server & 3D MCP Apps (`@checkmate/mcp`)**: 10 Modell-Werkzeuge, 5 App-only-Werkzeuge und 3 interaktive 3D-HTML-Ansichten (`ui://checkmate/report`, `ui://checkmate/model`, `ui://checkmate/loins`).
+- **CLI (`@checkmate/cli`)**: Kompatibel mit den Parametern, deutschen Berichten und Exit-Codes (`0..4`) von `0.3.2`, ergänzt um `--rules` und `--bcf`.
+
+## Stand der Java-Linie (`0.3.2` & `0.3.3`)
+
+- **`0.3.2`**: Läuft mit Java 21 bis Java 25 LTS und Gradle 9.1.0, liest IFC2X3, IFC4 und IFC4X3 ohne APSTEX und unterstützt austauschbare JSON-Mappings (`bim-hamburg.json`) sowie die erste MCP-App-Berichtansicht. ([Zur archivierten 0.3.2-Dokumentation](/CheckMate_BIMPortal/v0.3.2/))
+- **`0.3.3` (Geplant)**: Untersuchung und Unterstützung von aktuellem LOIN-XML (siehe [BIM-Portal-Importschnittstelle](https://github.com/bimdeutschland/BIM-Portal-Importschnittstellendokumentation) und [ISO/DIS 7817-3](https://www.iso.org/standard/89077.html)).
 
 ## Offene Punkte
 
-- Weitere IDS-Facetten und IFC-Eigenschaften unterstützen; bestehende Grenzen stehen unter [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/).
-- MCP-App-Berichtansicht in geeigneten Clients praktisch prüfen und weitere Ansichten untersuchen.
-- Für `0.3.3` die Unterstützung von LOIN-XML untersuchen. LOIN-XML ist nicht mit dem derzeit unterstützten IDS-Format gleichzusetzen. Als Ausgangspunkte dienen die [BIM-Portal-Importschnittstelle](https://github.com/bimdeutschland/BIM-Portal-Importschnittstellendokumentation) und [ISO/DIS 7817-3](https://www.iso.org/standard/89077.html); der Standard ist noch in Entwicklung.
-- Für `0.4` eine bessere Online-Nutzung mit Viewer und MCP-App-Integration untersuchen.
-- Schnittstellen und Dokumentation mit der weiteren Entwicklung pflegen.
-
-Entwicklungszweige und Ideen sind keine Zusage eines bestimmten Funktionsumfangs oder Termins. Code-nahe Einzelheiten stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md) und [`docs/STATUS.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/STATUS.md).
+- Praktische Erprobung der 3D-Browser-Workbench (`0.4-alpha`) und der 3D MCP Apps mit verschiedenen Fachmodellen und AIA-Projekten.
+- Untersuchung von LOIN-XML in `0.3.3` und Rückführung neuer Erkenntnisse zwischen `0.3.x` und `0.4`.

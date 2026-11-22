@@ -1,42 +1,31 @@
 ---
 title: System architecture
-description: Components and interfaces of CheckMate 0.3.2.
+description: Workspace packages, IFClite integration and data flow of CheckMate 0.4.
 ---
 
 ## Data flow
 
-CheckMate processes an IFC model and requirements from the BIM Portal or a local IDS file. The shared checking core produces a report for the graphical interface, command line or MCP server.
+CheckMate `0.4` is structured as a TypeScript monorepo (`pnpm` workspace) that combines **IFClite (`@ifc-lite/*`)** WebAssembly/TypeScript packages with CheckMate's domain engine (`ModelFit`, `LoinDescription`, `MappedDataAccessor`, near-miss diagnosis):
 
 ```text
-IFC file / URL -- Java IFC reader -- ModelElement --+
-                                                    +-- CheckService -- CheckReport
-BIM Portal / local IDS file ----- IDS parser -------+       |             |
-                                                        GUI / CLI / MCP
+IFC file / URL --- @ifc-lite/parser + @ifc-lite/geometry --- LoadedModel (incl. 3D meshes) -+
+                                                                                            +-- CheckService -- CheckReport / BCF
+BIM Portal / IDS / .rules.json --- @checkmate/bimportal + @ifc-lite/ids + @ifc-lite/rules --+        |
+                                                                                     +---------------+---------------+
+                                                                                     |               |               |
+                                                                              @checkmate/web  @checkmate/cli  @checkmate/mcp
 ```
 
-No AI model is required for checking or reporting. The MCP server is an optional interface to the same functions.
+Because `@checkmate/core` and `@checkmate/bimportal` run identically in modern browsers and in Node.js, the 3D browser workbench (`@checkmate/web`) executes the exact same checking engine as the CLI and MCP server.
 
-## Components
-
-CheckMate code lives in the Gradle module `bim-portal/Java_client/hackathon-template/`.
+## Workspace packages (`0.4`)
 
 | Package | Responsibility |
 |---|---|
-| `com.bimportal.hackathon.ids` | Read IDS and check supported requirements; internal model representation. |
-| `com.bimportal.hackathon.ifc` | Read IFC files with the Java reader and prepare model elements. |
-| `com.bimportal.hackathon.catalogue` | Search portal LOINs by metadata and rank them for a model. |
-| `com.bimportal.hackathon.check` | Load requirements and coordinate checks through `CheckService`. |
-| `com.bimportal.hackathon.report` | Results and text/JSON reports. |
-| `com.bimportal.hackathon.cli` | Command line for checks and catalogue searches. |
-| `com.bimportal.hackathon.mcp` | MCP tools and server over `stdio`. |
-| `test.fx` | JavaFX interface. |
+| `packages/bimportal` (`@checkmate/bimportal`) | TypeScript REST client for the German Federal BIM Portal (`via.bund.de/bim`), catalogue search, `CatalogueFilter`, UUID extraction and ZIP/IDS unpacking (`fflate`). |
+| `packages/core` (`@checkmate/core`) | Shared checking engine: `LoadedModel` (`@ifc-lite/parser` + `@ifc-lite/geometry`), `PropertyMapping`, `MappedDataAccessor`, `ModelFit`, `LoinDescription`, `CheckService` (`@ifc-lite/ids` + `@ifc-lite/rules`), zero-applicability & near-miss diagnosis, BCF 2.1 export (`@ifc-lite/bcf`), `ReportText` and `ReportJson`. |
+| `packages/web` (`@checkmate/web`) | Standalone 3D browser workbench (Vite + WebGL) with 4 tabs: Check Report & Diagnosis, BIM Portal Catalogue & `LoinDescription`, Model & Element Explorer, and Mapping, `.rules.json` & BCF Export. |
+| `packages/mcp` (`@checkmate/mcp`) | MCP server over `stdio` providing 10 model tools, 5 app-only tools (`visibility: ["app"]`) and 3 interactive 3D MCP App views (`ui://checkmate/report`, `ui://checkmate/model`, `ui://checkmate/loins`). |
+| `packages/cli` (`@checkmate/cli`) | Command-line interface (`--model`, `--ids`, `--loin`, `--aia`, `--rules`, `--mapping`, `--suggest`, `--json`, `--bcf`, `--full`) with German reports and exit codes `0..4`. |
 
-The IFC reader requires neither APSTEX nor JavaFX. The CLI and MCP server can be used without the graphical interface. The module structure makes reader changes easier, but is not a ready-made plug-in interface.
-
-The `bim-portal-enhanced` and `openapi-generated` modules provide the Java connection to the portal API. The Python client also originates from the [hackathon starter kit](https://github.com/pb40development/bim-portal) and is not part of CheckMate's checking core.
-
-## Interfaces and limits
-
-IFC and IDS are open exchange formats; the portal is one requirements source alongside local IDS files. These formats allow different tools to be used but do not guarantee identical results or full interoperability. Supported facets and limitations are described in [IFC and IDS](/CheckMate_BIMPortal/en/architecture/ifc-ids-checking/).
-
-For current classes and open decisions, see the [repository](https://github.com/max-sternal/CheckMate_BIMPortal/tree/0.3.2) and [`docs/STATUS.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/STATUS.md).
+For the architecture of the pure Java edition (`0.3.2`) under `bim-portal/Java_client/`, see the [System architecture (0.3.2)](/CheckMate_BIMPortal/en/v0.3.2/architecture/overview/).

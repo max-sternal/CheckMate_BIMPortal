@@ -1,6 +1,6 @@
 ---
 title: Beispiele & Mapping
-description: Merkmale des Hamburger Brückenmodells und projektspezifische Zuordnungen in CheckMate 0.3.2.
+description: Merkmale des Hamburger Brückenmodells und projektspezifische JSON-Zuordnungen in CheckMate 0.4 und 0.3.2.
 ---
 
 ## Warum ein Mapping?
@@ -9,34 +9,35 @@ Eine IDS-Anforderung benennt ein Merkmal durch PropertySet und Merkmalsname. Ein
 
 Das mitgelieferte BIM.Hamburg-Brückenmodell verwendet diese Zuordnung:
 
-| Anforderung | Adresse im Modell |
+| Anforderung (BIM-Portal IDS) | Adresse im Modell |
 |---|---|
 | `Klassifizierung/Objektgruppe` | `Pset_Objektinformation/_IDEbene1` |
 | `Klassifizierung/Objektklasse` | `Pset_Objektinformation/_IDEbene2` |
 | `Klassifizierung/Objekttyp` | `Pset_Objektinformation/_IDEbene3` |
 
-Die Datei [`bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/bim-portal/Java_client/hackathon-template/src/main/resources/mapping/bim-hamburg.json) ist in `0.3.2` standardmäßig aktiv. Zuerst wird immer der in der Anforderung genannte Name gesucht; erst danach kommen die Mapping-Adressen zum Einsatz. Verwendete Aliase erscheinen im Bericht als `als Pset_Objektinformation/...`.
+Die Datei [`resources/mapping/bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.4/resources/mapping/bim-hamburg.json) ist standardmäßig aktiv. Zuerst wird immer der in der Anforderung genannte Name gesucht; erst danach kommen die Mapping-Adressen über den `MappedDataAccessor` zum Einsatz. Verwendete Aliase erscheinen im Bericht transparent als `(als Pset_Objektinformation/...)`.
 
-Ein Mapping ist **keine allgemeine IDS-Regel**. Es muss fachlich zum jeweiligen Projekt und Modell passen. Es gleicht Namen zu, aber korrigiert keine Werte oder Datentypen. Eine gefundene Adresse bedeutet daher nicht automatisch, dass eine Anforderung erfüllt ist.
+Ein Mapping ist **keine allgemeine IDS-Regel**. Es muss fachlich zum jeweiligen Projekt und Modell passen. Es gleicht Namen zu, korrigiert aber keine Werte oder Datentypen.
 
-## Mapping wählen
+## Mapping wählen (Web-Workbench, CLI & MCP)
 
-Im Verzeichnis `bim-portal/Java_client/`:
+### 1. In der 3D-Browser-Workbench (`@checkmate/web`)
+Im Reiter **„4. Mapping, Rules & Export“** kann das aktive JSON-Mapping direkt im Editor eingesehen, zwischen `BIM.Hamburg Brücken` und `Keine Aliase (strikt IDS)` umgeschaltet oder als eigene `.json`-Datei geladen werden. Ein Klick auf **„Mapping anwenden & neu prüfen“** aktualisiert sofort den Prüfbericht und die 3D-Färbung.
+
+### 2. Über die Kommandozeile (`@checkmate/cli`)
 
 ```bash
-# Mitgeliefertes Mapping verwenden
-./gradlew :hackathon-template:runLoinCheck --args="--ids src/test/resources/ids/portal/ueberbau-kappe-lph8-9.ids --mapping default"
+# Mitgeliefertes BIM.Hamburg-Mapping verwenden
+pnpm cli -- --ids resources/fixtures/ids/portal/ueberbau-kappe-lph8-9.ids --mapping default
 
-# Dieselbe Prüfung ohne Aliase
-./gradlew :hackathon-template:runLoinCheck --args="--ids src/test/resources/ids/portal/ueberbau-kappe-lph8-9.ids --mapping none"
+# Dieselbe Prüfung ohne Aliase (strikt IDS)
+pnpm cli -- --ids resources/fixtures/ids/portal/ueberbau-kappe-lph8-9.ids --mapping none
 
-# Eigenes Mapping verwenden: absoluten Dateipfad einsetzen
-./gradlew :hackathon-template:runLoinCheck --args="--ids src/test/resources/ids/portal/ueberbau-kappe-lph8-9.ids --mapping /pfad/zum/mapping.json"
+# Eigenes Mapping verwenden
+pnpm cli -- --ids resources/fixtures/ids/portal/ueberbau-kappe-lph8-9.ids --mapping /pfad/zum/mapping.json
 ```
 
-Unter Windows `.\gradlew.bat` verwenden und Pfade anpassen. Die Prüfung kann einen von null verschiedenen Exit-Code liefern; Gradle meldet dies als fehlgeschlagene Aufgabe. Der genaue Prüfstatus steht im Bericht.
-
-Für andere Modelle kann eine eigene JSON-Datei angegeben werden:
+### 3. Aufbau einer Mapping-JSON-Datei
 
 ```json
 {
@@ -50,6 +51,6 @@ Für andere Modelle kann eine eigene JSON-Datei angegeben werden:
 }
 ```
 
-`from` bezeichnet die angeforderte Adresse, `to` eine Liste möglicher Modelladressen in Suchreihenfolge. Jede Adresse hat die Form `PropertySet/Name`. Über das MCP-Werkzeug `load_mapping` lässt sich das Mapping ebenfalls anzeigen oder wechseln; ein Wechsel verwirft den letzten Prüfbericht.
+`from` bezeichnet die angeforderte Adresse, `to` eine Liste möglicher Modelladressen in Suchreihenfolge (`PropertySet/Name`). Über das MCP-Werkzeug `load_mapping` lässt sich das Mapping ebenfalls anzeigen oder wechseln.
 
 [Zum durchgerechneten Beispiel](/CheckMate_BIMPortal/guides/example/)

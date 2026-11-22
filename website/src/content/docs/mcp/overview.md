@@ -1,24 +1,31 @@
 ---
-title: MCP-Schnittstelle
-description: Der CheckMate-MCP-Server und seine Werkzeuge in Version 0.3.2.
+title: MCP-Server & 3D MCP Apps
+description: Der CheckMate-MCP-Server, seine 15 Werkzeuge und die interaktiven 3D MCP-App-Ansichten in Version 0.4.
 ---
 
-Über das [Model Context Protocol](https://modelcontextprotocol.io/) kann eine kompatible Anwendung CheckMate als Werkzeug nutzen. Der Server in `0.3.2` läuft lokal über `stdio`. Die Prüfung erfolgt im CheckMate-Kern; ein angeschlossenes Sprachmodell kann Ergebnisse aufbereiten, entscheidet aber nicht über die Regeln.
+Über das [Model Context Protocol](https://modelcontextprotocol.io/) kann eine kompatible KI-Anwendung (z. B. Claude Desktop, Claude Code oder Antigravity) CheckMate als Werkzeug nutzen. Der Server (`@checkmate/mcp`) läuft lokal über `stdio`. Die regelbasierte Prüfung erfolgt im CheckMate-Kern (`@checkmate/core`); das Sprachmodell ruft die Werkzeuge auf und erläutert die Ergebnisse.
+
+## 10 Modell-Werkzeuge (für KI & Nutzer)
 
 | Werkzeug | Funktion |
 |---|---|
-| `load_model` | IFC-Datei oder URL laden und das aktuelle Modell ersetzen |
-| `describe_model` | Modell und enthaltene IFC-Typen beschreiben |
-| `list_elements` | Elemente nach Typ oder Name auflisten |
-| `find_loins` | LOINs und AIA-Projekte im Portal suchen |
-| `describe_requirements` | Anforderungen einer LOIN oder eines AIA-Projekts beschreiben |
-| `check_model` | Modell gegen Portal- oder lokale IDS-Anforderungen prüfen |
-| `element_report` | Ergebnisse und Merkmale eines Elements anzeigen |
-| `load_mapping` | Aktives Mapping anzeigen oder wechseln; ein Wechsel verwirft den letzten Prüfbericht |
-| `server_status` | Aktuelles Modell, Mapping und letztes Prüfergebnis anzeigen |
+| `load_model` | IFC-Datei (`.ifc`, `.ifczip`) oder HTTP(S)-/GitHub-Link laden (`ui://checkmate/model`) |
+| `describe_model` | Aktuelles Modell, IFC-Schema, Bauteilanzahl und häufigste IFC-Entities beschreiben (`ui://checkmate/model`) |
+| `list_elements` | Bauteile als `GlobalId \| Entity \| Name \| PredefinedType` nach Entity oder Namensteil filtern |
+| `find_loins` | LOINs und AIA-Projekte im BIM-Portal suchen, filtern und nach `ModelFit` sortieren (`ui://checkmate/loins`) |
+| `describe_requirements` | Über `LoinDescription` detailliert zeigen, was eine LOIN auswählt (`Wählt aus`), verlangt (`Verlangt`) und wie viele Elemente im Modell zutreffen (`Im Modell`) |
+| `check_model` | Modell gegen Portal-IDs, lokale IDS-Dateien oder `.rules.json` prüfen (`ui://checkmate/report`) |
+| `element_report` | Prüfergebnisse und alle IFC-Merkmale eines bestimmten Bauteils (per GlobalId oder Namensteil) ausgeben |
+| `load_mapping` | Aktives JSON-Mapping anzeigen oder wechseln (`default`, `none` oder Dateipfad) |
+| `export_bcf` | Abweichungen der letzten Prüfung als BCF-2.1-Archiv (`.bcfzip`) speichern |
+| `server_status` | Aktuelles Modell, aktives Mapping und Ergebnis der letzten Prüfung anzeigen |
 
-Für `check_model` gibt es eine erste MCP-App-Berichtansicht mit strukturierter Ausgabe und einem Werkzeug zum Nachladen weiterer Befunde. Die Ansicht ist auf Protokollebene getestet, aber noch nicht in Claude Desktop oder Antigravity visuell geprüft. Clients ohne passende Unterstützung erhalten weiterhin eine Textantwort.
+## 3 Interaktive 3D MCP-App-Ansichten & 5 App-only-Werkzeuge
 
-Die Werkzeuge liefern Modellinformationen, Merkmale und Prüfberichte an den aufrufenden Client. Je nach Client und Modellanbieter können diese Informationen weiterverarbeitet oder extern übertragen werden. Der Server selbst schützt nicht vor einer solchen Weitergabe; vor der Nutzung sind Datenschutz und Vertraulichkeit zu prüfen. Für Portalabfragen ist Netzwerkzugriff erforderlich.
+Hosts, die die MCP-Apps-Erweiterung (`io.modelcontextprotocol/ui`) unterstützen, rendern direkt im Chat interaktive HTML/WebGL-Ansichten:
 
-Die Antworten können bei großer Ausgabe gekürzt werden. Nicht ausgewertete Anforderungen und die Grenzen der Prüfung stehen unter [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/). Die [Einrichtung](/CheckMate_BIMPortal/mcp/clients/) beschreibt den Start des Servers und ein Client-Beispiel.
+- `ui://checkmate/report`: 3D-Prüfbericht mit rot/grün gefärbten Bauteilen, Fast-Treffer-Diagnose und Bauteil-Fokus.
+- `ui://checkmate/model`: 3D-Modellübersicht mit klickbarem Entity-Histogramm und Elementtabelle.
+- `ui://checkmate/loins`: Interaktiver BIM-Portal-Katalog mit Filtern für Fachmodell, Leistungsphase und Anwendungsfall.
+
+Für das Nachladen von Daten und 3D-Geometrie innerhalb der Ansichten stellt der Server 5 zusätzliche App-only-Werkzeuge (`visibility: ["app"]`) bereit: `app_report_page`, `app_element_page`, `app_set_filter`, `app_check_selected` und `app_element_mesh`. Clients ohne MCP-Apps-Unterstützung erhalten weiterhin die vollständige deutsche Textantwort.

@@ -1,36 +1,26 @@
 ---
 title: IFC und IDS
-description: IFC-Einlesen, unterstützte IDS-Anforderungen und Grenzen der Prüfung in CheckMate 0.3.2.
+description: IFC-Einlesen, IDS-1.0- und Rules-Prüfung, Fast-Treffer-Diagnose und BCF-Export in CheckMate 0.4.
 ---
 
 ## Modell und Anforderungen
 
-CheckMate `0.3.2` liest IFC2X3-, IFC4- und IFC4X3-Modelle mit einem eigenen Java-Reader. Unterstützt werden lokale `.ifc`- und `.ifczip`-Dateien sowie HTTP(S)-Links. Ein Beispielmodell ist enthalten. Modellobjekte und ihre Merkmale werden für den Prüfkern als `ModelElement` aufbereitet.
+CheckMate `0.4` liest `IFC2X3`-, `IFC4`- und `IFC4X3`-Modelle über `@ifc-lite/parser` sowie 3D-Dreiecksgeometrie über den WebAssembly-Kern `@ifc-lite/geometry`. Unterstützt werden lokale `.ifc`- und `.ifczip`-Dateien sowie HTTP(S)-Links (inklusive automatischer Übersetzung von GitHub-Blob-Links in Raw-Links).
 
-Anforderungen stammen aus LOINs oder AIA-Projekten des BIM-Portals oder aus lokalen IDS-Dateien beziehungsweise ZIP-Archiven. Der Portal-Katalog kann nach Metadaten durchsucht werden; eine vorgeschlagene LOIN ist nicht automatisch für das Projekt verbindlich.
-
-Das Portal liefert die Anforderungen für diese Prüfung als IDS. **LOIN-XML ist ein anderes Format** und wird in `0.3.2` nicht direkt eingelesen; seine Unterstützung ist ein Ziel für `0.3.3`.
-
-- [buildingSMART: IFC-Schemaspezifikationen](https://technical.buildingsmart.org/standards/ifc/ifc-schema-specifications/) und [ISO 16739-1:2024](https://www.iso.org/standard/84123.html)
-- [buildingSMART: Information Delivery Specification](https://technical.buildingsmart.org/projects/information-delivery-specification-ids/)
-- [BIM-Portal REST-API](https://bimdeutschland.github.io/BIM-Portal-REST-API-Dokumentation/)
+Anforderungen stammen aus:
+- **LOINs oder AIA-Projekten des BIM-Portals** (abgerufen als IDS-XML oder ZIP-Archiv über `@checkmate/bimportal`),
+- **lokalen IDS-1.0-Dateien oder ZIP-Archiven** (mit automatischer Deduplizierung identischer `(LOIN-GUID, IFCVersion)`-Spezifikationen in AIA-Projekten),
+- **`.rules.json`-Regelwerken** (`@ifc-lite/rules`), in die sich IDS-Dokumente auch direkt aus der Oberfläche konvertieren lassen.
 
 ## Was geprüft wird
 
-Der IDS-Parser und `IdsValidator` prüfen in `0.3.2` insbesondere Entity- und Property-Facetten, einschließlich ausgewählter `predefinedType`-Bedingungen, Datentypen, Werten und Kardinalitäten. Merkmalnamen werden grundsätzlich exakt verglichen; Schreibweisenabweichungen können als Hinweise erscheinen.
+Über `@ifc-lite/ids` (`validateIDS`, `checkFacet`) in Kombination mit CheckMates `MappedDataAccessor` werden die IDS-1.0-Facetten (`entity`, `property`, `attribute`, `classification`, `material`, `partOf`) sowie XSD-Einschränkungen (`simpleValue`, `pattern`, `enumeration`, `bounds`, `length`) ausgewertet.
 
-Ein austauschbares JSON-Mapping ordnet drei Klassifizierungsmerkmale standardmäßig der Konvention des Beispiel-Brückenmodells zu. Seine Verwendung wird im Bericht ausgewiesen. Das Mapping ist keine allgemeine IDS-Regel; Details stehen unter [Beispiele und Mapping](/CheckMate_BIMPortal/guides/mapping/).
+Zusätzlich zum Standard-IDS-Ergebnis ergänzt CheckMate:
+1. **Transparentes Property Mapping (`MappedDataAccessor`)**: Prüft zuerst die angeforderte IDS-Adresse und anschließend definierte Aliase aus `bim-hamburg.json` oder einer eigenen Mapping-Datei; jeder Treffer über einen Alias wird als `(als ...)` dokumentiert.
+2. **Null-Treffer- & Fast-Treffer-Diagnose (`diagnoseZeroApplicability`)**: Trifft eine Spezifikation auf `0` Elemente zu (`nicht prüfbar`), wertet CheckMate jede Applicability-Facette einzeln aus, erkennt verwandte IFC-Datentypen (z. B. `IFCTEXT statt IFCLABEL`) sowie ähnliche Schreibweisen (Groß-/Kleinschreibung, Umlaute, Trennzeichen) und listet die besten **Fast-Treffer (`N/M Facetten`)** auf.
+3. **BCF-2.1-Export (`@ifc-lite/bcf`)**: Nicht erfüllte Anforderungen können als `.bcfzip`-Archiv für BIM-Koordinationswerkzeuge exportiert werden.
 
-## Grenzen und Ergebnisse
+## Grenzen und Einordnung
 
-Nicht implementiert sind unter anderem die Facetten `attribute`, `classification`, `material` und `partOf`, Einschränkungen wie Muster oder Grenzwerte für Property-Werte, `maxOccurs="0"` auf Spezifikationsebene und die Umrechnung von SI-Einheiten. Geometrie, QuantitySets sowie bestimmte komplexe Property-Typen werden nicht ausgewertet.
-
-Nicht unterstützte IDS-Bestandteile werden im Bericht benannt. Sind sie für die Auswahl der Elemente relevant, wird die Spezifikation als **„nicht prüfbar“** ausgewiesen. Bei nicht ausgewerteten Anforderungen kann das Ergebnis **„erfüllt (soweit ausgewertet)“** sein. Auch wenn keine Elemente zutreffen, ist das kein vollständiger Nachweis.
-
-Ein positives Ergebnis bestätigt nur die ausgewerteten Anforderungen für das geladene Modell. Es bescheinigt weder die vollständige Einhaltung von IDS, AIA oder einer Norm noch die fachliche Richtigkeit des Modells.
-
-## Tests und Code
-
-Tests enthalten eigene IFC-Fixtures und exportierte Portal-Anforderungen; ausgewählte Ergebnisse werden mit [IfcOpenShell / ifctester](https://docs.ifcopenshell.org/ifctester.html) verglichen. Weitere Modelle können mit `:hackathon-template:downloadTestModels` geladen werden.
-
-Einstiegspunkte sind `IdsParser`, `IdsValidator`, `IfcModelElements` und `CheckService`. Details und Testvoraussetzungen stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md) und im [Schnellstart](/CheckMate_BIMPortal/guides/quickstart/).
+Ein positives Prüfergebnis bestätigt nur die maschinenlesbar ausgewerteten Anforderungen für das geladene Modell. Es ersetzt keine fachliche Prüfung der Konstruktion und ist keine formale Zertifizierung. Spezifikationen mit `0` anwendbaren Elementen werden bewusst als **`nicht prüfbar` (Exit-Code `4`)** und niemals als „bestanden“ gewertet.
