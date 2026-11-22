@@ -14,18 +14,12 @@ description: Herkunft, Verantwortlichkeiten, Unterstützung, Lizenzen und transp
 
 ## Team & Verantwortlichkeiten
 
-Die Verantwortlichkeiten werden inhaltlich beschrieben. Commit-Zahlen und Zeiträume bilden gemeinschaftliche Beiträge nicht zuverlässig ab.
-
 | Person | Verantwortung | Beiträge |
 |---|---|---|
 | [**Maximilian Sternal**](https://github.com/max-sternal) · [LinkedIn](https://www.linkedin.com/in/maximilian-sternal/) | Projektleitung, Organisation, Systemarchitektur | Projektidee und Koordination, Repository-Aufbau, technische Leitentscheidungen, Releases, Dokumentation |
 | [**Sophie Lipskaya**](https://github.com/SOPHIEfree) · [LinkedIn](https://www.linkedin.com/in/sophie-lipskaya/) | IFC und BIM-Portal-Backend | Portal-Client, IFC-Verarbeitung, lauffähige Oberfläche, initiale IDS-Prüfung, Headless-CLI |
 | [**Robert Jürgensen**](https://github.com/Robert4J) · [LinkedIn](https://www.linkedin.com/in/robert-j%C3%BCrgensen-563b74411/) | Frontend, Checking-Entwicklung, Deployment | JavaFX, Prüfkern und Prüfabläufe, IFC-/IDS-Härtung, Tests, Berichte, Bereitstellung |
 | **Julian Keller** · [LinkedIn](https://www.linkedin.com/in/julian-wladyslaw-keller/) | MCP-Schnittstelle und Dokumentation | MCP-Entwicklung sowie technische und nutzungsbezogene Dokumentation |
-
-:::note[Weiterführende Profile]
-Julians GitHub-Konto wird nach Bestätigung ergänzt. ORCID- und weitere Webseitenprofile werden nur mit Freigabe aufgenommen.
-:::
 
 **Projektkontakt:** [Maximilian.Sternal@tu-berlin.de](mailto:Maximilian.Sternal@tu-berlin.de)
 
@@ -34,7 +28,6 @@ Julians GitHub-Konto wird nach Bestätigung ergänzt. ORCID- und weitere Webseit
 - IFC-Verarbeitung und Checking greifen ineinander und werden von Sophie Lipskaya und Robert Jürgensen gemeinsam weiterentwickelt.
 - Systemarchitektur und technische Zielrichtung werden von Maximilian Sternal verantwortet und mit dem Team abgestimmt.
 - MCP-Schnittstelle und Dokumentation werden von Julian Keller bearbeitet und mit Backend, Frontend und Prüflogik verzahnt.
-- Die Versionsstände dokumentieren gemeinsame Ergebnisse; sie bilden nicht automatisch individuelle Eigentümerschaft oder vollständige Leistungsanteile ab.
 
 ## Unterstützung
 
@@ -47,8 +40,6 @@ Die Unterstützung bildete eine wichtige Grundlage, begründet aber keine offizi
 
 ## Arbeitspakete & Nachweise
 
-Die Pakete beschreiben fachliche Inhalte. Sie entsprechen nicht zwingend einzelnen Commits, Personen oder Branches.
-
 | Arbeitspaket | Inhalt | Verantwortungsbereich | Nachweis im Repository |
 |---|---|---|---|
 | Hackathon & Erstprototyp | Konzept, Starterkit, erster JavaFX-/IFC-Durchstich | Maximilian Sternal, Sophie Lipskaya, Team | Branch `0.1`, Pitch, Starterkit |
@@ -56,8 +47,6 @@ Die Pakete beschreiben fachliche Inhalte. Sie entsprechen nicht zwingend einzeln
 | Checking & Frontend | IDS-/LOIN-Prüfung, Oberfläche, Berichte, Deployment | Robert Jürgensen | Prüfkern, GUI, Tests, Anwendung |
 | Architektur & Integration | Modulgrenzen, technische Entscheidungen, Integration | Maximilian Sternal | Repository, Architekturdokumentation, Releases |
 | MCP & Dokumentation | KI-Anbindung und technische Benutzerdokumentation | Julian Keller | MCP-Server und Projektseiten |
-
-Git-Historie und Projektartefakte ergänzen diese Beschreibung. Quantitative Aufwände werden nur bei konkretem Förder-, Nachweis- oder Abrechnungsbedarf separat abgestimmt.
 
 ## Lizenzen & KI-Werkzeuge
 

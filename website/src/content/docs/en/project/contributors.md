@@ -14,18 +14,12 @@ description: CheckMate's origin, responsibilities, support, licensing, and trans
 
 ## Team & Responsibilities
 
-Responsibilities are described by content. Commit counts and dates do not reliably represent collaborative work.
-
 | Contributor | Responsibility | Contributions |
 |---|---|---|
 | [**Maximilian Sternal**](https://github.com/max-sternal) · [LinkedIn](https://www.linkedin.com/in/maximilian-sternal/) | Project lead, organisation, system architecture | Project concept and coordination, repository setup, technical decisions, releases, documentation |
 | [**Sophie Lipskaya**](https://github.com/SOPHIEfree) · [LinkedIn](https://www.linkedin.com/in/sophie-lipskaya/) | IFC and BIM Portal backend | Portal client, IFC processing, runnable interface, initial IDS validation, headless CLI |
 | [**Robert Jürgensen**](https://github.com/Robert4J) · [LinkedIn](https://www.linkedin.com/in/robert-j%C3%BCrgensen-563b74411/) | Frontend, checking development, deployment | JavaFX, checking core and workflows, IFC/IDS hardening, tests, reports, delivery |
 | **Julian Keller** · [LinkedIn](https://www.linkedin.com/in/julian-wladyslaw-keller/) | MCP interface and documentation | MCP development and technical and user-facing documentation |
-
-:::note[Additional Profiles]
-Julian's GitHub account will be added once confirmed. ORCID and further website profiles will only be added with approval.
-:::
 
 **Project contact:** [Maximilian.Sternal@tu-berlin.de](mailto:Maximilian.Sternal@tu-berlin.de)
 
@@ -34,7 +28,6 @@ Julian's GitHub account will be added once confirmed. ORCID and further website 
 - IFC processing and checking are closely linked and are developed jointly by Sophie Lipskaya and Robert Jürgensen.
 - Maximilian Sternal is responsible for system architecture and the technical direction, coordinated with the team.
 - Julian Keller develops the MCP interface and documentation and integrates them with the backend, frontend, and checking logic.
-- Release snapshots document shared results; they do not automatically establish individual ownership or complete contribution shares.
 
 ## Support
 
@@ -47,8 +40,6 @@ This support provided an important foundation but does not imply official projec
 
 ## Work Packages & Evidence
 
-The packages describe technical scopes. They do not necessarily correspond to individual commits, people, or branches.
-
 | Work package | Scope | Responsibility | Evidence in the repository |
 |---|---|---|---|
 | Hackathon & initial prototype | Concept, starter kit, initial JavaFX/IFC implementation | Maximilian Sternal, Sophie Lipskaya, team | Branch `0.1`, pitch, starter kit |
@@ -56,8 +47,6 @@ The packages describe technical scopes. They do not necessarily correspond to in
 | Checking & frontend | IDS/LOIN validation, interface, reporting, deployment | Robert Jürgensen | Checking core, GUI, tests, application |
 | Architecture & integration | Module boundaries, technical decisions, integration | Maximilian Sternal | Repository, architecture documentation, releases |
 | MCP & documentation | AI integration and technical user documentation | Julian Keller | MCP server and project pages |
-
-Git history and project artifacts complement this overview. Quantitative effort is recorded separately only when required for funding, compliance, or accounting.
 
 ## Licensing & AI Tools
 
