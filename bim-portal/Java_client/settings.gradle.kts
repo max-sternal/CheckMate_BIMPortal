@@ -36,7 +36,7 @@ dependencyResolutionManagement {
 
             // Testing
             library("junit-jupiter", "org.junit.jupiter", "junit-jupiter").version("5.10.0")
-            library("mockito-core", "org.mockito", "mockito-core").version("5.5.0")
+            library("mockito-core", "org.mockito", "mockito-core").version("5.18.0")
             library("mockwebserver", "com.squareup.okhttp3", "mockwebserver").version("4.11.0")
 
             // OpenAPI/Swagger

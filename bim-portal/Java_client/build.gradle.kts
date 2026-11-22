@@ -1,6 +1,6 @@
 plugins {
     java
-    id("com.diffplug.spotless") version "6.25.0" apply false
+    id("com.diffplug.spotless") version "7.2.1" apply false
 }
 
 group = "com.bimportal"
@@ -15,8 +15,8 @@ subprojects {
     version = "1.0.0"
 
     java {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
 
     repositories {
@@ -30,7 +30,7 @@ subprojects {
             googleJavaFormat() // Use Google Java Format
             removeUnusedImports()
             trimTrailingWhitespace()
-            indentWithSpaces(4)
+            leadingTabsToSpaces(4)
             endWithNewline()
 
             // Optional: exclude specific files or directories
@@ -40,7 +40,7 @@ subprojects {
         // Format build files too
         format("buildscripts") {
             target("*.gradle.kts", "**/*.gradle.kts")
-            indentWithSpaces(4)
+            leadingTabsToSpaces(4)
             trimTrailingWhitespace()
             endWithNewline()
         }
@@ -49,7 +49,7 @@ subprojects {
         format("misc") {
             target("**/*.md", "**/.gitignore", "**/*.yml", "**/*.yaml", "**/*.properties")
             trimTrailingWhitespace()
-            indentWithSpaces(2)
+            leadingTabsToSpaces(2)
             endWithNewline()
         }
     }

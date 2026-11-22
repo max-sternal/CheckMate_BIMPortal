@@ -5,9 +5,9 @@ What is being worked on and what is still open. One line per item. Reference cod
 
 ## Current handoff (2026-11-22)
 
-- `0.3.2` is the active development branch: Java 21, Gradle 8.14, a pure-Java IFC reader without
-  APSTEX, configurable JSON property mappings, GUI, CLI and MCP server. Java 25 is not configured;
-  running Gradle on Java 25 requires a wrapper upgrade.
+- `0.3.2` is the active development branch: Java 25 (LTS), Gradle 9.1.0, Mockito 5.18.0 /
+  ByteBuddy 1.17.5, a pure-Java IFC reader without APSTEX, configurable JSON property mappings,
+  GUI, CLI and MCP server.
 - The MCP server uses SDK 2.2.0 and Jackson 2.22 (databind/core/JSR310 2.22.4, annotations
   2.22). The report MCP App and app-only `app_report_page` are implemented and protocol-tested;
   the view has not yet been visually tested in Claude Desktop or Antigravity.
@@ -21,12 +21,11 @@ What is being worked on and what is still open. One line per item. Reference cod
   `CHECKMATE_DOCS_LATEST` (`v0.3.1`). The old single-version workflow is disabled. See
   [`website/README.md`](../website/README.md) before publishing; do not switch versions until
   release is approved.
-- `0.3.3` is a goal, not an existing remote branch: direct LOIN-XML support is not implemented.
+- `0.3.3` is a goal, not an existing remote branch: direct LOIN-XML support, BCF export, and
+  additional BIM Portal endpoints (Fachmodelle, Projekte, Vorlagen, Kontextinfos) are planned there.
   `0.4` exists as a remote development branch at the older `c7062b5` state, still using APSTEX;
-  it does not yet include the later `0.3.2` work. Online use, a viewer and stronger MCP App
-  integration are goals, not shipped features.
-- CI for `0.3.2` passed on `6ac8b40` (Java tests and documentation build); the versioned Pages
-  deployment succeeded. CI uses JDK 21 without bundled JavaFX; optional tests may be skipped.
+  it is reserved for the future IFClite / online viewer / MCP App direction.
+- CI for `0.3.2` uses Temurin JDK 25 without bundled JavaFX; optional tests may be skipped.
 
 ## Open points
 

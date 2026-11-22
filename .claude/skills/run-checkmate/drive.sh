@@ -12,11 +12,11 @@ unit="$(cd "$skill/../../../bim-portal/Java_client" && pwd)"   # <repo>/bim-port
 cd "$unit"
 
 java_home="${JAVA_HOME:-}"
-# Both checks matter: some non-21 JDKs also bundle JavaFX (e.g. Zulu 17 FX). They pass the JavaFX
-# check and only fail later in Gradle with "invalid source release: 21".
+# Both checks matter: some non-25 JDKs also bundle JavaFX (e.g. Zulu 21 FX). They pass the JavaFX
+# check and only fail later in Gradle with "invalid source release: 25".
 if [ -z "$java_home" ] || [ ! -f "$java_home/lib/javafx.properties" ] ||
-  ! grep -q '^JAVA_VERSION="21' "$java_home/release" 2>/dev/null; then
-  echo "drive.sh: JAVA_HOME='$java_home' is not a JDK 21 with bundled JavaFX (e.g. Zulu 21 FX)." >&2
+  ! grep -q '^JAVA_VERSION="25' "$java_home/release" 2>/dev/null; then
+  echo "drive.sh: JAVA_HOME='$java_home' is not a JDK 25 with bundled JavaFX (e.g. Zulu 25 FX)." >&2
   exit 2
 fi
 

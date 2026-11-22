@@ -9,7 +9,7 @@ implementations for the German BIM Portal:
   `hackathon_interface.py` and use `BIMPortal` for the simplified workflow.
   `enhanced_bim_client.py` contains the lower-level endpoint and export
   operations, while `models.py` contains the Pydantic request/response models.
-- `bim-portal/Java_client/` is a Gradle multi-project build targeting Java 21.
+- `bim-portal/Java_client/` is a Gradle multi-project build targeting Java 25.
   `openapi-generated/` is the low-level Feign/OpenAPI client; do not hand-edit
   generated API/model classes unless the change is specifically a generated
   source repair. `bim-portal-enhanced/` wraps that client with authentication,
@@ -53,7 +53,7 @@ Run Java commands from `bim-portal/Java_client/`. On Windows use
 .\gradlew.bat spotlessApply
 ```
 
-The Java build uses JUnit Platform and Java 21. The root Gradle build applies
+The Java build uses JUnit Platform and Java 25. The root Gradle build applies
 Spotless to Java, Gradle Kotlin scripts, Markdown, YAML, and properties files.
 The `openapi-generated` compile task runs its `fixGeneratedCode` task first;
 that task repairs known generated-source imports and annotations.
@@ -158,12 +158,12 @@ library-free pure-Java checking core shared by three front ends:
 - **No Apstex JARs required on `0.3.2`.** CheckMate reads IFC2X3, IFC4, and
   IFC4X3 with its pure-Java STEP reader (`com.bimportal.hackathon.ifc`), so the
   core, IFC reader, CLI, MCP server, and all tests compile and run on any plain
-  JDK 21.
-- **JavaFX** is required only for the GUI (`test.fx` / `runGui`) via a JDK 21
-  FX build (e.g. Azul Zulu 21 JDK FX). When the JDK does not bundle JavaFX,
+  JDK 25.
+- **JavaFX** is required only for the GUI (`test.fx` / `runGui`) via a JDK 25
+  FX build (e.g. Azul Zulu 25 JDK FX). When the JDK does not bundle JavaFX,
   Gradle excludes only `test/fx/**` while building and testing everything else.
-- The wrapper uses Gradle 8.14 and targets Java 21. Java 25 is not configured
-  and requires a Gradle wrapper upgrade to run the build.
+- The wrapper uses Gradle 9.1.0 and targets Java 25 (with Mockito 5.18.0 /
+  ByteBuddy 1.17.5).
 - **Test reference:** `IfcOpenShell` / `ifctester` is the reference oracle for
   IFC reading and IDS 1.0 validation (`src/test/python/make_ifc_fixtures.py`).
 - Key Gradle tasks (from `bim-portal/Java_client/`):
@@ -185,9 +185,9 @@ library-free pure-Java checking core shared by three front ends:
   - `0.1` (frozen): direct BIM Portal Hackathon Sept 2025 baseline.
   - `0.2` (frozen): first post-hackathon fixes & initial IDS check (Oct 2026).
   - `0.3.1`: tagged and published Java release with APSTEX and MCP; currently latest on GitHub Pages.
-  - `0.3.2` (active): APSTEX-free pure-Java STEP/IFC reader (`com.bimportal.hackathon.ifc`), decoupled `cli/` & `mcp/`, CI tests on plain JDK 21 (some optional tests may be skipped).
-  - `0.3.3`: planned, not yet a remote branch; direct LOIN-XML support is a goal, not implemented.
-  - `0.4`: existing WIP branch at an older APSTEX-based state; online use, a viewer and MCP App integration are goals, not yet implemented.
+  - `0.3.2` (active): Java 25 + Gradle 9.1.0, APSTEX-free pure-Java STEP/IFC reader (`com.bimportal.hackathon.ifc`), decoupled `cli/` & `mcp/` (MCP SDK 2.2.0 + MCP App), JSON property mappings, CI tests on plain JDK 25.
+  - `0.3.3`: planned, not yet a remote branch; direct LOIN-XML support, BCF export, and extended BIM Portal endpoints (Fachmodelle, Projekte, Vorlagen, Kontextinfos).
+  - `0.4`: existing WIP branch reserved for IFClite / online viewer / MCP App integration.
 
 ## Relevant project documentation
 

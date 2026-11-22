@@ -18,7 +18,7 @@ class PrerequisitesTest {
   void javaFxIsAvailableForTheGui() {
     assumeTrue(
         onClasspath("javafx.application.Application"),
-        "JavaFX missing: the GUI needs a JDK that bundles it, such as Zulu 21 JDK FX. The IFC"
+        "JavaFX missing: the GUI needs a JDK that bundles it, such as Zulu 25 JDK FX. The IFC"
             + " reader, CLI, MCP server and tests run without it.");
   }
 

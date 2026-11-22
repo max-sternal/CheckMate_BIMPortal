@@ -50,10 +50,10 @@ is maintained separately.
 
 Needed:
 
-- **JDK 21** as `JAVA_HOME`: enough to build and run the pure-Java IFC reader, CLI, MCP server,
+- **JDK 25** as `JAVA_HOME`: enough to build and run the pure-Java IFC reader, CLI, MCP server,
   and all tests. No Apstex JARs or external IFC runtime are needed.
-- **JDK 21 with JavaFX**, e.g. Azul Zulu 21 "JDK FX", only for the JavaFX GUI (`runGui`). On a
-  plain JDK 21, Gradle skips only `test/fx` (the GUI) while building everything else; `runGui`
+- **JDK 25 with JavaFX**, e.g. Azul Zulu 25 "JDK FX", only for the JavaFX GUI (`runGui`). On a
+  plain JDK 25, Gradle skips only `test/fx` (the GUI) while building everything else; `runGui`
   checks for JavaFX and says so.
 - **Network access** to `https://via.bund.de/bim` for LOINs and AIA projects. No account needed:
   without credentials CheckMate sees everything published.
@@ -70,7 +70,7 @@ Included or optional:
   regenerate the IFC test files (`src/test/python/make_ifc_fixtures.py`) or to compare results with
   ifctester. CheckMate itself doesn't need Python.
 
-Tested on Windows 10 with Git Bash and Gradle 8.14.
+Tested with JDK 25 and Gradle 9.1.0.
 
 ## Quick start
 
@@ -100,7 +100,7 @@ be959b9d-daef-5315-9aba-f60b6ad54ccb", and the AI calls CheckMate and explains t
    - Claude Code, in a terminal at the repo root:
      `claude mcp add checkmate -- cmd /c "C:\...\checkmate-mcp.bat"`
    - Claude Desktop: Settings → Developer → Edit Config, add the `checkmate` entry from section 2.7
-     with `JAVA_HOME` (the JDK 21) in `env`, then quit the app from the tray and start it again.
+     with `JAVA_HOME` (the JDK 25) in `env`, then quit the app from the tray and start it again.
 3. Check: `claude mcp list` shows `checkmate` as connected; Claude Desktop lists it under
    Settings → Developer.
 

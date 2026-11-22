@@ -12,9 +12,13 @@ group = "com.bimportal.hackathon"
 version = "1.0.0"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
+
+// Spring Boot 3.4 BOM pins ByteBuddy 1.15.x, which predates Java 25 (classfile version 69).
+extra["byte-buddy.version"] = "1.17.5"
+extra["mockito.version"] = "5.18.0"
 
 repositories {
     mavenCentral()
@@ -38,8 +42,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.22.4")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.4")
 
-    // MCP server (com.bimportal.hackathon.mcp): the official MCP Java SDK, with its Jackson 2
-    // binding. 2.1.0 rather than 2.2.0, which depends on a Reactor release candidate.
+    // MCP server (com.bimportal.hackathon.mcp): official MCP Java SDK 2.2.0 with Jackson 2 binding.
     implementation("io.modelcontextprotocol.sdk:mcp-core:2.2.0")
     implementation("io.modelcontextprotocol.sdk:mcp-json-jackson2:2.2.0")
 
@@ -50,7 +53,8 @@ dependencies {
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
-    testImplementation("org.mockito:mockito-core:5.5.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.mockito:mockito-core:5.18.0")
     testImplementation("org.assertj:assertj-core:3.24.2")
 }
 
@@ -58,9 +62,9 @@ application {
     mainClass.set("com.bimportal.hackathon.HackathonApplication")
 }
 
-// The CheckMate GUI (test.fx) uses JavaFX, which JDK-FX builds (e.g. Zulu/Liberica 21 FX) ship as
+// The CheckMate GUI (test.fx) uses JavaFX, which JDK-FX builds (e.g. Zulu/Liberica 25 FX) ship as
 // platform modules and plain JDKs omit. Without JavaFX, exclude only test/fx so the IFC reader,
-// CLI, MCP server and all tests still build and run on any JDK 21.
+// CLI, MCP server and all tests still build and run on any JDK 25.
 val hasJavaFx =
     ModuleLayer.boot().findModule("javafx.controls").isPresent ||
         file(System.getProperty("java.home")).resolve("lib/javafx.properties").exists()
@@ -191,7 +195,7 @@ tasks.register<JavaExec>("runGui") {
     doFirst {
         if (!javaLauncher.get().metadata.installationPath.dir("lib/javafx.properties").asFile.exists()) {
             throw GradleException(
-                "This JDK does not bundle JavaFX. Use a JDK-FX build (e.g. Zulu 21 FX), " +
+                "This JDK does not bundle JavaFX. Use a JDK-FX build (e.g. Zulu 25 FX), " +
                     "or add the org.openjfx dependencies."
             )
         }

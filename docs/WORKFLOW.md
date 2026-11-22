@@ -193,7 +193,7 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
 - Install: `./gradlew :hackathon-template:installMcp` (from `bim-portal/Java_client/`) writes
   `hackathon-template/build/install/checkmate-mcp/`, with the start script
   `bin/checkmate-mcp.bat` (Windows) or `bin/checkmate-mcp` and every JAR in `lib/`. Run it again
-  after code changes. It needs only Java 21 (no Apstex JARs and no JavaFX at runtime); the start
+  after code changes. It needs only Java 25 (no Apstex JARs and no JavaFX at runtime); the start
   script takes the Java in `JAVA_HOME`, else the first `java` on the path. It can't run through
   Gradle, which writes to stdout too.
 - Tools (answers in German, as the CLI writes them):
