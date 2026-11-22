@@ -15,6 +15,9 @@ if (existsSync(demoIfcSrc) && !existsSync(demoIfcDest)) {
 
 export default defineConfig({
   base: './',
+  worker: {
+    format: 'es',
+  },
   optimizeDeps: {
     exclude: ['@ifc-lite/wasm', '@ifc-lite/geometry'],
   },
