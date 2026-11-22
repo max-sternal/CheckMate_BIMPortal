@@ -13,6 +13,7 @@ import com.bimportal.hackathon.ids.CheckResult.Finding;
 import com.bimportal.hackathon.ids.IdsDocument;
 import com.bimportal.hackathon.ids.ModelElement;
 import com.bimportal.hackathon.ids.PortalRequirements;
+import com.bimportal.hackathon.ifc.LoadedModel;
 import com.bimportal.hackathon.report.CheckReport;
 import com.bimportal.hackathon.report.CheckReport.Run;
 import com.bimportal.hackathon.report.ReportText;
@@ -27,7 +28,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import test.fx.LoadedModel;
 
 /**
  * What the MCP server's tools do, for one session: the model in use, the last check, and the
@@ -192,6 +192,9 @@ public final class CheckMateTools {
 
   /** What the last check said about an element, found by GlobalId or a part of its name. */
   public synchronized String elementReport(String element) {
+    if (blank(element)) {
+      throw new IllegalArgumentException("Kein Element angegeben (GlobalId oder Namensteil).");
+    }
     if (lastReport == null) {
       throw new IllegalStateException("Noch keine Prüfung - zuerst check_model aufrufen.");
     }

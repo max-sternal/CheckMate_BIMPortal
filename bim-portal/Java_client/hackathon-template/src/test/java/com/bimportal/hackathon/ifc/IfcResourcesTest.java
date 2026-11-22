@@ -1,9 +1,10 @@
-package test.fx;
+package com.bimportal.hackathon.ifc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sun.net.httpserver.HttpServer;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -108,7 +109,8 @@ class IfcResourcesTest {
 
     assertThatThrownBy(() -> IfcResources.load(ifc2x2))
         .isInstanceOf(ModelLoadException.class)
-        .hasMessageContaining("alt.ifc");
+        .hasMessageContaining("alt.ifc")
+        .hasMessageContaining("IFC2X2_FINAL");
   }
 
   @Test
@@ -176,6 +178,41 @@ class IfcResourcesTest {
     assertThatThrownBy(
             () -> ModelLinks.download(URI.create(link("/models/gestreamt.ifc")), target, 100))
         .isInstanceOf(ModelLoadException.class)
+        .hasMessageContaining("größer als");
+  }
+
+  @Test
+  void boundedInputStreamRefusesEntriesLargerThanTheLimit() throws Exception {
+    byte[] payload = new byte[16];
+    try (InputStream within =
+        new IfcResources.BoundedInputStream(new ByteArrayInputStream(payload), 16, "ok.ifczip")) {
+      assertThat(within.readAllBytes()).hasSize(16);
+    }
+
+    assertThatThrownBy(
+            () -> {
+              try (InputStream over =
+                  new IfcResources.BoundedInputStream(
+                      new ByteArrayInputStream(payload), 10, "bombe.ifczip")) {
+                over.readAllBytes();
+              }
+            })
+        .isInstanceOf(ModelLoadException.class)
+        .hasMessageContaining("bombe.ifczip")
+        .hasMessageContaining("größer als");
+
+    assertThatThrownBy(
+            () -> {
+              try (InputStream overSingle =
+                  new IfcResources.BoundedInputStream(
+                      new ByteArrayInputStream(payload), 2, "einzeln.ifczip")) {
+                while (overSingle.read() != -1) {
+                  // Drain byte by byte until cap is exceeded.
+                }
+              }
+            })
+        .isInstanceOf(ModelLoadException.class)
+        .hasMessageContaining("einzeln.ifczip")
         .hasMessageContaining("größer als");
   }
 

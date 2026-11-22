@@ -1,5 +1,7 @@
 package test.fx;
 
+import com.bimportal.hackathon.ifc.LoadedModel;
+import com.bimportal.hackathon.ifc.ModelLoadException;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;

@@ -1,12 +1,12 @@
-package test.fx;
+package com.bimportal.hackathon.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.bimportal.hackathon.catalogue.CatalogueFilter;
+import com.bimportal.hackathon.cli.LoinCheckCli.Arguments;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import test.fx.LoinCheckCli.Arguments;
 
 /** The CLI's command line. */
 class LoinCheckCliTest {

@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.bimportal.hackathon.check.CheckService;
 import com.bimportal.hackathon.check.CheckService.Portal;
+import com.bimportal.hackathon.ifc.LoadedModel;
+import com.bimportal.hackathon.ifc.ModelLoadException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -22,8 +24,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
-import test.fx.LoadedModel;
-import test.fx.ModelLoadException;
 
 /** The server over its stdio transport, spoken to as an AI app does: JSON-RPC, one per line. */
 @Timeout(60)

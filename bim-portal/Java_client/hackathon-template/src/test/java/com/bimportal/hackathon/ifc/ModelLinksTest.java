@@ -1,15 +1,15 @@
-package test.fx;
+package com.bimportal.hackathon.ifc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.bimportal.hackathon.ifc.ModelLinks.Content;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import test.fx.ModelLinks.Content;
 
 /** Where a link is downloaded from, and what a file is by its first bytes. */
 class ModelLinksTest {
@@ -98,8 +98,7 @@ class ModelLinksTest {
     assertThat(sniff("\uFEFF  ISO-10303-21;")).as("BOM and whitespace").isEqualTo(Content.STEP);
     assertThat(sniff("version https://git-lfs.github.com/spec/v1\noid sha256:00\nsize 1\n"))
         .isEqualTo(Content.LFS_POINTER);
-    assertThat(sniff("<!DOCTYPE html><html><body>GitHub</body></html>"))
-        .isEqualTo(Content.HTML);
+    assertThat(sniff("<!DOCTYPE html><html><body>GitHub</body></html>")).isEqualTo(Content.HTML);
     assertThat(sniff("Das ist kein IFC.")).isEqualTo(Content.UNKNOWN);
 
     Path zip = Files.write(folder.resolve("a.ifczip"), new byte[] {'P', 'K', 3, 4, 0, 0});

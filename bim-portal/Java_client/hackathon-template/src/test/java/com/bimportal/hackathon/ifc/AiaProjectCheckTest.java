@@ -1,7 +1,7 @@
-package test.fx;
+package com.bimportal.hackathon.ifc;
 
+import static com.bimportal.hackathon.ifc.TestModels.BRIDGE_IFC4;
 import static org.assertj.core.api.Assertions.assertThat;
-import static test.fx.TestModels.BRIDGE_IFC4;
 
 import com.bimportal.hackathon.ids.CheckResult;
 import com.bimportal.hackathon.ids.CheckResult.Verdict;

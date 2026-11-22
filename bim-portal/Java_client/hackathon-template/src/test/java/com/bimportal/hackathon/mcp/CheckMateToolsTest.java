@@ -15,6 +15,7 @@ import com.bimportal.hackathon.check.CheckService.Portal;
 import com.bimportal.hackathon.ids.ModelElement;
 import com.bimportal.hackathon.ids.ModelElement.ModelProperty;
 import com.bimportal.hackathon.ids.PropertyKey;
+import com.bimportal.hackathon.ifc.LoadedModel;
 import com.pb40.bimportal.client.EnhancedBimPortalClient;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +33,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import test.fx.LoadedModel;
 
 /** The MCP tools without the protocol, on a model built in code and with the portal mocked. */
 @ExtendWith(MockitoExtension.class)
@@ -109,6 +109,12 @@ class CheckMateToolsTest {
   void saysWhatIsMissingInsteadOfGuessing() {
     CheckMateTools tools = tools(Portal.none(), kappe("k1", "Kappe Nord", "1"));
 
+    assertThatThrownBy(() -> tools.elementReport(null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Kein Element");
+    assertThatThrownBy(() -> tools.elementReport("   "))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Kein Element");
     assertThatThrownBy(() -> tools.elementReport("k1")).hasMessageContaining("check_model");
     assertThatThrownBy(() -> tools.check(List.of(), List.of(), 3))
         .hasMessageContaining("Keine Anforderungen");
@@ -159,7 +165,7 @@ class CheckMateToolsTest {
   static LoadedModel model(String name, ModelElement... elements) {
     Map<String, ModelElement> byId =
         List.of(elements).stream().collect(Collectors.toMap(ModelElement::id, Function.identity()));
-    return new LoadedModel(name, null, "IFC2X3", List.of(elements), byId);
+    return new LoadedModel(name, "IFC2X3", List.of(elements), byId);
   }
 
   /** Classified as the Kappe LOIN asks; without a Feldnummer it fails. */

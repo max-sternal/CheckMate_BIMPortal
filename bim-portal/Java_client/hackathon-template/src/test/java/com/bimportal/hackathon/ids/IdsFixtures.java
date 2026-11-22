@@ -11,7 +11,7 @@ import java.util.List;
  *
  * <p>The IDS files are real downloads from the BIM Portal, see
  * {@code src/test/resources/ids/portal/README.md}. Model elements are built by hand, so the check
- * is tested without an IFC file or the Apstex JARs.
+ * is tested without loading an IFC file.
  */
 final class IdsFixtures {
 

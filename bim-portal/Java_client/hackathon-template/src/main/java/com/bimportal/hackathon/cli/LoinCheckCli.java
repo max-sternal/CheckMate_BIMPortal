@@ -1,4 +1,4 @@
-package test.fx;
+package com.bimportal.hackathon.cli;
 
 import com.bimportal.hackathon.catalogue.CatalogueEntry;
 import com.bimportal.hackathon.catalogue.CatalogueFilter;
@@ -10,6 +10,8 @@ import com.bimportal.hackathon.check.CheckService.Portal;
 import com.bimportal.hackathon.check.Source;
 import com.bimportal.hackathon.ids.PortalRequirements;
 import com.bimportal.hackathon.ids.RequirementsException;
+import com.bimportal.hackathon.ifc.LoadedModel;
+import com.bimportal.hackathon.ifc.ModelLoadException;
 import com.bimportal.hackathon.report.CheckReport;
 import com.bimportal.hackathon.report.ReportJson;
 import com.bimportal.hackathon.report.ReportText;

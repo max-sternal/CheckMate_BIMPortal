@@ -2,6 +2,7 @@ package com.bimportal.hackathon.mcp;
 
 import com.bimportal.hackathon.catalogue.CatalogueFilter;
 import com.bimportal.hackathon.check.CheckService;
+import com.bimportal.hackathon.ifc.LoadedModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import io.modelcontextprotocol.json.McpJsonMapper;
@@ -23,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import test.fx.LoadedModel;
 
 /**
  * CheckMate as an MCP server: an AI app starts it and calls its tools over stdin/stdout. Tools and
@@ -49,7 +49,7 @@ public final class CheckMateMcpServer {
   private CheckMateMcpServer() {}
 
   public static void main(String[] args) {
-    // stdout carries the protocol. Logging, the portal client and the IFC toolbox write to it
+    // stdout carries the protocol. Logging, the portal client and the IFC reader write to it
     // too, so everything else goes to stderr, where the AI app keeps it as a log.
     PrintStream protocol = System.out;
     System.setOut(System.err);

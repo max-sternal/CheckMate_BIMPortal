@@ -1,15 +1,12 @@
 package test.fx;
 
-import com.apstex.ifctoolbox.ifc.IfcBuildingElement;
-import com.apstex.ifctoolbox.ifc.IfcPropertySet;
-import com.apstex.ifctoolbox.ifc.IfcPropertySetDefinition;
-import com.apstex.ifctoolbox.ifc.IfcRelDefines;
-import com.apstex.step.core.ClassInterface;
 import com.bimportal.hackathon.catalogue.CatalogueEntry;
 import com.bimportal.hackathon.catalogue.CatalogueFilter;
 import com.bimportal.hackathon.catalogue.LoinDescription;
 import com.bimportal.hackathon.catalogue.ModelFit;
 import com.bimportal.hackathon.catalogue.ModelFit.Ranked;
+import com.bimportal.hackathon.check.CheckService;
+import com.bimportal.hackathon.check.Source;
 import com.bimportal.hackathon.ids.CheckResult;
 import com.bimportal.hackathon.ids.CheckResult.Finding;
 import com.bimportal.hackathon.ids.CheckResult.NearMiss;
@@ -18,46 +15,43 @@ import com.bimportal.hackathon.ids.CheckResult.Verdict;
 import com.bimportal.hackathon.ids.IdsDocument;
 import com.bimportal.hackathon.ids.IdsParser;
 import com.bimportal.hackathon.ids.ModelElement;
+import com.bimportal.hackathon.ids.ModelElement.ModelProperty;
 import com.bimportal.hackathon.ids.PortalRequirements;
-import com.bimportal.hackathon.check.CheckService;
-import com.bimportal.hackathon.check.Source;
 import com.bimportal.hackathon.ids.RequirementsException;
+import com.bimportal.hackathon.ifc.LoadedModel;
+import com.bimportal.hackathon.ifc.ModelLoadException;
 import com.bimportal.hackathon.report.CheckReport;
 import com.bimportal.hackathon.report.CheckReport.Run;
 import com.bimportal.hackathon.report.ReportText;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import java.io.File;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.time.OffsetDateTime;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import test.fx.RequirementSource.Loaded;
-import test.fx.RequirementSource.PortalLoin;
-import test.fx.RequirementSource.PortalProject;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
+import javafx.geometry.Orientation;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
-import javafx.beans.property.ReadOnlyStringWrapper;
-import javafx.geometry.Orientation;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
@@ -68,6 +62,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import test.fx.RequirementSource.Loaded;
+import test.fx.RequirementSource.PortalLoin;
+import test.fx.RequirementSource.PortalProject;
 
 /**
  * The CheckMate window: requirements on the left, the checked elements in the middle, summary and
@@ -160,7 +157,7 @@ public class ElementUI extends VBox {
     bimPortalButton.setOnAction(
         e -> {
           // Action to open BIM Portal URL
-          String url = "https://bimportal.com"; // Replace with actual URL
+          String url = "https://via.bund.de/bim";
           try {
             java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
           } catch (Exception ex) {
@@ -353,8 +350,8 @@ public class ElementUI extends VBox {
     Consumer<String> updateTabs =
         (filter) -> {
           tabPane.getTabs().clear();
-          model.ifc().getObjects().stream()
-              .filter(obj -> obj.getClassName().equalsIgnoreCase(filter))
+          model.elements().stream()
+              .filter(e -> e.entityName().equalsIgnoreCase(filter))
               .map(this::createObjectTab)
               .forEach(tabPane.getTabs()::add);
         };
@@ -1033,52 +1030,49 @@ public class ElementUI extends VBox {
     return "Fehlgeschlagen: " + error;
   }
 
-  /** Create a Tab for a given IFC object, displaying its properties and quantities. */
-  public Tab createObjectTab(ClassInterface obj) {
-    String tabTitle = "#" + obj.getStepLineNumber();
-    StringBuilder tabContent = new StringBuilder();
+  /** Create a Tab for a given IFC element, displaying its attributes and grouped properties. */
+  public Tab createObjectTab(ModelElement element) {
+    List<String> lines = new ArrayList<>();
+    lines.add("Entity: " + element.entityName());
+    lines.add("GlobalId: " + element.id());
+    if (element.name() != null && !element.name().isBlank()) {
+      lines.add("Name: " + element.name());
+    }
+    if (element.predefinedType() != null && !element.predefinedType().isBlank()) {
+      lines.add("PredefinedType: " + element.predefinedType());
+    }
+    if (element.typeEntityName() != null && !element.typeEntityName().isBlank()) {
+      lines.add("Type: " + element.typeEntityName());
+    }
 
-    if (obj instanceof IfcBuildingElement.Ifc2x3 be) {
-
-      tabContent.append(PropertyUtils.appendElelemtInfo(be));
-      for (IfcRelDefines.Ifc2x3 rel : be.getIsDefinedBy_Inverse()) {
-        if (rel instanceof com.apstex.ifctoolbox.ifc.IfcRelDefinesByProperties.Ifc2x3 byProps) {
-          // Hier hast du die IfcRelDefinesByProperties.Ifc2x3-Instanz
-          // Du kannst z.B. PropertySets oder Quantities auslesen:
-          tabContent.append(PropertyUtils.listPropertiesAndQuantities(byProps));
-          // var psd = byProps.getRelatingPropertyDefinition();
-          // Weiterverarbeitung...
-        } else if (rel instanceof com.apstex.ifctoolbox.ifc.IfcRelDefinesByType.Ifc2x3 byType) {
-          // tabContent.append("Defined by Type: ")
-          // .append(byType.getRelatingType().getHasPropertySets().forEach(
-          // p -> tabContent.append(appendPropertyInfo(p, "\t\t")));)
-          // .append("\n");
-
-          Set<IfcPropertySetDefinition.Ifc2x3> sets = byType.getRelatingType().getHasPropertySets();
-          if (sets == null) {
-          } else {
-            if (sets.isEmpty() == false) {
-
-              for (IfcPropertySetDefinition.Ifc2x3 set : sets) {
-
-                tabContent.append("Property Set: ").append(set.getName()).append("\n");
-
-                if (set instanceof IfcPropertySet ps) {
-                  ps.getHasProperties()
-                      .forEach(p -> tabContent.append(PropertyUtils.appendPropertyInfo(p, "\t\t")));
-                }
-              }
-            }
+    Map<String, List<ModelProperty>> bySet = new LinkedHashMap<>();
+    for (ModelProperty property : element.properties()) {
+      bySet
+          .computeIfAbsent(property.key().propertySet(), key -> new ArrayList<>())
+          .add(property);
+    }
+    if (!bySet.isEmpty()) {
+      lines.add("");
+      for (Map.Entry<String, List<ModelProperty>> entry : bySet.entrySet()) {
+        String setName = entry.getKey().isEmpty() ? "(ohne)" : entry.getKey();
+        lines.add("Property Set: " + setName);
+        for (ModelProperty property : entry.getValue()) {
+          String value = property.value();
+          String dataType = property.dataType();
+          StringBuilder line =
+              new StringBuilder("    - ")
+                  .append(property.key().baseName())
+                  .append(": ")
+                  .append(value == null ? "" : value);
+          if (dataType != null && !dataType.isBlank()) {
+            line.append(" (").append(dataType).append(")");
           }
+          lines.add(line.toString());
         }
       }
-
-      // be.getIsDefinedBy_Inverse().forEach(rel -> tabContent
-      // .append(PropertyUtils.listPropertiesAndQuantities(rel)));
-
     }
-    ListView<String> tabListView =
-        new ListView<>(FXCollections.observableArrayList(tabContent.toString().split("\n")));
+
+    ListView<String> tabListView = new ListView<>(FXCollections.observableArrayList(lines));
     tabListView.setCellFactory(
         lv ->
             new javafx.scene.control.ListCell<>() {
@@ -1101,6 +1095,6 @@ public class ElementUI extends VBox {
     VBox tabVBox = new VBox(tabListView);
     VBox.setVgrow(tabListView, Priority.ALWAYS);
 
-    return new Tab(tabTitle, tabVBox);
+    return new Tab(tabTitle(element, element.id()), tabVBox);
   }
 }

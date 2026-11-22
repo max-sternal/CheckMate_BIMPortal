@@ -1,16 +1,15 @@
-package test.fx;
+package com.bimportal.hackathon.ifc;
 
+import static com.bimportal.hackathon.ifc.TestModels.ARCHITECTURE_IFC4;
+import static com.bimportal.hackathon.ifc.TestModels.ARCHITECTURE_IFC4X3;
+import static com.bimportal.hackathon.ifc.TestModels.BRIDGE_IFC4;
+import static com.bimportal.hackathon.ifc.TestModels.BRIDGE_IFC4X3;
+import static com.bimportal.hackathon.ifc.TestModels.LARGE_BUILDING_IFC2X3;
+import static com.bimportal.hackathon.ifc.TestModels.byId;
+import static com.bimportal.hackathon.ifc.TestModels.byName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-import static test.fx.TestModels.ARCHITECTURE_IFC4;
-import static test.fx.TestModels.ARCHITECTURE_IFC4X3;
-import static test.fx.TestModels.BRIDGE_IFC4;
-import static test.fx.TestModels.BRIDGE_IFC4X3;
-import static test.fx.TestModels.LARGE_BUILDING_IFC2X3;
-import static test.fx.TestModels.byId;
-import static test.fx.TestModels.byName;
 
-import com.apstex.ifctoolbox.ifcmodel.IfcModel;
 import com.bimportal.hackathon.ids.ModelElement;
 import com.bimportal.hackathon.ids.ModelElement.ModelProperty;
 import com.bimportal.hackathon.ids.PropertyKey;
@@ -23,10 +22,10 @@ import org.junit.jupiter.params.provider.ValueSource;
  * Reading IFC2X3, IFC4 and IFC4X3 models into {@link ModelElement}s.
  *
  * <p>The expected values come from IfcOpenShell 0.9, the library behind ifctester, read with the
- * same rules (2026-11-20): PredefinedType and "user-defined" by its own {@code
- * get_predefined_type} and {@code is_userdefined_type}, properties from the element and its type.
- * The downloaded sample models are skipped, with a message, when they are missing; our own case
- * files and the bundled bridge model are always there.
+ * same rules (2026-11-20): PredefinedType and "user-defined" by its own {@code get_predefined_type}
+ * and {@code is_userdefined_type}, properties from the element and its type. The downloaded sample
+ * models are skipped, with a message, when they are missing; our own case files and the bundled
+ * bridge model are always there.
  */
 class IfcModelElementsTest {
 
@@ -121,7 +120,7 @@ class IfcModelElementsTest {
 
   @Test
   void readsAnIfc4Building() {
-    IfcModel model = TestModels.sample(ARCHITECTURE_IFC4);
+    StepModel model = TestModels.sample(ARCHITECTURE_IFC4);
     List<ModelElement> elements = IfcModelElements.from(model);
 
     assertThat(IfcModelElements.schemaOf(model)).isEqualTo("IFC4");
@@ -149,7 +148,7 @@ class IfcModelElementsTest {
 
   @Test
   void readsAnIfc4x3Building() {
-    IfcModel model = TestModels.sample(ARCHITECTURE_IFC4X3);
+    StepModel model = TestModels.sample(ARCHITECTURE_IFC4X3);
     List<ModelElement> elements = IfcModelElements.from(model);
 
     assertThat(IfcModelElements.schemaOf(model)).isEqualTo("IFC4X3_ADD2");
@@ -195,20 +194,18 @@ class IfcModelElementsTest {
 
   @Test
   void readsTheElementsInTheOrderOfTheFileEveryTime() {
-    // The toolbox hands out its objects as a set; two reads used to come out in different orders.
-    List<String> first = IfcModelElements.from(TestModels.cases("ifc4")).stream()
-        .map(ModelElement::id).toList();
-    List<String> second = IfcModelElements.from(TestModels.cases("ifc4")).stream()
-        .map(ModelElement::id).toList();
+    List<String> first =
+        IfcModelElements.from(TestModels.cases("ifc4")).stream().map(ModelElement::id).toList();
+    List<String> second =
+        IfcModelElements.from(TestModels.cases("ifc4")).stream().map(ModelElement::id).toList();
 
     assertThat(second).isEqualTo(first);
   }
 
   @Test
   void knowsTheEntityOfAnElementsType() {
-    ModelElement typed =
-        byName(IfcModelElements.from(TestModels.cases("ifc2x3")), "platte-typ");
+    ModelElement typed = byName(IfcModelElements.from(TestModels.cases("ifc2x3")), "platte-typ");
 
-    assertThat(typed.typeEntityName()).isEqualToIgnoringCase("IfcSlabType");
+    assertThat(typed.typeEntityName()).isEqualTo("IfcSlabType");
   }
 }

@@ -136,25 +136,29 @@ library-free pure-Java checking core shared by three front ends:
 - `com.bimportal.hackathon.ids` — IDS 1.0 parser (`IdsParser`), ZIP archive
   handling (`IdsArchive`), validator (`IdsValidator`), `DataTypes`, `Values`,
   `PropertyKey`, `PropertyAliases`, `PortalRequirements`, `ModelElement`.
+- `com.bimportal.hackathon.ifc` — pure-Java schema-driven STEP IFC reader
+  (`StepParser`, `IfcSchema`, `IfcModelElements`, `IfcResources`, `ModelLinks`,
+  `LoadedModel`, `ModelLoadException`) backed by TSV schema tables for IFC2X3,
+  IFC4, and IFC4X3 (`src/main/resources/ifc/schema/`).
 - `com.bimportal.hackathon.catalogue` — BIM Portal catalogue metadata filtering
   (`CatalogueFilter`), model-fit ranking (`ModelFit`), LOIN previews.
 - `com.bimportal.hackathon.check` — unified `CheckService` & `Source` facade.
 - `com.bimportal.hackathon.report` — `CheckReport`, exit codes (`0–4`),
   `ReportText`, and `ReportJson`.
+- `com.bimportal.hackathon.cli` — headless CLI (`LoinCheckCli`).
 - `com.bimportal.hackathon.mcp` — stdio MCP server (`CheckMateMcpServer`,
   `CheckMateTools`, 7 tools) using the official MCP Java SDK (`2.1.0`).
-- `test.fx` — JavaFX GUI (`App`, `ElementUI`), headless CLI (`LoinCheckCli`),
-  and Apstex IFC reader (`IfcResources`, `ModelLinks`, `IfcModelElements`,
-  `LoadedModel`).
+- `test.fx` — JavaFX GUI only (`App`, `ElementUI`, `RequirementSource`).
 
 ### Prerequisites & Gradle tasks for CheckMate
 
-- **APSTEX IFC Toolbox JARs** (`com.apstex.ifctoolbox*.jar`,
-  `com.apstex.stepparser*.jar`) in `hackathon-template/lib/` are proprietary
-  and not committed to Git. When absent, Gradle excludes `test/fx/**` and
-  `com/bimportal/hackathon/mcp/**` and runs the 148 core unit & IDS conformance
-  tests cleanly.
-- **JavaFX** is provided by a JDK 21 FX build (e.g. Azul Zulu 21 JDK FX).
+- **No Apstex JARs required on `0.3.2`.** CheckMate reads IFC2X3, IFC4, and
+  IFC4X3 with its pure-Java STEP reader (`com.bimportal.hackathon.ifc`), so the
+  core, IFC reader, CLI, MCP server, and all tests compile and run on any plain
+  JDK 21.
+- **JavaFX** is required only for the GUI (`test.fx` / `runGui`) via a JDK 21
+  FX build (e.g. Azul Zulu 21 JDK FX). When the JDK does not bundle JavaFX,
+  Gradle excludes only `test/fx/**` while building and testing everything else.
 - **Test reference:** `IfcOpenShell` / `ifctester` is the reference oracle for
   IFC reading and IDS 1.0 validation (`src/test/python/make_ifc_fixtures.py`).
 - Key Gradle tasks (from `bim-portal/Java_client/`):
@@ -173,8 +177,8 @@ library-free pure-Java checking core shared by three front ends:
 - Branch line:
   - `0.1` (frozen): direct BIM Portal Hackathon Sept 2025 baseline.
   - `0.2` (frozen): first post-hackathon fixes & initial IDS check (Oct 2026).
-  - `0.3.1` (active): Java working release with APSTEX, MCP server & DE/EN docs.
-  - `0.3.2` (planned): Java release without APSTEX + MCP upgrade.
+  - `0.3.1` (active / GitHub Pages): Java working release with APSTEX, MCP server & DE/EN docs.
+  - `0.3.2` (active): APSTEX-free pure-Java STEP/IFC reader (`com.bimportal.hackathon.ifc`), decoupled `cli/` & `mcp/`, full CI tests on plain JDK 21.
   - `0.4` (planned, WIP): *CheckMate Lite* on `IFClite` (no Java, no APSTEX).
 
 ## Relevant project documentation

@@ -1,4 +1,4 @@
-package test.fx;
+package com.bimportal.hackathon.ifc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,8 +16,8 @@ import org.junit.jupiter.api.Test;
  *
  * <p>The expected numbers are ifctester 0.9's on the same files (2026-11-21). Where CheckMate
  * deliberately differs, the test says so: a specification with no applicable element is "nicht
- * prüfbar" here and passes in ifctester, and specifications using parts CheckMate does not
- * evaluate are not checked at all.
+ * prüfbar" here and passes in ifctester, and specifications using parts CheckMate does not evaluate
+ * are not checked at all.
  */
 class LocalIdsCheckTest {
 
