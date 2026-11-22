@@ -40,8 +40,8 @@ dependencies {
 
     // MCP server (com.bimportal.hackathon.mcp): the official MCP Java SDK, with its Jackson 2
     // binding. 2.1.0 rather than 2.2.0, which depends on a Reactor release candidate.
-    implementation("io.modelcontextprotocol.sdk:mcp-core:2.1.0")
-    implementation("io.modelcontextprotocol.sdk:mcp-json-jackson2:2.1.0")
+    implementation("io.modelcontextprotocol.sdk:mcp-core:2.2.0")
+    implementation("io.modelcontextprotocol.sdk:mcp-json-jackson2:2.2.0")
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.9")
