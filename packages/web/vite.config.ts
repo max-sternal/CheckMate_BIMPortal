@@ -25,8 +25,18 @@ export default defineConfig({
     esbuildOptions: {
       target: 'esnext',
     },
-    include: ['jszip', 'decimal.js', 'fflate'],
-    exclude: ['@ifc-lite/wasm', '@ifc-lite/geometry'],
+    include: [
+      'jszip',
+      'decimal.js',
+      'fflate',
+      '@ifc-lite/parser',
+      '@ifc-lite/ids',
+      '@ifc-lite/ids/bridge',
+      '@ifc-lite/geometry',
+      '@ifc-lite/data',
+      '@ifc-lite/encoding',
+    ],
+    exclude: ['@ifc-lite/wasm'],
   },
   build: {
     outDir: 'dist',
