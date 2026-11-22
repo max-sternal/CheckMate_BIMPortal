@@ -196,30 +196,53 @@ tasks.register("installAntigravityPlugin") {
             from(mcpDir)
             into(out)
         }
+        val assetsDir = out.resolve("assets").apply { mkdirs() }
+        val repoLogo = rootProject.file("../../website/src/assets/checkmate-logo.png")
+        val logoPath = if (repoLogo.isFile) {
+            repoLogo.copyTo(assetsDir.resolve("logo.png"), overwrite = true)
+            "assets/logo.png"
+        } else {
+            assetsDir.resolve("logo.svg").writeText(
+                """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#990000"/><path d="M18 34l10 10 18-22" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>"""
+            )
+            "assets/logo.svg"
+        }
         val isWindows = System.getProperty("os.name").lowercase().contains("win")
-        val command = if (isWindows) "\${PLUGIN_ROOT}/bin/checkmate-mcp.bat" else "\${PLUGIN_ROOT}/bin/checkmate-mcp"
+        val pluginRoot = "\${PLUGIN_ROOT}"
+        val mcpConfig = if (isWindows) {
+            """
+            {
+              "mcpServers": {
+                "checkmate": {
+                  "command": "cmd",
+                  "args": ["/c", "$pluginRoot/bin/checkmate-mcp.bat"]
+                }
+              }
+            }
+            """.trimIndent() + "\n"
+        } else {
+            """
+            {
+              "mcpServers": {
+                "checkmate": {
+                  "command": "/bin/sh",
+                  "args": ["$pluginRoot/bin/checkmate-mcp"]
+                }
+              }
+            }
+            """.trimIndent() + "\n"
+        }
         out.resolve("plugin.json").writeText(
             """
             {
               "name": "checkmate-bimportal",
               "version": "0.3.2",
               "description": "CheckMate BIM Portal — IFC/IDS model checker, LOIN & Merkmale lookup, and MCP Apps views",
-              "mcp": "mcp_config.json"
+              "logo": "$logoPath"
             }
             """.trimIndent() + "\n"
         )
-        out.resolve("mcp_config.json").writeText(
-            """
-            {
-              "mcpServers": {
-                "checkmate": {
-                  "command": "$command",
-                  "args": []
-                }
-              }
-            }
-            """.trimIndent() + "\n"
-        )
+        out.resolve("mcp_config.json").writeText(mcpConfig)
         logger.lifecycle("Antigravity plugin written to ${out.absolutePath}")
     }
 }
