@@ -15,11 +15,26 @@ if (existsSync(demoIfcSrc) && !existsSync(demoIfcDest)) {
 
 export default defineConfig({
   base: './',
+  esbuild: {
+    target: 'es2022',
+  },
   worker: {
     format: 'es',
   },
   optimizeDeps: {
-    exclude: ['@ifc-lite/wasm', '@ifc-lite/geometry'],
+    esbuildOptions: {
+      target: 'es2022',
+    },
+    exclude: [
+      '@ifc-lite/wasm',
+      '@ifc-lite/geometry',
+      '@ifc-lite/ids',
+      '@ifc-lite/parser',
+      '@ifc-lite/data',
+      '@ifc-lite/rules',
+      '@ifc-lite/bcf',
+      '@ifc-lite/renderer',
+    ],
   },
   build: {
     outDir: 'dist',
