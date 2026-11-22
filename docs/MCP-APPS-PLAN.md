@@ -90,7 +90,8 @@ project. Use host style variables (`--color-*`, `--font-sans`) with fallbacks.
 - [x] `ui://checkmate/loins` view and resource (`loins.html`), protocol-tested.
 - [x] `ui://checkmate/model` view and resource (`model.html`), protocol-tested.
 - [x] JSON resources (`checkmate://model/current`, `checkmate://report/last.json`) and prompts (`check-loin`, `explain-element`).
-- [ ] Antigravity plugin task and Claude Desktop test (Windows).
+- [x] `installAntigravityPlugin` Gradle task (`build/install/checkmate-antigravity-plugin`).
+- [ ] Visual host verification in Claude Desktop (Windows) and Antigravity App.
 - [ ] Decide how to integrate the MCP changes into `0.4`.
 - [ ] Modern (2026-07-28) server over Streamable HTTP, when the SDK API is stable.
 

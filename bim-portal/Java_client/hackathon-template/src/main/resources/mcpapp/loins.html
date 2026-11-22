@@ -181,7 +181,13 @@
   function render(result) {
     var data = result && result.structuredContent;
     var box = document.getElementById("list");
+    var status = document.getElementById("status");
+    var resultBox = document.getElementById("result");
     box.textContent = "";
+    status.hidden = true;
+    status.textContent = "";
+    resultBox.hidden = true;
+    resultBox.textContent = "";
     items = [];
     selected = {};
     if (!data || (!data.loins && !data.projects)) {

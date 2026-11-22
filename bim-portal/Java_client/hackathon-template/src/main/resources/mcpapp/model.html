@@ -157,6 +157,10 @@
   function render(result) {
     var data = result && result.structuredContent;
     var bars = document.getElementById("bars");
+    var searchMeta = document.getElementById("searchMeta");
+    searchMeta.hidden = true;
+    searchMeta.textContent = "";
+    document.getElementById("elements").textContent = "";
     if (!data || !data.name) {
       bars.textContent = "";
       var text = (result && result.content && result.content[0] && result.content[0].text) || "Keine Daten.";
@@ -217,11 +221,15 @@
       var tbody = document.createElement("tbody");
       rows.forEach(function (line) {
         var parts = line.split(" | ");
+        var gid = parts[0] || "";
+        var ent = parts[1] || "";
+        var predefined = parts.length >= 4 ? parts[parts.length - 1] : "";
+        var nameCol = parts.length >= 4 ? parts.slice(2, parts.length - 1).join(" | ") : (parts[2] || "");
         var tr = document.createElement("tr");
-        tr.appendChild(el("td", "mono", parts[0] || ""));
-        tr.appendChild(el("td", "mono", parts[1] || ""));
-        tr.appendChild(el("td", "", parts[2] || ""));
-        tr.appendChild(el("td", "", parts[3] || ""));
+        tr.appendChild(el("td", "mono", gid));
+        tr.appendChild(el("td", "mono", ent));
+        tr.appendChild(el("td", "", nameCol));
+        tr.appendChild(el("td", "", predefined));
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);

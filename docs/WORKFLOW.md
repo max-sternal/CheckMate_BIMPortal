@@ -205,11 +205,17 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
   | `list_elements` | `GlobalId \| entity \| name \| PredefinedType` | `entity`, `name`, `limit` |
   | `find_loins` | AIA projects and LOINs from the catalogue, those fitting the model first, with IDs | `search`, `discipline`, `phase`, `purpose`, `limit`, `include_unfitting` |
   | `describe_requirements` | what a LOIN or AIA project selects and requires, how many elements it would apply to | `id` |
+  | `find_properties` | search BIM Portal Merkmale and Merkmalsgruppen by keyword | `search`, `kind` (`all`/`property`/`group`), `limit` |
+  | `describe_property` | definition, data type, units, allowed values and group members of a Merkmal or Merkmalsgruppe | `guid`, `kind` (`auto`/`property`/`group`) |
   | `check_model` | the report as the CLI prints it, `examples` unmet requirements per specification (default 3, 0 for the full report) | `ids`, `ids_files`, `examples` |
   | `load_mapping` | show or switch the JSON property mapping (`none`, `default`, a file) | `source` |
   | `server_status` | model, mapping and verdict of the last check | - |
   | `element_report` | what the last check said about an element, and its properties | `element` (GlobalId or part of the name) |
 
+- MCP Apps views (`text/html;profile=mcp-app`): `ui://checkmate/report` (`check_model`),
+  `ui://checkmate/loins` (`find_loins`), `ui://checkmate/model` (`describe_model`). JSON resources:
+  `checkmate://model/current`, `checkmate://report/last.json`. Prompts: `check-loin`,
+  `explain-element`.
 - One session per server process: the model in use (until `load_model`, the one `CHECKMATE_IFC`
   names or the bundled one), the last check for `element_report`, and every requirement downloaded
   so far, each downloaded once.
@@ -221,6 +227,17 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
 - Logs go to stderr, which AI apps keep as the server's log. stdout carries only the protocol.
 - Connecting an AI app. Use the full path of the start script (shortened here). On Windows the app
   starts the `.bat` through `cmd /c`; it can't start a `.bat` file itself.
+  - Antigravity Plugin: `./gradlew :hackathon-template:installAntigravityPlugin` builds a
+    ready-to-install bundle under `hackathon-template/build/install/checkmate-antigravity-plugin/`
+    with `plugin.json` and `mcp_config.json` (`${PLUGIN_ROOT}`):
+    ```bash
+    agy plugin validate hackathon-template/build/install/checkmate-antigravity-plugin --strict
+    agy plugin install hackathon-template/build/install/checkmate-antigravity-plugin
+    ```
+  - MCP Inspector (quick browser test of tools, resources, prompts & MCP Apps without a host):
+    ```bash
+    npx @modelcontextprotocol/inspector bim-portal/Java_client/hackathon-template/build/install/checkmate-mcp/bin/checkmate-mcp
+    ```
   - Claude Desktop: Settings → Developer → Edit Config opens `claude_desktop_config.json` (the
     Microsoft Store install keeps it elsewhere than `%APPDATA%\Claude\`, so open it this way).
     Add to it:
@@ -228,7 +245,7 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
     { "mcpServers": { "checkmate": {
         "command": "cmd",
         "args": ["/c", "C:\\...\\hackathon-template\\build\\install\\checkmate-mcp\\bin\\checkmate-mcp.bat"],
-        "env": { "JAVA_HOME": "C:\\...\\zulu21-jdk-fx" } } } }
+        "env": { "JAVA_HOME": "C:\\...\\zulu25-jdk-fx" } } } }
     ```
     `JAVA_HOME` belongs in `env` even when it is set in Windows: the app passes the server its
     `PATH` but not `JAVA_HOME`, and if an older `java` comes first on the path, the server stops
@@ -240,7 +257,7 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
     server for that folder only; `--scope user` registers it for every folder. Not
     `--scope project`: it writes the machine's path into `.mcp.json` in the repo. Claude Code passes
     the server its own environment, so a `JAVA_HOME` set in Windows is enough; otherwise add
-    `-e JAVA_HOME=C:\...\zulu21-jdk-fx`. `claude mcp list` shows whether it connects; a new
+    `-e JAVA_HOME=C:\...\zulu25-jdk-fx`. `claude mcp list` shows whether it connects; a new
     session lists it under `/mcp`.
   - Ollama: Ollama runs models but does not speak MCP itself; an MCP host in between does, e.g.
     `ollmcp` (`pip install mcp-client-for-ollama`) with the same `mcpServers` entry, or Open WebUI.
@@ -250,9 +267,9 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
   `mcp-server-checkmate.log` in its `logs` folder (`%APPDATA%\Claude\logs\`, for the Store install
   `%LOCALAPPDATA%\Packages\Claude_<id>\LocalCache\Local\Claude\logs\`), including what the server
   writes to stderr.
-- Known limits: the server has been tried with Claude Desktop and Claude Code on Windows; the new
-  MCP App report view has only been tested at protocol level, not yet in a host. Ollama has not
-  been tried (STATUS #16). No prompts or progress messages during a long check. Paths are read on the machine the server
+- Known limits: the server has been tried with Claude Desktop and Claude Code on Windows; the
+  MCP App views (`report`, `loins`, `model`) are tested at protocol level and ready for visual
+  host verification. Ollama has not been tried (STATUS #16). No progress messages during a long check. Paths are read on the machine the server
   runs on.
 - Main classes: [`CheckMateMcpServer`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/mcp/CheckMateMcpServer.java)
   (tools, parameters, transport), [`CheckMateTools`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/mcp/CheckMateTools.java)

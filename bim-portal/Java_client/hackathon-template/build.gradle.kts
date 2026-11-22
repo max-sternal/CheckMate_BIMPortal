@@ -175,6 +175,55 @@ tasks.register<Sync>("installMcp") {
     into("bin") { from(mcpStartScripts) }
 }
 
+// Antigravity plugin bundle: packages the MCP server together with plugin.json and mcp_config.json
+// using ${PLUGIN_ROOT} so it can be validated with `agy plugin validate <dir> --strict` and
+// installed locally with `agy plugin install <dir>`.
+tasks.register("installAntigravityPlugin") {
+    group = "hackathon"
+    description = "Package CheckMate MCP server as an Antigravity plugin in build/install/checkmate-antigravity-plugin"
+    dependsOn("installMcp")
+
+    val mcpDir = layout.buildDirectory.dir("install/checkmate-mcp")
+    val pluginDir = layout.buildDirectory.dir("install/checkmate-antigravity-plugin")
+    inputs.dir(mcpDir)
+    outputs.dir(pluginDir)
+
+    doLast {
+        val out = pluginDir.get().asFile
+        out.deleteRecursively()
+        out.mkdirs()
+        copy {
+            from(mcpDir)
+            into(out)
+        }
+        val isWindows = System.getProperty("os.name").lowercase().contains("win")
+        val command = if (isWindows) "\${PLUGIN_ROOT}/bin/checkmate-mcp.bat" else "\${PLUGIN_ROOT}/bin/checkmate-mcp"
+        out.resolve("plugin.json").writeText(
+            """
+            {
+              "name": "checkmate-bimportal",
+              "version": "0.3.2",
+              "description": "CheckMate BIM Portal — IFC/IDS model checker, LOIN & Merkmale lookup, and MCP Apps views",
+              "mcp": "mcp_config.json"
+            }
+            """.trimIndent() + "\n"
+        )
+        out.resolve("mcp_config.json").writeText(
+            """
+            {
+              "mcpServers": {
+                "checkmate": {
+                  "command": "$command",
+                  "args": []
+                }
+              }
+            }
+            """.trimIndent() + "\n"
+        )
+        logger.lifecycle("Antigravity plugin written to ${out.absolutePath}")
+    }
+}
+
 // Headless LOIN check: same validation as the GUI button, usable in a container or a pipeline.
 // Needs no JavaFX.
 tasks.register<JavaExec>("runLoinCheck") {
