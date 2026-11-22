@@ -10,6 +10,9 @@ Three front ends share one check: a JavaFX GUI, a command line (CLI), and an MCP
 compatible AI applications. The [documentation](https://max-sternal.github.io/CheckMate_BIMPortal/)
 describes setup, the checking scope, its limitations, and the project's BIM context in German and
 English.
+The website on branch `0.3.2` documents this development state; the published
+site currently serves `v0.3.1` as latest. See [`website/README.md`](website/README.md)
+for the versioned deployment.
 
 ## What's where
 

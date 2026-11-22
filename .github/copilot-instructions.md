@@ -24,7 +24,8 @@ The clients call the BIM Portal REST API, authenticate through the
 `InfrastrukturApi` login/refresh endpoints, and expose searches for projects,
 LOINs, domain models, context information, properties, and classifications.
 Export operations write returned PDF, OpenOffice, OKSTRA, LOIN-XML, and IDS
-data to the configured export directory.
+data to the configured export directory. The CheckMate checker currently
+reads IDS, not LOIN-XML directly; LOIN-XML support is a goal for `0.3.3`.
 
 ## Build, test, and formatting commands
 
@@ -147,7 +148,9 @@ library-free pure-Java checking core shared by three front ends:
   `ReportText`, and `ReportJson`.
 - `com.bimportal.hackathon.cli` — headless CLI (`LoinCheckCli`).
 - `com.bimportal.hackathon.mcp` — stdio MCP server (`CheckMateMcpServer`,
-  `CheckMateTools`, 7 tools) using the official MCP Java SDK (`2.1.0`).
+  `CheckMateTools`) using MCP Java SDK `2.2.0`, including the report MCP App
+  and app-only `app_report_page`. The view has only been tested at protocol
+  level, not visually in a client.
 - `test.fx` — JavaFX GUI only (`App`, `ElementUI`, `RequirementSource`).
 
 ### Prerequisites & Gradle tasks for CheckMate
@@ -159,6 +162,8 @@ library-free pure-Java checking core shared by three front ends:
 - **JavaFX** is required only for the GUI (`test.fx` / `runGui`) via a JDK 21
   FX build (e.g. Azul Zulu 21 JDK FX). When the JDK does not bundle JavaFX,
   Gradle excludes only `test/fx/**` while building and testing everything else.
+- The wrapper uses Gradle 8.14 and targets Java 21. Java 25 is not configured
+  and requires a Gradle wrapper upgrade to run the build.
 - **Test reference:** `IfcOpenShell` / `ifctester` is the reference oracle for
   IFC reading and IDS 1.0 validation (`src/test/python/make_ifc_fixtures.py`).
 - Key Gradle tasks (from `bim-portal/Java_client/`):
@@ -171,15 +176,18 @@ library-free pure-Java checking core shared by three front ends:
 ### Bilingual Documentation (`website/`) & Branches
 
 - `website/` contains the bilingual **Astro Starlight** documentation site
-  (German default at `/`, English at `/en/`), deployed to GitHub Pages via
-  `.github/workflows/docs.yml`. Validate locally with `npm run build` in
-  `website/`. Keep German and English pages in sync.
+  (German default at `/`, English at `/en/`). The `0.3.2` docs are prepared
+  but not yet current on GitHub Pages. The versioned site is built by
+  `.github/workflows/versioned-docs.yml` with `v0.3.1` as latest; the old
+  single-version workflow is disabled. See `website/README.md` before
+  publishing. Validate locally with `npm run build`; keep both languages in sync.
 - Branch line:
   - `0.1` (frozen): direct BIM Portal Hackathon Sept 2025 baseline.
   - `0.2` (frozen): first post-hackathon fixes & initial IDS check (Oct 2026).
-  - `0.3.1` (active / GitHub Pages): Java working release with APSTEX, MCP server & DE/EN docs.
-  - `0.3.2` (active): APSTEX-free pure-Java STEP/IFC reader (`com.bimportal.hackathon.ifc`), decoupled `cli/` & `mcp/`, full CI tests on plain JDK 21.
-  - `0.4` (planned, WIP): *CheckMate Lite* on `IFClite` (no Java, no APSTEX).
+  - `0.3.1`: tagged and published Java release with APSTEX and MCP; currently latest on GitHub Pages.
+  - `0.3.2` (active): APSTEX-free pure-Java STEP/IFC reader (`com.bimportal.hackathon.ifc`), decoupled `cli/` & `mcp/`, CI tests on plain JDK 21 (some optional tests may be skipped).
+  - `0.3.3`: planned, not yet a remote branch; direct LOIN-XML support is a goal, not implemented.
+  - `0.4`: existing WIP branch at an older APSTEX-based state; online use, a viewer and MCP App integration are goals, not yet implemented.
 
 ## Relevant project documentation
 

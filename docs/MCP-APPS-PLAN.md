@@ -10,7 +10,7 @@ MCP Java SDK 2.2.0, Antigravity docs "MCP Apps", Claude MCP Apps docs.
 | MCP spec 2026-07-28 (latest) | Stateless, no handshake, `server/discover`. Java SDK 2.2.0 has a *modern* server (`io.modelcontextprotocol.modern`), but its API "may still change until 3.0", and extensions are not yet supported in the modern client. |
 | MCP spec 2025-11-25 | Handled by the *legacy* server in the same SDK. This is what Claude Desktop, Claude Code and Antigravity talk today. |
 | Java SDK | 0.3.2 had `2.1.0`, raised to `2.2.0` (same legacy API, bug fixes, SEP-2133 `extensions` on capabilities). |
-| Jackson | SDK 2.2.0 is built for 2.22; the project pins 2.15.2 (STATUS #17). Raise the pin together with the MCP bump when tests pass. |
+| Jackson | `0.3.2` uses 2.22.4 for databind, core and JSR310, and 2.22 for annotations (STATUS #17). |
 
 **Decision:** stay on the legacy server (stdio) for MCP Apps. Add the modern server later as a
 second entry point (Streamable HTTP) once hosts negotiate 2026-07-28 and the modern API is stable.
@@ -28,25 +28,26 @@ the HTML must be a single self-contained file.
 
 | Host | Renders UI? | Notes |
 |---|---|---|
-| Claude Desktop | yes | local stdio server via `claude_desktop_config.json` works. |
+| Claude Desktop | yes | local stdio server via `claude_desktop_config.json` works; CheckMate's new report view has not been visually tested there. |
 | Claude Code | **no** | calls the tool as text. Needs a good text answer (`content`). |
-| Antigravity App (v2.34+) | yes | when the client advertises `extensions["io.modelcontextprotocol/ui"]`; plugin with `mcp_config.json`, `agy plugin validate --strict`, `agy plugin install`. Extra entry points `com.google.antigravity/ui` (side panel, full page, file viewer). |
+| Antigravity App (v2.34+) | yes | when the client advertises `extensions["io.modelcontextprotocol/ui"]`; CheckMate's report view has not yet been tested there. Plugin packaging is planned. |
 | Antigravity CLI / IDE | no | plain text tools. |
 
-Rule: every tool keeps its full German text answer and adds `structuredContent` for the view.
-The server checks the client's capabilities in `initialize` and only attaches `_meta.ui` when
-`io.modelcontextprotocol/ui` is advertised.
+Current implementation: `check_model` returns German text and structured data for the report view.
+It attaches `_meta.ui` unconditionally; clients without MCP App support can use the text answer.
+Structured data and views for other tools remain planned.
 
 ## 4. Server work (both branches)
 
 1. `McpServer.sync(...).capabilities(...)`: declare `extensions: { "io.modelcontextprotocol/ui": {} }`.
 2. `resources/read` for `ui://checkmate/*`, MIME `text/html;profile=mcp-app`, from classpath
    `src/main/resources/mcpapp/*.html` (single file, no external origins, so no `csp`).
-3. Tool results carry `structuredContent` (JSON) next to the text. `CheckMateTools` returns
-   a small result record instead of a `String`; the text is rendered from it as today.
-4. App-only tools (`visibility: ["app"]`): `app_element_page` (paged elements), `app_set_filter`.
-5. Tests: `tools/list` has `_meta.ui`, `resources/read` returns the HTML, a client without the
-   extension gets no `_meta.ui`.
+3. `check_model` returns `structuredContent` (JSON) next to text; other views and structured
+   results remain open.
+4. App-only `app_report_page` pages through additional report findings. Other app-only tools
+   such as element paging and filters remain ideas.
+5. Protocol tests cover the report resource, metadata and tool calls; the report view has not yet
+   been visually verified in a host.
 
 ## 5. Views (UI), by priority
 
@@ -64,12 +65,11 @@ project. Use host style variables (`--color-*`, `--font-sans`) with fallbacks.
 
 ## 6. Branches
 
-- **0.3.2** (pure-Java IFC reader, no Apstex): all of section 4 and the three views. This is the
-  portable branch: only Java 21 needed, MCP server runs everywhere.
-- **0.4** (based on 0.3.1 with Apstex): do **not** duplicate. Port the `mcp` package changes by
-  cherry-pick; the tools sit on `CheckService`, which both branches share. Open point: 0.4 still
-  has `IfcModelElements` in `test.fx`, so conflicts are expected in `CheckMateTools` imports only.
-  Check with `git merge-base` before cherry-picking (common base is `0.3.1`'s `c7062b5`).
+- **0.3.2** uses the pure-Java IFC reader without Apstex. The report view and pagination are
+  implemented; the other two views are planned. The MCP server requires JDK 21, not JavaFX.
+- **0.4** currently remains at the older `c7062b5` state with APSTEX and MCP SDK 2.1.0. It shares
+  that ancestor with `0.3.2`, but does not contain its later changes. Decide how to integrate
+  changes before porting; `IfcModelElements` is still in `test.fx` on `0.4`.
 
 ## 7. Packaging per host
 
@@ -82,14 +82,15 @@ project. Use host style variables (`--color-*`, `--font-sans`) with fallbacks.
 ## 8. Steps
 
 - [x] SDK 2.1.0 to 2.2.0 (this branch).
-- [x] Jackson 2.15.2 to 2.22.4, all tests green.
+- [x] Jackson 2.15.2 to 2.22.x; CI tests passed on `6ac8b40`.
 - [x] Capability `extensions` declared. (No per-client check: hosts without the extension ignore `_meta.ui` and use the text.)
 - [x] `structuredContent` on `check_model`; [ ] on the other tools, with their views.
 - [x] `ui://checkmate/report` view and resource, protocol tests (`CheckMateMcpServerTest`). Not yet seen in a real host.
-- [ ] `ui://checkmate/loins` view, app-only tools.
+- [x] App-only `app_report_page` and report-view "load more".
+- [ ] `ui://checkmate/loins` view and its app-only tools.
 - [ ] `ui://checkmate/model` view.
 - [ ] Antigravity plugin task and Claude Desktop test (Windows).
-- [ ] Cherry-pick to 0.4.
+- [ ] Decide how to integrate the MCP changes into `0.4`.
 - [ ] Modern (2026-07-28) server over Streamable HTTP, when the SDK API is stable.
 
 ## 9. Risks

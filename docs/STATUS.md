@@ -3,6 +3,31 @@
 What is being worked on and what is still open. One line per item. Reference code as
 `file:line` where it helps.
 
+## Current handoff (2026-11-22)
+
+- `0.3.2` is the active development branch: Java 21, Gradle 8.14, a pure-Java IFC reader without
+  APSTEX, configurable JSON property mappings, GUI, CLI and MCP server. Java 25 is not configured;
+  running Gradle on Java 25 requires a wrapper upgrade.
+- The MCP server uses SDK 2.2.0 and Jackson 2.22 (databind/core/JSR310 2.22.4, annotations
+  2.22). The report MCP App and app-only `app_report_page` are implemented and protocol-tested;
+  the view has not yet been visually tested in Claude Desktop or Antigravity.
+  See [MCP-APPS-PLAN.md](MCP-APPS-PLAN.md).
+- The DE/EN `0.3.2` documentation, including the Hamburg mapping and worked check, is prepared in
+  `website/` but is **not the current public version**. GitHub Pages serves `v0.3.1` as latest and
+  has a version selector for `v0.1.0`, `v0.2.0` and `v0.3.1`. The older two pages were written
+  retrospectively; their tags preserve the historical commits.
+- Tags and releases exist for `v0.1.0`, `v0.2.0` and `v0.3.1`; there is no `v0.3.2` release yet.
+  The versioned Pages workflow runs from `0.3.2`, but builds latest from the tag named by
+  `CHECKMATE_DOCS_LATEST` (`v0.3.1`). The old single-version workflow is disabled. See
+  [`website/README.md`](../website/README.md) before publishing; do not switch versions until
+  release is approved.
+- `0.3.3` is a goal, not an existing remote branch: direct LOIN-XML support is not implemented.
+  `0.4` exists as a remote development branch at the older `c7062b5` state, still using APSTEX;
+  it does not yet include the later `0.3.2` work. Online use, a viewer and stronger MCP App
+  integration are goals, not shipped features.
+- CI for `0.3.2` passed on `6ac8b40` (Java tests and documentation build); the versioned Pages
+  deployment succeeded. CI uses JDK 21 without bundled JavaFX; optional tests may be skipped.
+
 ## Open points
 
 ### GUI: `bim-portal/Java_client/hackathon-template/src/main/java/test/fx/`
@@ -19,7 +44,7 @@ What is being worked on and what is still open. One line per item. Reference cod
 
 ### LOIN check
 
-6. Every portal LOIN is "nicht prüfbar" on the bundled bridge model (0 of 303 elements applicable). The model is classified after Objektkatalog `Ingenieurbau_V005`, whose level names differ from what the LOINs ask for. This needs a matching model or a classification mapping.
+6. The saved portal IDS "Ueberbau > Kappe" is "nicht prüfbar" on the bundled bridge model (0 of 303 elements applicable). The default Hamburg mapping finds differently named properties, but values and data types still differ (e.g. `Kappe` vs `Ueberbau`, `IFCTEXT` vs `IFCLABEL`). See the [worked example](../website/src/content/docs/guides/example.md); a mapping does not resolve value or type differences.
 7. The LOIN search matches substrings, so "Schaft" also returns the "Landschaftsbau" LOINs. The GUI could rank or filter by the category path (`Ueberbau > Schaft`).
 
 ### Documentation
@@ -35,15 +60,15 @@ What is being worked on and what is still open. One line per item. Reference cod
 
 ### Open decisions
 
-14. Done on `0.3.2` (2026-11-22): **the property name mapping is data, not code.** `PropertyMapping` reads a JSON file (`{"name": ..., "aliases": [{"from": "Klassifizierung/Objekttyp", "to": ["Pset_Objektinformation/_IDEbene3"]}]}`); the BIM.Hamburg convention is the bundled default (`src/main/resources/mapping/bim-hamburg.json`). Another file comes with `-Dcheckmate.mapping=<file>` or `CHECKMATE_MAPPING`, `--mapping <file|none|default>` on the CLI, or the MCP tool `load_mapping`. `none` checks exactly as ifctester does. Still open: a GUI control for it, and a mapping file per project next to the model.
+14. Done on `0.3.2` (2026-11-22): **the property name mapping is data, not code.** `PropertyMapping` reads a JSON file (`{"name": ..., "aliases": [{"from": "Klassifizierung/Objekttyp", "to": ["Pset_Objektinformation/_IDEbene3"]}]}`); the BIM.Hamburg convention is the bundled default (`src/main/resources/mapping/bim-hamburg.json`). Another file comes with `-Dcheckmate.mapping=<file>` or `CHECKMATE_MAPPING`, `--mapping <file|none|default>` on the CLI, or the MCP tool `load_mapping`. `none` disables aliases and uses the IDS property names. Still open: a GUI control for it, and a mapping file per project next to the model.
 
 15. Done on `0.3.2` (2026-11-22): **the IFC library.** Replaced the proprietary Apstex IFC Toolbox with a pure-Java, schema-driven STEP reader in `com.bimportal.hackathon.ifc` (`StepParser`, `IfcSchema`, `IfcModelElements`, `IfcResources`, `LoadedModel`), verified 1:1 against `IfcOpenShell 0.9` (0 diffs across 702 elements / 12,695 properties). No proprietary JARs or Python runtime needed.
 
 ### MCP server
 
 16. Claude Desktop and Claude Code (Windows) start the server and list its tools (2026-11-22); Claude Desktop only with `JAVA_HOME` in the config's `env` (WORKFLOW 2.7). Not yet tried with Ollama through an MCP host such as `ollmcp`.
-17. Done on `0.3.2` (2026-11-22): MCP Java SDK 2.2.0 and Jackson 2.22.4 (both `hackathon-template` and `openapi-generated`). The server uses the legacy (2025-11-25) server over stdio; the modern 2026-07-28 server is planned as a second entry point (docs/MCP-APPS-PLAN.md).
-18. MCP Apps (docs/MCP-APPS-PLAN.md): done on `0.3.2` are the `io.modelcontextprotocol/ui` capability, `check_model` with `structuredContent` and the view `ui://checkmate/report`. Open: views for `find_loins` and `describe_model`, app-only tools, a test in Claude Desktop and the Antigravity App (the view is only tested at the protocol level), and the port to `0.4`.
+17. Done on `0.3.2` (2026-11-22): MCP Java SDK 2.2.0 and Jackson 2.22 (databind/core/JSR310 2.22.4; annotations 2.22) in `hackathon-template` and `openapi-generated`. The server uses the legacy (2025-11-25) server over stdio; the modern 2026-07-28 server is planned as a second entry point (docs/MCP-APPS-PLAN.md).
+18. MCP Apps (docs/MCP-APPS-PLAN.md): done on `0.3.2` are the `io.modelcontextprotocol/ui` capability, `check_model` with `structuredContent`, `ui://checkmate/report` and app-only `app_report_page` for more findings. Open: views for `find_loins` and `describe_model`, testing the view in Claude Desktop and Antigravity (protocol-tested only), and a possible port to `0.4`.
 
 ### Code structure
 
