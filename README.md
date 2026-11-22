@@ -24,6 +24,8 @@ app (Claude, or a local model through Ollama) can answer questions about a model
 | `bim-portal/Java_client/openapi-generated/` | generated API client, don't edit |
 | `docs/WORKFLOW.md` | how CheckMate works step by step, a checklist, and decisions |
 | `docs/STATUS.md` | open points, including open decisions |
+| `website/` | bilingual (DE/EN) Astro Starlight documentation site for GitHub Pages (`0.1`–`0.4`) |
+| `.github/workflows/` | GitHub Actions CI (Java core tests + docs build) and GitHub Pages deployment |
 | `.claude/skills/run-checkmate/` | Claude Code skill: build, run and drive the GUI |
 | `DocsBIMDeutschland/` | background material on the BIM Portal, LOIN and IDS |
 

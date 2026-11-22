@@ -1,0 +1,51 @@
+---
+title: CheckMate
+description: Deterministische LOIN- & IDS-Prüfung für IFC-Modelle gegen das BIM-Portal des Bundes — mit KI-/MCP-Unterstützung für Behörden, Auftraggeber und Planende.
+template: splash
+hero:
+  tagline: Bürokratie-Beschleunigung statt Bürokratie-Abbau — deterministische IFC-/LOIN-Prüfung gegen das BIM-Portal des Bundes, unterstützt durch offene KI- & MCP-Schnittstellen.
+  image:
+    file: ../../assets/checkmate-logo.png
+    alt: CheckMate Logo
+  actions:
+    - text: Schnellstart (0.3.1)
+      link: /CheckMate_BIMPortal/guides/quickstart/
+      icon: right-arrow
+    - text: Versionen & Roadmap
+      link: /CheckMate_BIMPortal/guides/versions/
+      variant: secondary
+    - text: Mitwirkende & Transparenz
+      link: /CheckMate_BIMPortal/project/contributors/
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Warum CheckMate?
+
+CheckMate verhindert, dass Planer:innen und vor allem Prüfer:innen in Behörden durch eine Flut aus Modellen, Merkmalen und LOIN-Anforderungen **„Schachmatt“** gesetzt werden. Als unabhängiger, austauschbarer und sicherer **Mate (Partner)** trennt CheckMate sauber zwischen **deterministischer Regelprüfung** (nach buildingSMART IDS 1.0) und **menschlicher Beurteilung mit KI-Unterstützung**.
+
+<CardGrid>
+	<Card title="Deterministische Prüfung (IDS 1.0)" icon="approve-check-circle">
+		Prüft IFC2X3-, IFC4- und IFC4X3-Modelle reproduzierbar gegen LOINs, ganze AIA-Projekte aus dem BIM-Portal des Bundes oder lokale IDS-Dateien — verifiziert gegen <code>IfcOpenShell</code> / <code>ifctester</code>.
+	</Card>
+	<Card title="Ein Kern, drei Schnittstellen" icon="laptop">
+		Desktop-GUI (JavaFX), Headless-CLI (inkl. JSON & Exit-Codes) und ein MCP-Server greifen über denselben <code>CheckService</code> auf identische Prüfergebnisse zu.
+	</Card>
+	<Card title="Offene KI- & MCP-Integration" icon="rocket">
+		Anbindbar an Antigravity (Ziel: MCP App nach Stand Nov 2026), Claude Desktop/Code, OpenCode sowie offene Modelle über Ollama (z. B. Mistral Cloud, lokales Qwen) oder Strata — ohne Vendor-Lock-in.
+	</Card>
+	<Card title="Transparent & Open Source" icon="open-book">
+		Privates Open-Source-Projekt (Apache 2.0) von Mitarbeitenden und Alumni der TU Berlin auf Basis des BIM-Portal-Hackathons (Sept. 2025) — mit klarer Modul-, Versions- und Beitragsdokumentation.
+	</Card>
+</CardGrid>
+
+## Aktueller Entwicklungsstand
+
+| Version / Branch | Status | Fokus |
+|---|---|---|
+| **`0.1`** | Eingefroren | Direkter Stand vom BIM-Portal-Hackathon (Sept. / Nov. 2025) mit APSTEX IFC Toolbox |
+| **`0.2`** | Eingefroren | Erste Weiterentwicklung (Okt. 2026): BIM-Portal-API-Fixes, lauffähige GUI, erster IDS-Check |
+| **`0.3.1`** | **Aktiv (aktuell)** | Produktiver Java-Arbeitsstand mit APSTEX, MCP-Server, 217 Tests (`IfcOpenShell`-Referenz) & DE/EN-Doku |
+| **`0.3.2`** | Geplant (Ende Nov. 2026) | Finales Java-Release **ohne** APSTEX + MCP-Upgrade (Tool Annotations, `structuredContent`, Streamable HTTP) |
+| **`0.4`** (*CheckMate Lite*) | Work in Progress | Next-Gen ohne Java & ohne APSTEX auf **IFClite**-Basis (TypeScript + Rust/WASM, 3D-Viewer, Antigravity MCP App) |

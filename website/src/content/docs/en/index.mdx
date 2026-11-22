@@ -1,0 +1,51 @@
+---
+title: CheckMate
+description: Deterministic LOIN & IDS checking for IFC models against the German Federal BIM Portal — with AI / MCP support for public authorities, clients, and planners.
+template: splash
+hero:
+  tagline: Accelerating bureaucracy instead of dismantling standards — deterministic IFC / LOIN validation against the German Federal BIM Portal, assisted by open AI & MCP interfaces.
+  image:
+    file: ../../../assets/checkmate-logo.png
+    alt: CheckMate Logo
+  actions:
+    - text: Quick Start (0.3.1)
+      link: /CheckMate_BIMPortal/en/guides/quickstart/
+      icon: right-arrow
+    - text: Versions & Roadmap
+      link: /CheckMate_BIMPortal/en/guides/versions/
+      variant: secondary
+    - text: Contributors & Transparency
+      link: /CheckMate_BIMPortal/en/project/contributors/
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why CheckMate?
+
+CheckMate prevents planners — and above all reviewers in public authorities — from being put in **"checkmate"** by a flood of model data and LOIN requirements. As an independent, swappable, and safe **Mate (partner)**, CheckMate cleanly separates **deterministic rule checking** (buildingSMART IDS 1.0) from **human judgment supported by AI**.
+
+<CardGrid>
+	<Card title="Deterministic Checking (IDS 1.0)" icon="approve-check-circle">
+		Checks IFC2X3, IFC4, and IFC4X3 models reproducibly against LOINs, entire AIA projects from the German Federal BIM Portal, or local IDS files — cross-verified against <code>IfcOpenShell</code> / <code>ifctester</code>.
+	</Card>
+	<Card title="One Core, Three Interfaces" icon="laptop">
+		Desktop GUI (JavaFX), headless CLI (with JSON & exit codes), and an MCP server all share the exact same <code>CheckService</code> and identical results.
+	</Card>
+	<Card title="Open AI & MCP Integration" icon="rocket">
+		Connects to Antigravity (target: Nov 2026 MCP App), Claude Desktop/Code, OpenCode, and open models via Ollama (e.g., Mistral Cloud, local Qwen) or Strata — zero vendor lock-in.
+	</Card>
+	<Card title="Transparent & Open Source" icon="open-book">
+		Private open-source project (Apache 2.0) by TU Berlin staff and alumni based on the Sept 2025 BIM Portal Hackathon — with transparent module, version, and contribution records.
+	</Card>
+</CardGrid>
+
+## Release Line Overview
+
+| Version / Branch | Status | Focus |
+|---|---|---|
+| **`0.1`** | Frozen | Direct BIM Portal Hackathon snapshot (Sept / Nov 2025) with APSTEX IFC Toolbox |
+| **`0.2`** | Frozen | First iteration (Oct 2026): BIM Portal API fixes, runnable GUI, initial IDS check |
+| **`0.3.1`** | **Active (current)** | Working Java release with APSTEX, MCP server, 217 tests (`IfcOpenShell` reference) & DE/EN docs |
+| **`0.3.2`** | Planned (End of Nov 2026) | Final Java release **without** APSTEX + MCP upgrade (tool annotations, `structuredContent`, Streamable HTTP) |
+| **`0.4`** (*CheckMate Lite*) | Work in Progress | Next-gen without Java & APSTEX built on **IFClite** (TypeScript + Rust/WASM, 3D viewer, Antigravity MCP App) |

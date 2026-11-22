@@ -27,3 +27,9 @@ replay_pid*
 
 # Claude Code: personal permission settings (the shared .claude/skills/ stay tracked)
 .claude/settings.local.json
+
+# Documentation site (Astro Starlight)
+website/node_modules/
+website/dist/
+website/.astro/
+
