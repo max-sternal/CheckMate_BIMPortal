@@ -105,15 +105,27 @@ importers:
       '@checkmate/core':
         specifier: workspace:*
         version: link:../core
+      '@ifc-lite/bcf':
+        specifier: ^5.2.2
+        version: 5.2.2
+      '@ifc-lite/data':
+        specifier: ^7.0.0
+        version: 7.0.0
       '@ifc-lite/geometry':
         specifier: ^8.3.0
         version: 8.3.0
+      '@ifc-lite/ids':
+        specifier: ^3.5.0
+        version: 3.5.0
       '@ifc-lite/parser':
         specifier: ^10.0.0
         version: 10.0.0
       '@ifc-lite/renderer':
         specifier: ^7.2.0
         version: 7.2.0(@luma.gl/shadertools@9.4.2(@luma.gl/core@9.4.2))
+      '@ifc-lite/rules':
+        specifier: ^0.8.1
+        version: 0.8.1
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -3866,7 +3878,7 @@ snapshots:
 
   '@ifc-lite/renderer@7.2.0(@luma.gl/shadertools@9.4.2(@luma.gl/core@9.4.2))':
     dependencies:
-      '@ifc-lite/geometry': 8.2.0
+      '@ifc-lite/geometry': 8.3.0
       '@ifc-lite/load-trace': 0.4.0
       '@ifc-lite/spatial': 1.15.1
       '@luma.gl/core': 9.4.2
