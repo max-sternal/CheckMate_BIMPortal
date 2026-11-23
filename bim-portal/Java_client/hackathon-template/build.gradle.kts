@@ -28,6 +28,27 @@ repositories {
     mavenCentral()
 }
 
+// The CheckMate GUI (test.fx) uses JavaFX. JDK-FX builds (e.g. Zulu/Liberica 25 FX) ship it as
+// platform modules, plain JDKs omit it - so the GUI compiles against the org.openjfx artifacts,
+// which resolve on any JDK. They are compileOnly: at run time the JDK's own modules are used, and
+// runGui checks that they are there.
+//
+// It used to exclude test/fx from the source set instead when the running JDK had no JavaFX. That
+// made the build depend on who started it: an editor whose Java extension runs Gradle in its own
+// bundled JRE (Red Hat's has no JavaFX) dropped the GUI and deleted its classes from the shared
+// build directory, and the next launch failed with ClassNotFoundException: test.fx.App.
+val javaFxVersion = "25"
+
+val javaFxPlatform =
+    with(System.getProperty("os.name").lowercase()) {
+        val aarch64 = System.getProperty("os.arch").lowercase() == "aarch64"
+        when {
+            contains("win") -> "win"
+            contains("mac") -> if (aarch64) "mac-aarch64" else "mac"
+            else -> if (aarch64) "linux-aarch64" else "linux"
+        }
+    }
+
 dependencies {
     // Dependency on the BIM Portal enhanced client
     implementation(project(":bim-portal-enhanced"))
@@ -53,6 +74,11 @@ dependencies {
     // LLM chat inside the GUI (com.bimportal.hackathon.chat): official Anthropic Java SDK.
     implementation("com.anthropic:anthropic-java:3.3.0")
 
+    // JavaFX for the GUI (test.fx), to compile against only - see the note below the dependencies.
+    compileOnly("org.openjfx:javafx-base:$javaFxVersion:$javaFxPlatform")
+    compileOnly("org.openjfx:javafx-graphics:$javaFxVersion:$javaFxPlatform")
+    compileOnly("org.openjfx:javafx-controls:$javaFxVersion:$javaFxPlatform")
+
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.9")
     implementation("ch.qos.logback:logback-classic:1.4.11")
@@ -69,20 +95,6 @@ application {
     mainClass.set("com.bimportal.hackathon.HackathonApplication")
 }
 
-// The CheckMate GUI (test.fx) uses JavaFX, which JDK-FX builds (e.g. Zulu/Liberica 25 FX) ship as
-// platform modules and plain JDKs omit. Without JavaFX, exclude only test/fx so the IFC reader,
-// CLI, MCP server and all tests still build and run on any JDK 25.
-val hasJavaFx =
-    ModuleLayer.boot().findModule("javafx.controls").isPresent ||
-        file(System.getProperty("java.home")).resolve("lib/javafx.properties").exists()
-
-if (!hasJavaFx) {
-    sourceSets.main.get().java.exclude("test/fx/**")
-    logger.lifecycle(
-        "⚠ hackathon-template: JavaFX not bundled in this JDK - skipping only the GUI " +
-            "(test/fx). The IFC reader, CLI, MCP server and all tests are still built."
-    )
-}
 
 // --- Helper to load .env ---
 fun loadEnvFile(): Map<String, String> {

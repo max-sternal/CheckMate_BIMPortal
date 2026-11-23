@@ -185,10 +185,12 @@ them are skipped with a message. Results are in `hackathon-template/build/test-r
 - **The portal search is a substring match.** `search Schaft` returns 171 LOINs, mostly
   "Land*schaft*sbau", and `select Schaft` picks the wrong one. Anchor on the category
   separator: `loins > Schaft` / `select > Schaft` gives `Ueberbau > Schaft (Ingenieurbau)`.
-- **Without JavaFX the build doesn't fail.** On a plain JDK 21 (without bundled JavaFX),
-  `build.gradle.kts` skips only `test/fx` (the GUI) with a lifecycle notice while still building
-  the IFC reader, CLI, MCP server, and tests. `drive.sh` checks `JAVA_HOME` for JDK 21 FX first
-  and exits 2.
+- **Without JavaFX the build doesn't fail.** The GUI compiles against the `org.openjfx` artifacts
+  (`compileOnly`), so `test/fx` is built on any JDK 25; only running it needs a JDK that bundles
+  JavaFX, which `runGui` checks. `drive.sh` checks `JAVA_HOME` for JDK 25 FX first and exits 2.
+  (Until 2026-11-23 the build excluded `test/fx` instead when the JDK running Gradle had no
+  JavaFX. An editor building in its own JavaFX-less JRE then deleted the GUI classes from
+  `build/classes`, and the next launch failed with `ClassNotFoundException: test.fx.App`.)
 - **Some non-21 JDKs also bundle JavaFX** (e.g. Zulu 17 FX). A JavaFX check alone accepts them,
   and Gradle then dies with `invalid source release: 21`. drive.sh also checks
   `JAVA_VERSION="21` in `$JAVA_HOME/release`.

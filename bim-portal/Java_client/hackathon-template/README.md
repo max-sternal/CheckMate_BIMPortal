@@ -27,8 +27,9 @@ against it. A bridge model is bundled inside the JAR, so there is no file to loa
 1. **JDK 25.** Enough to build and run the pure-Java IFC reader (`com.bimportal.hackathon.ifc`),
    the headless CLI (`runLoinCheck`), the MCP server (`installMcp`), and all tests — no Apstex
    JARs or external IFC runtime needed.
-2. **A JDK 25 that bundles JavaFX** for the GUI, e.g. Zulu 25 FX. On a plain JDK 25, Gradle skips
-   only `test/fx` (the GUI), and `runGui` checks for JavaFX and names the problem.
+2. **A JDK 25 that bundles JavaFX** to *run* the GUI, e.g. Zulu 25 FX. Compiling it needs no such
+   JDK: `test/fx` is built against the `org.openjfx` artifacts (`compileOnly`), and `runGui` checks
+   the runtime JDK for JavaFX and names the problem when it is missing.
 3. **No credentials.** The client falls back to anonymous access, and the LOINs used
    here are published ones. A `.env` only unlocks private content.
 

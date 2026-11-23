@@ -52,9 +52,10 @@ Needed:
 
 - **JDK 25** as `JAVA_HOME`: enough to build and run the pure-Java IFC reader, CLI, MCP server,
   and all tests. No Apstex JARs or external IFC runtime are needed.
-- **JDK 25 with JavaFX**, e.g. Azul Zulu 25 "JDK FX", only for the JavaFX GUI (`runGui`). On a
-  plain JDK 25, Gradle skips only `test/fx` (the GUI) while building everything else; `runGui`
-  checks for JavaFX and says so.
+- **JDK 25 with JavaFX**, e.g. Azul Zulu 25 "JDK FX", to *run* the GUI (`runGui`). Building it
+  works on any JDK 25: the GUI compiles against the `org.openjfx` artifacts, which are declared
+  `compileOnly`, so at run time the JDK's own modules are used. `runGui` checks for them and says
+  so when they are missing.
 - **Network access** to `https://via.bund.de/bim` for LOINs and AIA projects. No account needed:
   without credentials CheckMate sees everything published.
 
