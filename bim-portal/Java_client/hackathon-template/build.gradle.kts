@@ -19,6 +19,10 @@ java {
 // Spring Boot 3.4 BOM pins ByteBuddy 1.15.x, which predates Java 25 (classfile version 69).
 extra["byte-buddy.version"] = "1.17.5"
 extra["mockito.version"] = "5.18.0"
+// ... and jackson-bom 2.18.1, which would drag jackson-annotations back to 2.18.1 while
+// databind stays 2.22.4. In 2.22 JsonProperty.isRequired() returns OptBoolean, not boolean,
+// so the mixed pair fails at runtime with NoSuchMethodError.
+extra["jackson-bom.version"] = "2.22.4"
 
 repositories {
     mavenCentral()
