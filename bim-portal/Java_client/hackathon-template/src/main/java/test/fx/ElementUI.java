@@ -138,6 +138,16 @@ public class ElementUI extends VBox {
   /** The last check, for the summary table's rows. */
   private Checked lastCheck;
 
+  /**
+   * IDs the GUI driver looks controls up by. Both text areas are read-only, so "the read-only one"
+   * no longer tells them apart (STATUS, GUI point 1).
+   */
+  public static final String REPORT_AREA_ID = "checkmate-report";
+
+  public static final String CHAT_AREA_ID = "checkmate-chat";
+
+  public static final String CHAT_INPUT_ID = "checkmate-chat-input";
+
   /** The conversation, read-only: what was asked and what came back. */
   private final TextArea chatArea = new TextArea();
 
@@ -300,6 +310,7 @@ public class ElementUI extends VBox {
 
     // The conversation above, the question below. The chat drives the same check as the buttons,
     // so an answer shows up in the report panel too; without a key it stays inactive and says so.
+    chatArea.setId(CHAT_AREA_ID);
     chatArea.setEditable(false);
     chatArea.setWrapText(true);
     chatArea.setPrefRowCount(8);
@@ -315,6 +326,7 @@ public class ElementUI extends VBox {
                 + " CheckMate neu. Alles andere funktioniert auch ohne.\n");
 
     TextField chatInput = new TextField();
+    chatInput.setId(CHAT_INPUT_ID);
     chatInput.setPromptText("Frage an CheckMate (Enter)");
     chatInput.setDisable(!CheckMateChat.configured());
     chatInput.setOnAction(event -> askChat(chatInput));
@@ -345,6 +357,7 @@ public class ElementUI extends VBox {
     rightBox.setFillWidth(true);
 
     // The report is read, not written, and lines are pre-aligned - hence read-only and monospaced.
+    reportArea.setId(REPORT_AREA_ID);
     reportArea.setEditable(false);
     reportArea.setStyle("-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px;");
     reportArea.setPrefRowCount(10);

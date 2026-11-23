@@ -243,9 +243,11 @@ them are skipped with a message. Results are in `hackathon-template/build/test-r
   stays untouched.
 - `CheckMateDriver.java` runs in single-file source mode (`java @args CheckMateDriver.java`).
   It calls `Application.launch(test.fx.App.class)` on a side thread, finds the stage via
-  `Window.getWindows()`, and does every scene access through `Platform.runLater`. Lookups go by
-  visible text: the read-only `TextArea` is the report, the `ListView` next to the `LOINs` label
-  is the LOIN list, the search field's prompt starts with `LOIN`, and buttons match by label.
+  `Window.getWindows()`, and does every scene access through `Platform.runLater`. The report panel
+  and the chat are found by the ids `checkmate-report` and `checkmate-chat` (constants in
+  `ElementUI`); both are read-only `TextArea`s, so "the read-only one" no longer tells them apart.
+  The rest still goes by visible text: the `ListView` next to the `LOINs` label is the LOIN list,
+  the search field's prompt starts with `LOIN`, and buttons match by label.
   If `ElementUI` changes those, update the lookups. The `ids` command calls the private
   `ElementUI.offerAndCheck` and the package-private `RequirementSource.Loaded` through
   reflection; renaming either breaks it.

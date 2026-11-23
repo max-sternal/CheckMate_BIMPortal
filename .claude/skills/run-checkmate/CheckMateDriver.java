@@ -130,6 +130,7 @@ public class CheckMateDriver {
         case "idle" -> idle(arg.isEmpty() ? DEFAULT_TIMEOUT_S : Integer.parseInt(arg));
         case "wait" -> waitForReport(arg);
         case "report" -> block(fx(() -> reportArea().getText()));
+        case "chat" -> block(fx(() -> chatArea().getText()));
         case "search" -> search(arg);
         case "ids" -> ids(arg);
         case "loins" -> loins(arg);
@@ -505,9 +506,27 @@ public class CheckMateDriver {
 
   // ---------------------------------------------------------------- lookup
 
-  /** The read-only text area at the bottom - the only non-editable TextArea in the window. */
+  /**
+   * The report panel at the bottom, by its id. The chat transcript is read-only too, so
+   * "the non-editable TextArea" picks the wrong one - it sits earlier in the scene graph.
+   * The fallback keeps older builds working, where neither area has an id.
+   */
   static TextArea reportArea() {
-    return find(TextArea.class, t -> !t.isEditable(), "report panel (read-only TextArea)");
+    for (TextArea area : all(TextArea.class)) {
+      if ("checkmate-report".equals(area.getId())) {
+        return area;
+      }
+    }
+    return find(
+        TextArea.class,
+        t -> !t.isEditable() && !"checkmate-chat".equals(t.getId()),
+        "report panel (read-only TextArea)");
+  }
+
+  /** The chat transcript on the right, by its id. */
+  static TextArea chatArea() {
+    return find(
+        TextArea.class, t -> "checkmate-chat".equals(t.getId()), "chat transcript (#checkmate-chat)");
   }
 
   /** The ListView next to the 'LOINs' label. */
