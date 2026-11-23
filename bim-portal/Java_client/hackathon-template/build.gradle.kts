@@ -50,6 +50,9 @@ dependencies {
     implementation("io.modelcontextprotocol.sdk:mcp-core:2.2.0")
     implementation("io.modelcontextprotocol.sdk:mcp-json-jackson2:2.2.0")
 
+    // LLM chat inside the GUI (com.bimportal.hackathon.chat): official Anthropic Java SDK.
+    implementation("com.anthropic:anthropic-java:3.3.0")
+
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.9")
     implementation("ch.qos.logback:logback-classic:1.4.11")

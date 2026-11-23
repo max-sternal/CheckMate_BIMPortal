@@ -5,6 +5,7 @@ import com.bimportal.hackathon.catalogue.CatalogueFilter;
 import com.bimportal.hackathon.catalogue.LoinDescription;
 import com.bimportal.hackathon.catalogue.ModelFit;
 import com.bimportal.hackathon.catalogue.ModelFit.Ranked;
+import com.bimportal.hackathon.chat.CheckMateChat;
 import com.bimportal.hackathon.check.CheckService;
 import com.bimportal.hackathon.check.Source;
 import com.bimportal.hackathon.ids.CheckResult;
@@ -25,6 +26,7 @@ import com.bimportal.hackathon.report.CheckReport.Run;
 import com.bimportal.hackathon.report.ReportText;
 import com.pb40.bimportal.client.BimPortalClientBuilder;
 import java.io.File;
+import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,6 +38,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
@@ -134,6 +137,16 @@ public class ElementUI extends VBox {
 
   /** The last check, for the summary table's rows. */
   private Checked lastCheck;
+
+  /** The conversation, read-only: what was asked and what came back. */
+  private final TextArea chatArea = new TextArea();
+
+  /**
+   * The chat, an alternative to driving CheckMate from an MCP host. It checks through {@link
+   * #checkForChat}, so an answer fills the report panel like the buttons do. Inactive without
+   * {@code ANTHROPIC_API_KEY}.
+   */
+  private final CheckMateChat chat = new CheckMateChat(this::checkForChat, this::modelLine);
 
   public ElementUI(LoadedModel model) {
     super();
@@ -285,14 +298,26 @@ public class ElementUI extends VBox {
 
     /*--------------------------------------------------------------------*/
 
-    // Create right VBox with two text areas and logo
-    TextArea talkToCheckMateField = new TextArea();
-    talkToCheckMateField.setPromptText("Ask CheckMate about IFC, LOIN, or construction topics...");
-    talkToCheckMateField.setText(
-        "\n<CheckMate>\nWie kann ich dir helfen?\n\n\t\t<<<Nutzer>>>\nBitte Suche die LOIN für Stützen im Modell.\n\n\t\t<<<CheckMate>>>\nGerne! Ich habe die LOIN 'Schaft' gefunden.\n");
-    talkToCheckMateField.setPrefRowCount(8);
-    talkToCheckMateField.setMinHeight(120);
-    talkToCheckMateField.setMaxHeight(Double.MAX_VALUE);
+    // The conversation above, the question below. The chat drives the same check as the buttons,
+    // so an answer shows up in the report panel too; without a key it stays inactive and says so.
+    chatArea.setEditable(false);
+    chatArea.setWrapText(true);
+    chatArea.setPrefRowCount(8);
+    chatArea.setMinHeight(120);
+    chatArea.setMaxHeight(Double.MAX_VALUE);
+    chatArea.setText(
+        CheckMateChat.configured()
+            ? "CheckMate: Frag mich nach einer Prüfung. Nenne die LOIN mit ihrer ID oder ihrem"
+                + " Link - suchen kannst du sie links in der Liste.\n"
+            : "Chat inaktiv: kein "
+                + CheckMateChat.API_KEY
+                + " gesetzt.\nTrag den Schlüssel in die Umgebung oder in .env ein und starte"
+                + " CheckMate neu. Alles andere funktioniert auch ohne.\n");
+
+    TextField chatInput = new TextField();
+    chatInput.setPromptText("Frage an CheckMate (Enter)");
+    chatInput.setDisable(!CheckMateChat.configured());
+    chatInput.setOnAction(event -> askChat(chatInput));
 
     ImageView logoView = null;
     try {
@@ -311,10 +336,11 @@ public class ElementUI extends VBox {
       logoView = new ImageView(); // fallback empty
     }
 
-    VBox rightBox = new VBox(10, new Label("CHAT HISTORY"), talkToCheckMateField, logoView);
+    VBox rightBox = new VBox(10, new Label("CHAT HISTORY"), chatArea, chatInput, logoView);
     rightBox.setPrefWidth(220);
     rightBox.setStyle("-fx-padding: 10; -fx-background-color: #f5f5f5;");
-    VBox.setVgrow(talkToCheckMateField, Priority.ALWAYS);
+    VBox.setVgrow(chatArea, Priority.ALWAYS);
+    VBox.setVgrow(chatInput, Priority.NEVER);
     VBox.setVgrow(logoView, Priority.NEVER);
     rightBox.setFillWidth(true);
 
@@ -1001,6 +1027,82 @@ public class ElementUI extends VBox {
    * <p>The LOIN search and the check talk to the portal, and loading a model may download one; each
    * would otherwise freeze the window for as long as it takes.
    */
+  /**
+   * Send what is in the chat field. The model answers and may check on the way; both take seconds
+   * to minutes, so it runs in the background and the field stays disabled until the answer is back.
+   */
+  private void askChat(TextField input) {
+    String question = input.getText().trim();
+    if (question.isEmpty()) {
+      return;
+    }
+    input.clear();
+    input.setDisable(true);
+    appendChat("Du", question);
+
+    int pending = chatArea.getLength();
+    chatArea.appendText("CheckMate denkt nach ...\n");
+
+    inBackground(
+        () -> {
+          try {
+            return chat.ask(question);
+          } catch (RuntimeException failed) {
+            return "Fehlgeschlagen: " + failure(failed);
+          }
+        },
+        answer -> {
+          chatArea.deleteText(pending, chatArea.getLength());
+          appendChat("CheckMate", answer);
+          input.setDisable(false);
+          input.requestFocus();
+        });
+  }
+
+  private void appendChat(String who, String what) {
+    chatArea.appendText(who + ": " + what + "\n\n");
+    chatArea.setScrollTop(Double.MAX_VALUE);
+  }
+
+  /**
+   * {@code check_model} for the chat: the same check "Validate LOIN" runs, against the same
+   * service, and shown the same way - summary table, report panel and element tabs.
+   *
+   * <p>Called on the chat's background thread, so the check itself stays off the JavaFX application
+   * thread; only showing it is handed back. The answer to the model is the short report, the panel
+   * keeps the full one.
+   */
+  private String checkForChat(List<String> ids, List<String> idsFiles, int examples) {
+    List<Source> sources = new ArrayList<>();
+    idsFiles.forEach(file -> sources.add(new Source.IdsFile(Path.of(file))));
+    ids.forEach(id -> sources.add(new Source.PortalId(id)));
+    if (sources.isEmpty()) {
+      throw new IllegalArgumentException("Keine Anforderungen angegeben: ids oder ids_files.");
+    }
+
+    LoadedModel checked = model;
+    CheckReport report =
+        service.check(sources, checked.info(), checked.elements(), OffsetDateTime.now());
+    Checked outcome = new Checked(report, String.join("\n", ReportText.full(report)), checked);
+    Platform.runLater(
+        () -> {
+          checks++;
+          lastCheck = outcome;
+          showSummary(outcome);
+        });
+
+    List<String> lines = new ArrayList<>(report.header());
+    lines.add("");
+    for (Run run : report.runs()) {
+      lines.addAll(
+          examples <= 0
+              ? ReportText.run(run, checked.schema())
+              : ReportText.brief(run, checked.schema(), examples));
+    }
+    lines.add(ReportText.verdictLine(report));
+    return String.join("\n", lines);
+  }
+
   private <T> void inBackground(Callable<T> work, Consumer<T> onSuccess) {
     Task<T> task =
         new Task<>() {
