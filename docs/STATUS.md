@@ -21,10 +21,12 @@ What is being worked on and what is still open. One line per item. Reference cod
   `CHECKMATE_DOCS_LATEST` (`v0.3.1`). The old single-version workflow is disabled. See
   [`website/README.md`](../website/README.md) before publishing; do not switch versions until
   release is approved.
-- `0.3.3` is a goal, not an existing remote branch: direct LOIN-XML support, BCF export, and
-  additional BIM Portal endpoints (Fachmodelle, Projekte, Vorlagen, Kontextinfos) are planned there.
-  `0.4` exists as a remote development branch at the older `c7062b5` state, still using APSTEX;
-  it is reserved for the future IFClite / online viewer / MCP App direction.
+- `0.3.3` branched off `0.3.2` on 2026-11-23 and is local only, not yet pushed. Planned there:
+  an LLM chat inside the GUI through an API key (below), direct LOIN-XML support, BCF export, and
+  additional BIM Portal endpoints (Fachmodelle, Projekte, Vorlagen, Kontextinfos).
+  `0.4` is a remote development branch that has moved on to a TypeScript/IFClite monorepo
+  (`@checkmate/core`, `/cli`, `/mcp`, `/web`) and ported the `0.3.2` feature set in `4e49ea7`;
+  it carries the online viewer / 3D direction.
 - CI for `0.3.2` uses Temurin JDK 25 without bundled JavaFX; optional tests may be skipped.
 
 ## Open points
@@ -40,6 +42,21 @@ What is being worked on and what is still open. One line per item. Reference cod
 3. "Connect MCP" has no handler (`ElementUI.java:112`). The MCP server exists (WORKFLOW 2.7) and works without the GUI; a chat inside the GUI, as in the pitch, is not implemented.
 4. Done (2026-11-22): "BIM Portal" opens `https://via.bund.de/bim` (`ElementUI.java:160`).
 5. Done (2026-11-20): the window opens at 1280x900, which fits the whole layout.
+6. Planned for `0.3.3`: the chat from point 3, driven by an LLM over an API key, so CheckMate can
+   be shown without a separate MCP host. It is an alternative to Claude Desktop, not a replacement
+   for the MCP server: both front ends call the same tools. Decided so far:
+   - Reuse the tool definitions in `com.bimportal.hackathon.mcp.CheckMateTools` instead of calling
+     `CheckService` and the portal client a second way, so there is one capability surface.
+   - A chat answer must fill the report panel and the element tabs exactly as the buttons do -
+     that is what the demo shows.
+   - Never put a whole report in the prompt (50,000 characters and more). The model calls
+     `check_model` and pages with `app_report_page`, as an MCP App view does.
+   - `ANTHROPIC_API_KEY` from `.env` (`*.env` is ignored in `bim-portal/.gitignore`), never in the
+     repository. Without a key the chat stays inactive and the rest of the GUI works unchanged,
+     so the app keeps running in public mode without credentials.
+   - Call the API off the JavaFX application thread, or the window freezes for the length of a check.
+   - Java SDK `com.anthropic:anthropic-java`, model `claude-opus-5-5`.
+   - First step: `check_model` as the only wired tool, enough for one full demo run.
 
 ### LOIN check
 
