@@ -14,7 +14,6 @@ import com.anthropic.models.messages.ToolResultBlockParam;
 import com.anthropic.models.messages.ToolUseBlock;
 import com.pb40.bimportal.config.ConfigLoader;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -289,14 +288,5 @@ public final class CheckMateChat {
       }
     }
     return fallback;
-  }
-
-  /** What the chat is set up with, for the status line. */
-  public Map<String, String> describe() {
-    Map<String, String> description = new LinkedHashMap<>();
-    description.put("model", MODEL);
-    description.put("key", configured() ? "gesetzt" : "fehlt");
-    description.put("tools", "check_model");
-    return description;
   }
 }
