@@ -289,9 +289,7 @@ public final class CheckMateMcpServer {
             handler(
                 args ->
                     tools.findProperties(
-                        string(args, "search"),
-                        string(args, "kind"),
-                        integer(args, "limit", 20)),
+                        string(args, "search"), string(args, "kind"), integer(args, "limit", 20)),
                 args -> tools.propertiesData()))
         .toolCall(
             tool(
@@ -304,8 +302,7 @@ public final class CheckMateMcpServer {
                     "kind", text("'auto' (default), 'property', or 'group'")),
                 List.of("guid")),
             handler(
-                args ->
-                    tools.describeProperty(string(args, "guid"), string(args, "kind")),
+                args -> tools.describeProperty(string(args, "guid"), string(args, "kind")),
                 args -> tools.propertyDetailData()))
         .toolCall(
             tool(
@@ -484,8 +481,7 @@ public final class CheckMateMcpServer {
     return new SyncPromptSpecification(
         prompt,
         (exchange, request) -> {
-          Map<String, Object> args =
-              request.arguments() == null ? Map.of() : request.arguments();
+          Map<String, Object> args = request.arguments() == null ? Map.of() : request.arguments();
           String phase = string(args, "phase");
           String discipline = string(args, "discipline");
           StringBuilder filterHint = new StringBuilder();
@@ -531,8 +527,7 @@ public final class CheckMateMcpServer {
     return new SyncPromptSpecification(
         prompt,
         (exchange, request) -> {
-          Map<String, Object> args =
-              request.arguments() == null ? Map.of() : request.arguments();
+          Map<String, Object> args = request.arguments() == null ? Map.of() : request.arguments();
           String element = string(args, "element");
           String target =
               element == null || element.isBlank() ? "<Element>" : "'" + element.trim() + "'";

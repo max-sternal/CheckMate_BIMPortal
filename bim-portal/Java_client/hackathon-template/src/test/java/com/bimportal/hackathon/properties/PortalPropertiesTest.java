@@ -193,7 +193,9 @@ class PortalPropertiesTest {
             .definitionsInLanguage(
                 List.of(
                     new DefinitionsInLanguageDto().language("en").definition("Fire resistance"),
-                    new DefinitionsInLanguageDto().language("de").definition("Feuerwiderstandsdauer")))
+                    new DefinitionsInLanguageDto()
+                        .language("de")
+                        .definition("Feuerwiderstandsdauer")))
             .listOfPossibleValuesInLanguage(
                 List.of(
                     new ListOfPossibleValuesInLanguageDto().language("en").possibleValue("F30-EN"),

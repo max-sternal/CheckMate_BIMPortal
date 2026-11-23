@@ -263,7 +263,11 @@ public final class IdsParser {
         return Optional.empty();
       }
       unsupported.add(
-          "Merkmal " + key + ": " + parsedValue.problem() + " - geprüft wird nur, ob es vorhanden ist");
+          "Merkmal "
+              + key
+              + ": "
+              + parsedValue.problem()
+              + " - geprüft wird nur, ob es vorhanden ist");
       return Optional.of(new PropertyRequirement(key, dataType, null, null, cardinality));
     }
     return Optional.of(
@@ -272,8 +276,7 @@ public final class IdsParser {
   }
 
   /** Parsed {@code <value>} of a {@code <property>} facet: fixed value, constraint, or problem. */
-  private record PropertyValue(
-      String expectedValue, ValueConstraint constraint, String problem) {
+  private record PropertyValue(String expectedValue, ValueConstraint constraint, String problem) {
 
     static final PropertyValue ABSENT = new PropertyValue(null, null, null);
 

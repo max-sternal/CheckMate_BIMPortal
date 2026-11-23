@@ -27,7 +27,7 @@ subprojects {
     configure<com.diffplug.gradle.spotless.SpotlessExtension> {
         java {
             target("src/**/*.java")
-            googleJavaFormat() // Use Google Java Format
+            googleJavaFormat("1.28.0") // Use Google Java Format
             removeUnusedImports()
             trimTrailingWhitespace()
             leadingTabsToSpaces(4)

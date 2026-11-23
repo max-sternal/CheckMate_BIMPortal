@@ -129,7 +129,10 @@ public final class CheckMateTools {
     return data;
   }
 
-  /** The current model overview serialized as JSON, for the {@code checkmate://model/current} resource. */
+  /**
+   * The current model overview serialized as JSON, for the {@code checkmate://model/current}
+   * resource.
+   */
   public synchronized String currentModelJson() {
     return toJson(modelData());
   }
@@ -501,12 +504,18 @@ public final class CheckMateTools {
     lastPropertiesData = data;
 
     List<String> sections = new ArrayList<>();
-    if (!props.isEmpty() || mode.equals("property") || mode.equals("properties")
-        || mode.equals("merkmal") || mode.equals("merkmale")) {
+    if (!props.isEmpty()
+        || mode.equals("property")
+        || mode.equals("properties")
+        || mode.equals("merkmal")
+        || mode.equals("merkmale")) {
       sections.add(PortalProperties.formatSearchResults(props, "Merkmale"));
     }
-    if (!groups.isEmpty() || mode.equals("group") || mode.equals("groups")
-        || mode.equals("gruppe") || mode.equals("merkmalsgruppe")
+    if (!groups.isEmpty()
+        || mode.equals("group")
+        || mode.equals("groups")
+        || mode.equals("gruppe")
+        || mode.equals("merkmalsgruppe")
         || mode.equals("merkmalsgruppen")) {
       sections.add(PortalProperties.formatSearchResults(groups, "Merkmalsgruppen"));
     }
@@ -610,6 +619,7 @@ public final class CheckMateTools {
     return text != null
         && text.toLowerCase(Locale.ROOT).contains(part.trim().toLowerCase(Locale.ROOT));
   }
+
   private static String toJson(Object value) {
     try {
       return JSON.writeValueAsString(value);

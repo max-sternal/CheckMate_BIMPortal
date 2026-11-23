@@ -77,9 +77,7 @@ public record ValueConstraint(
           problems.add("entspricht nicht dem Muster '" + patterns.get(0).source() + "'");
         } else {
           String all =
-              patterns.stream()
-                  .map(p -> "'" + p.source() + "'")
-                  .collect(Collectors.joining(" | "));
+              patterns.stream().map(p -> "'" + p.source() + "'").collect(Collectors.joining(" | "));
           problems.add("entspricht keinem der Muster " + all);
         }
       }
@@ -110,7 +108,8 @@ public record ValueConstraint(
       problems.add("Länge " + codePoints + " statt exakt " + length + " Zeichen");
     }
     if (minLength != null && codePoints < minLength) {
-      problems.add("Länge " + codePoints + " unterschreitet Mindestlänge " + minLength + " Zeichen");
+      problems.add(
+          "Länge " + codePoints + " unterschreitet Mindestlänge " + minLength + " Zeichen");
     }
     if (maxLength != null && codePoints > maxLength) {
       problems.add("Länge " + codePoints + " überschreitet Maximallänge " + maxLength + " Zeichen");
@@ -119,7 +118,9 @@ public record ValueConstraint(
     return problems.isEmpty() ? Optional.empty() : Optional.of(String.join("; ", problems));
   }
 
-  /** Concise German summary for report headings, e.g. {@code >= 0, <= 100} or {@code Muster 'A.*'}. */
+  /**
+   * Concise German summary for report headings, e.g. {@code >= 0, <= 100} or {@code Muster 'A.*'}.
+   */
   public String describe() {
     List<String> parts = new ArrayList<>();
     if (minInclusive != null) {
@@ -186,7 +187,10 @@ public record ValueConstraint(
     boolean timedOut = false;
     for (CompiledPattern pattern : patterns) {
       try {
-        if (pattern.compiled().matcher(new BoundedCharSequence(actual, MAX_REGEX_STEPS)).matches()) {
+        if (pattern
+            .compiled()
+            .matcher(new BoundedCharSequence(actual, MAX_REGEX_STEPS))
+            .matches()) {
           return PatternMatchResult.MATCHED;
         }
       } catch (RegexStepLimitExceeded e) {
@@ -214,7 +218,9 @@ public record ValueConstraint(
     }
   }
 
-  /** CharSequence wrapper that aborts regex evaluation after a bounded number of character reads. */
+  /**
+   * CharSequence wrapper that aborts regex evaluation after a bounded number of character reads.
+   */
   private static final class BoundedCharSequence implements CharSequence {
 
     private final CharSequence delegate;

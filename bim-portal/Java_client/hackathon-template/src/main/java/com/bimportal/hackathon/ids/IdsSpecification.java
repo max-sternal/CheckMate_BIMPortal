@@ -260,7 +260,9 @@ public record IdsSpecification(
       String address =
           hasExpectedValue()
               ? key + " = '" + expectedValue + "'"
-              : hasValueConstraint() ? key + " (" + valueConstraint.describe() + ")" : key.toString();
+              : hasValueConstraint()
+                  ? key + " (" + valueConstraint.describe() + ")"
+                  : key.toString();
       return switch (cardinality) {
         case REQUIRED -> address;
         case OPTIONAL -> address + " (optional)";

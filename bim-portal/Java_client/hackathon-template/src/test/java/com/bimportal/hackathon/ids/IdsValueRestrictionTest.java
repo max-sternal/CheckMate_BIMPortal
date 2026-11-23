@@ -108,9 +108,7 @@ class IdsValueRestrictionTest {
 
     ModelElement evil =
         element(
-            "evil",
-            "IfcWall",
-            List.of(property("Pset_Test", "Code", "a".repeat(35) + "X", LABEL)));
+            "evil", "IfcWall", List.of(property("Pset_Test", "Code", "a".repeat(35) + "X", LABEL)));
 
     CheckResult result = IdsValidator.check(spec, List.of(evil));
     assertThat(result.findings()).hasSize(1);
@@ -179,9 +177,7 @@ class IdsValueRestrictionTest {
         element("atMin", "IfcWall", List.of(property("Pset_Test", "Temperatur", "0", "IfcReal")));
     ModelElement inside =
         element(
-            "inside",
-            "IfcWall",
-            List.of(property("Pset_Test", "Temperatur", "0.0001", "IfcReal")));
+            "inside", "IfcWall", List.of(property("Pset_Test", "Temperatur", "0.0001", "IfcReal")));
     ModelElement atMax =
         element("atMax", "IfcWall", List.of(property("Pset_Test", "Temperatur", "100", "IfcReal")));
 
@@ -375,8 +371,7 @@ class IdsValueRestrictionTest {
     CheckResult result = IdsValidator.check(spec, List.of(forbidden, allowed));
     assertThat(result.findings())
         .extracting(Finding::elementId, Finding::status)
-        .containsExactly(
-            tuple("bad", Status.PROHIBITED_PRESENT), tuple("ok", Status.FULFILLED));
+        .containsExactly(tuple("bad", Status.PROHIBITED_PRESENT), tuple("ok", Status.FULFILLED));
   }
 
   private static IdsSpecification requirementSpec(

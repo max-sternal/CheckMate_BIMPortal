@@ -290,7 +290,8 @@ class CheckMateMcpServerTest {
                     "arguments",
                     Map.of("phase", "LPH 5", "discipline", "Ingenieurbau")))
             .path("result");
-    String checkPromptText = checkLoin.path("messages").path(0).path("content").path("text").asText();
+    String checkPromptText =
+        checkLoin.path("messages").path(0).path("content").path("text").asText();
     assertThat(checkPromptText)
         .contains("describe_model", "find_loins", "check_model", "LPH 5", "Ingenieurbau");
 

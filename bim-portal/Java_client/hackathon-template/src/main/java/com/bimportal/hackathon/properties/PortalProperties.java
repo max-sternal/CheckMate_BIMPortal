@@ -419,8 +419,7 @@ public final class PortalProperties {
     List<PropertyOrGroupForPublicDto> fetch(PropertyOrGroupForPublicRequest request);
   }
 
-  private static List<PropertySummary> pagedSearch(
-      String query, int limit, SearchPage searchPage) {
+  private static List<PropertySummary> pagedSearch(String query, int limit, SearchPage searchPage) {
     List<PropertySummary> results = new ArrayList<>();
     for (int page = 0; page < MAX_PAGES && results.size() < limit; page++) {
       PropertyOrGroupForPublicRequest request = new PropertyOrGroupForPublicRequest();
@@ -648,9 +647,7 @@ public final class PortalProperties {
       return false;
     }
     String normalized = language.trim().toLowerCase(Locale.ROOT);
-    return normalized.equals("de")
-        || normalized.startsWith("de-")
-        || normalized.startsWith("de_");
+    return normalized.equals("de") || normalized.startsWith("de-") || normalized.startsWith("de_");
   }
 
   private static String formatVersion(Long versionNumber, Long revisionNumber) {

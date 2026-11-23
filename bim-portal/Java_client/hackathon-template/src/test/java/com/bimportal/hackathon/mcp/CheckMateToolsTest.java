@@ -263,10 +263,7 @@ class CheckMateToolsTest {
                     .dataType("IFCLABEL")));
     when(client.searchPropertyGroups(any()))
         .thenReturn(
-            List.of(
-                new PropertyOrGroupForPublicDto()
-                    .guid(groupGuid)
-                    .name("Pset_Bauwerk")));
+            List.of(new PropertyOrGroupForPublicDto().guid(groupGuid).name("Pset_Bauwerk")));
     when(client.getProperty(propGuid))
         .thenReturn(
             Optional.of(
