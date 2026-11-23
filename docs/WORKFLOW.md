@@ -275,6 +275,35 @@ Only the requirements of the LOINs to be checked are downloaded. Then:
   (tools, parameters, transport), [`CheckMateTools`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/mcp/CheckMateTools.java)
   (what each tool does, on `CheckService`, tested without the protocol).
 
+### 2.8 The chat in the GUI (`0.3.3`)
+
+The chat panel on the right of the window drives the check through an LLM, so CheckMate can be
+shown without running an MCP host next to it. It is an alternative to 2.7, not a replacement: both
+go through `CheckService`, and only the caller differs.
+
+- **Setting it up:** put `ANTHROPIC_API_KEY=...` in the environment or in
+  `bim-portal/Java_client/.env` (`*.env` is git-ignored) and start CheckMate again - the field is
+  enabled once at startup. Without a key the panel says so and stays inactive; the rest of the GUI,
+  the CLI and the MCP server do not care.
+- **What it does:** the model has one tool, `check_model`, wired to the GUI's own check. An answer
+  therefore fills the summary table, the report panel and the element tabs exactly as
+  "Validate LOIN" does. Name the LOIN by its ID or its link; searching the catalogue is not a tool
+  yet, so look it up in the list on the left.
+- **Cost:** every question is billed per token, because the request comes from CheckMate itself
+  rather than from an AI app the user already pays for. A question with the short report costs a
+  few cents; `examples: 0` (the full report) more. The MCP route in 2.7 has no such cost. Some
+  subscription plans include API credits - check the Console.
+- **Limits:** the tool answer is capped at 50,000 characters, as in 2.7, so a whole report never
+  enters a prompt - the panel keeps the full one. At most 6 tool calls per question. The call runs
+  on the GUI's worker thread, so the window stays responsive, but there is no progress message
+  while the model thinks.
+- **Not verified yet:** the request reaches the API (a deliberately invalid key comes back as
+  `401 invalid x-api-key`), but no question has been answered end to end - the tool loop and the
+  model's behaviour are untested (STATUS, GUI point 6).
+- **Main class:** [`CheckMateChat`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/chat/CheckMateChat.java)
+  (conversation, tool definition, tool-use loop), on the official Anthropic Java SDK; the GUI side
+  is `askChat` and `checkForChat` in `ElementUI`.
+
 ## 3. Background: what the portal delivers
 
 Measured on 2026-11-20 against the public portal `https://via.bund.de/bim`:

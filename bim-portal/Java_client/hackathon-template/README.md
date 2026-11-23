@@ -32,6 +32,10 @@ against it. A bridge model is bundled inside the JAR, so there is no file to loa
    the runtime JDK for JavaFX and names the problem when it is missing.
 3. **No credentials.** The client falls back to anonymous access, and the LOINs used
    here are published ones. A `.env` only unlocks private content.
+4. **`ANTHROPIC_API_KEY`, optional**, in the environment or in `.env`, only for the chat in the GUI
+   (`com.bimportal.hackathon.chat`). Without it the chat stays inactive and says so; the GUI, the
+   CLI and the MCP server are unaffected. Requests with this key are billed per token, unlike the
+   MCP server, which runs inside the user's own AI app.
 
 ### Run it
 

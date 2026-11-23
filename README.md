@@ -7,7 +7,8 @@ as IDS (buildingSMART's Information Delivery Specification) or supplied locally.
 supports a subset of IDS 1.0; selected results are compared with ifctester.
 
 Three front ends share one check: a JavaFX GUI, a command line (CLI), and an MCP server for
-compatible AI applications. The [documentation](https://max-sternal.github.io/CheckMate_BIMPortal/)
+compatible AI applications. On branch `0.3.3` the GUI also has a chat that drives the check through
+an LLM, as an alternative to running an MCP host alongside it. The [documentation](https://max-sternal.github.io/CheckMate_BIMPortal/)
 describes setup, the checking scope, its limitations, and the project's BIM context in German and
 English.
 The website on branch `0.3.2` documents this development state; the published
@@ -26,6 +27,7 @@ for the versioned deployment.
 | `…/src/main/java/com/bimportal/hackathon/report/` | the result of a run: verdict, exit code, text and JSON (`CheckReport`, `ReportText`, `ReportJson`) |
 | `…/src/main/java/com/bimportal/hackathon/cli/` | headless command-line front end (`LoinCheckCli`) |
 | `…/src/main/java/com/bimportal/hackathon/mcp/` | the MCP server for AI apps: the tools (`CheckMateTools`) and the server over stdio (`CheckMateMcpServer`), on the official MCP Java SDK |
+| `…/src/main/java/com/bimportal/hackathon/chat/` | the chat in the GUI (`CheckMateChat`): conversation, tool definition and tool-use loop, on the official Anthropic Java SDK |
 | `…/src/main/java/test/fx/` | JavaFX GUI only (`App`, `ElementUI`, `RequirementSource`). The package name is a leftover (STATUS #13). |
 | `…/src/test/` | tests, with real portal downloads and own IFC case files |
 | `bim-portal/Java_client/bim-portal-enhanced/` | client for the BIM Portal's API (from the hackathon template) |
@@ -64,6 +66,10 @@ Included or optional:
 - Gradle comes with the wrapper (`gradlew`), nothing to install.
 - Credentials for non-public content: copy `bim-portal/Java_client/.env_example` to `.env` and set
   `BIM_PORTAL_USERNAME` and `BIM_PORTAL_PASSWORD`. Never commit `.env`.
+- `ANTHROPIC_API_KEY` in the environment or in the same `.env`, only for the chat in the GUI.
+  Without it the chat panel stays inactive and says so, and everything else works unchanged.
+  Unlike the MCP server, which runs inside an AI app the user already pays for, this key is billed
+  per request. See [`docs/WORKFLOW.md`](docs/WORKFLOW.md), section 2.8.
 - Sample models for more tests (about 5 MB, from public GitHub repositories):
   `./gradlew :hackathon-template:downloadTestModels`. Without them those tests are skipped with a
   message.

@@ -3,9 +3,11 @@
 What is being worked on and what is still open. One line per item. Reference code as
 `file:line` where it helps.
 
-## Current handoff (2026-11-22)
+## Current handoff (2026-11-23)
 
-- `0.3.2` is the active development branch: Java 25 (LTS), Gradle 9.1.0, Mockito 5.18.0 /
+- `0.3.3` is the active development branch (local only, see below). It inherits everything from
+  `0.3.2` and adds the chat in the GUI (GUI point 6).
+- `0.3.2` is the released development state: Java 25 (LTS), Gradle 9.1.0, Mockito 5.18.0 /
   ByteBuddy 1.17.5, a pure-Java IFC reader without APSTEX, configurable JSON property mappings,
   GUI, CLI and MCP server.
 - The MCP server uses SDK 2.2.0 and Jackson 2.22 (databind/core/JSR310 2.22.4, annotations
@@ -42,21 +44,33 @@ What is being worked on and what is still open. One line per item. Reference cod
 3. "Connect MCP" has no handler (`ElementUI.java:112`). The MCP server exists (WORKFLOW 2.7) and works without the GUI; a chat inside the GUI, as in the pitch, is not implemented.
 4. Done (2026-11-22): "BIM Portal" opens `https://via.bund.de/bim` (`ElementUI.java:160`).
 5. Done (2026-11-20): the window opens at 1280x900, which fits the whole layout.
-6. Planned for `0.3.3`: the chat from point 3, driven by an LLM over an API key, so CheckMate can
-   be shown without a separate MCP host. It is an alternative to Claude Desktop, not a replacement
-   for the MCP server: both front ends call the same tools. Decided so far:
-   - Reuse the tool definitions in `com.bimportal.hackathon.mcp.CheckMateTools` instead of calling
-     `CheckService` and the portal client a second way, so there is one capability surface.
-   - A chat answer must fill the report panel and the element tabs exactly as the buttons do -
-     that is what the demo shows.
-   - Never put a whole report in the prompt (50,000 characters and more). The model calls
-     `check_model` and pages with `app_report_page`, as an MCP App view does.
-   - `ANTHROPIC_API_KEY` from `.env` (`*.env` is ignored in `bim-portal/.gitignore`), never in the
-     repository. Without a key the chat stays inactive and the rest of the GUI works unchanged,
-     so the app keeps running in public mode without credentials.
-   - Call the API off the JavaFX application thread, or the window freezes for the length of a check.
-   - Java SDK `com.anthropic:anthropic-java`, model `claude-opus-5-5`.
-   - First step: `check_model` as the only wired tool, enough for one full demo run.
+6. Built on `0.3.3` (2026-11-23), **answering path not yet verified**: the chat from point 3,
+   driven by an LLM over an API key, so CheckMate can be shown without a separate MCP host. An
+   alternative to Claude Desktop, not a replacement for the MCP server - see
+   [WORKFLOW.md](WORKFLOW.md) 2.8. `com.bimportal.hackathon.chat.CheckMateChat` holds the
+   conversation, the tool definition and the tool-use loop (at most 6 calls per question) on the
+   official Anthropic Java SDK with `claude-opus-5-5`; `ElementUI.askChat` and
+   `ElementUI.checkForChat` are the GUI side.
+   - `check_model` is wired to the GUI's own check, so an answer fills the summary table, the
+     report panel and the element tabs as the buttons do. It does **not** go through
+     `CheckMateTools`, as first planned: that class keeps its own model and its own last report, so
+     the panel would drift from it. The shared layer is one below - `CheckService` and
+     `ReportText`, which the MCP server uses too.
+   - The tool answer is the short report, capped at 50,000 characters as in the MCP server, so no
+     whole report enters a prompt; the panel keeps the full one.
+   - `ANTHROPIC_API_KEY` from the environment or `.env` (`*.env` is ignored in
+     `bim-portal/.gitignore`), never in the repository. Without a key the chat stays inactive and
+     the rest of the GUI works unchanged, so the app keeps running without credentials.
+   - **Open:** no question has been answered end to end. A deliberately invalid key reaches the API
+     and comes back as `401 invalid x-api-key`, so the SDK, the transport and the request shape are
+     proven; the tool loop and the model's behaviour are not. Also open: a GUI control for the
+     mapping (point 14), `find_loins` as a second tool so the model can search the catalogue
+     itself, and server-side refusal fallbacks, which would need the SDK's beta endpoint - today a
+     refusal is caught and shown as a message.
+   - Two build defects came out of wiring it up, both fixed and both older than this feature:
+     the GUI vanished from `build/classes` whenever Gradle ran on a JDK without bundled JavaFX
+     (`c3240d5`), and `bim-portal-enhanced`'s jar bundled its whole runtime classpath, so Jackson
+     loaded as 2.18.1 from it and the Anthropic SDK refused to start (`a8da1f0`).
 
 ### LOIN check
 
@@ -83,8 +97,8 @@ What is being worked on and what is still open. One line per item. Reference cod
 ### MCP server
 
 16. Claude Desktop and Claude Code (Windows) start the server and list its tools (2026-11-22); Claude Desktop only with `JAVA_HOME` in the config's `env` (WORKFLOW 2.7). Not yet tried with Ollama through an MCP host such as `ollmcp`.
-17. Done on `0.3.2` (2026-11-22): MCP Java SDK 2.2.0 and Jackson 2.22 (databind/core/JSR310 2.22.4; annotations 2.22) in `hackathon-template` and `openapi-generated`. The server uses the legacy (2025-11-25) server over stdio; the modern 2026-07-28 server is planned as a second entry point (docs/MCP-APPS-PLAN.md).
-18. MCP Apps (docs/MCP-APPS-PLAN.md): done on `0.3.2` are the `io.modelcontextprotocol/ui` capability, `check_model` with `structuredContent`, `ui://checkmate/report` and app-only `app_report_page` for more findings. Open: views for `find_loins` and `describe_model`, testing the view in Claude Desktop and Antigravity (protocol-tested only), and a possible port to `0.4`.
+17. Done on `0.3.2` (2026-11-22): MCP Java SDK 2.2.0 and Jackson 2.22 (databind/core/JSR310 2.22.4; annotations 2.22) in `hackathon-template` and `openapi-generated`. The server uses the legacy (2025-11-25) server over stdio; the modern 2026-07-28 server is planned as a second entry point (docs/MCP-APPS-PLAN.md). Two follow-ups were needed on `0.3.3`: Spring Boot's BOM forced `jackson-annotations` back to 2.18.1 next to databind 2.22.4 (`5ce0d6f`), and `bim-portal-enhanced`'s jar bundled Jackson 2.18.1 classes that shadowed the resolved ones at run time (`a8da1f0`). Check `jackson.databind.cfg.PackageVersion.VERSION` at run time, not only `gradlew dependencies`.
+18. MCP Apps (docs/MCP-APPS-PLAN.md): done on `0.3.2` are the `io.modelcontextprotocol/ui` capability, `check_model` with `structuredContent`, all three views (`report`, `loins`, `model`) with app-only `app_report_page` for more findings, JSON resources and prompts. Open: seeing the views in Claude Desktop and Antigravity (protocol-tested only) - the largest remaining item before a `0.3.2` release - and a possible port to `0.4`.
 
 ### Code structure
 
