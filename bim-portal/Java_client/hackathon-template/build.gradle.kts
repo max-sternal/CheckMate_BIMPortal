@@ -53,6 +53,12 @@ dependencies {
     // Dependency on the BIM Portal enhanced client
     implementation(project(":bim-portal-enhanced"))
 
+    // The generated portal client, used directly (com.bimportal.client.model.*, .api.*) in the
+    // catalogue, the IDS download and the examples. bim-portal-enhanced depends on it with
+    // `implementation`, so it is not passed on - this module compiled only because that project's
+    // jar used to bundle its dependencies.
+    implementation(project(":openapi-generated"))
+
     // Spring Boot starters
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-web")

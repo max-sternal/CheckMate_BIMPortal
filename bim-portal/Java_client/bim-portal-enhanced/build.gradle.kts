@@ -25,13 +25,17 @@ application {
     mainClass.set("com.pb40.bimportal.examples.QuickStart")
 }
 
+// The library jar carries this module's own classes, nothing else. It used to bundle every
+// dependency as well - 1246 Jackson classes next to 31 of its own - and hackathon-template puts
+// this artifact on its own classpath, where those frozen copies shadowed the versions Gradle
+// resolved. Jackson then loaded as 2.18.1 although only 2.22.x jars were on the classpath, and the
+// Anthropic SDK refused to start over it ("incompatible Jackson versions were detected").
+//
+// Nothing is lost: the Spring Boot plugin's bootJar already builds the runnable artifact
+// (bim-portal-enhanced-1.0.0.jar, Main-Class from the application block), so `java -jar` keeps
+// working. Use that one, not the -plain jar.
 tasks.jar {
     dependsOn(":openapi-generated:jar")
-    manifest {
-        attributes["Main-Class"] = "com.pb40.bimportal.examples.QuickStart"
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
 }
 
 // --- Helper to load .env ---
