@@ -44,7 +44,7 @@ What is being worked on and what is still open. One line per item. Reference cod
 3. "Connect MCP" has no handler (`ElementUI.java:112`). The MCP server exists (WORKFLOW 2.7) and works without the GUI; a chat inside the GUI, as in the pitch, is not implemented.
 4. Done (2026-11-22): "BIM Portal" opens `https://via.bund.de/bim` (`ElementUI.java:160`).
 5. Done (2026-11-20): the window opens at 1280x900, which fits the whole layout.
-6. Built on `0.3.3` (2026-11-23), **answering path not yet verified**: the chat from point 3,
+6. Built on `0.3.3` (2026-11-23), **answered end to end on 2026-11-24**: the chat from point 3,
    driven by an LLM over an API key, so CheckMate can be shown without a separate MCP host. An
    alternative to Claude Desktop, not a replacement for the MCP server - see
    [WORKFLOW.md](WORKFLOW.md) 2.8. `com.bimportal.hackathon.chat.CheckMateChat` holds the
@@ -67,9 +67,16 @@ What is being worked on and what is still open. One line per item. Reference cod
    - `ANTHROPIC_API_KEY` from the environment or `.env` (`*.env` is ignored in
      `bim-portal/.gitignore`), never in the repository. Without a key the chat stays inactive and
      the rest of the GUI works unchanged, so the app keeps running without credentials.
-   - **Open:** no question has been answered end to end. A deliberately invalid key reaches the API
-     and comes back as `401 invalid x-api-key`, so the SDK, the transport and the request shape are
-     proven; the tool loop and the model's behaviour are not. Also open: a GUI control for the
+   - **Verified (2026-11-24)** against OpenRouter with `openrouter/free`: "Pruefe das Modell gegen
+     die LOIN 554c1a4f-..." made the model call `check_model`, the check ran, the summary table
+     filled with one row (`nicht prüfbar | Lager > Lager: LPH 1-9 | 0 von 303`), and the answer
+     named the cause correctly - the model carries `BeweglichesLager`/`FestesLager` as `IFCTEXT`
+     where the LOIN wants `Lager` as `IFCLABEL`. Answered by `baidu/ernie-5.5-flash-preview:free`,
+     so the loop works on a free model. It is not reliable there: an earlier question to
+     `baidu/ernie-5.5-flash-preview:free` degenerated into a repeating table until the token limit,
+     and `nvidia/nemotron-3-ultra-550b-a55b:free` answered correctly. The router picks per request,
+     so the model that answers is recorded in the transcript. A paid model has not been compared.
+   - **Open:** a GUI control for the
      mapping (point 14), `find_loins` as a second tool so the model can search the catalogue
      itself, and server-side refusal fallbacks, which would need the SDK's beta endpoint - today a
      refusal is caught and shown as a message.
@@ -82,6 +89,16 @@ What is being worked on and what is still open. One line per item. Reference cod
 
 6. The saved portal IDS "Ueberbau > Kappe" is "nicht prüfbar" on the bundled bridge model (0 of 303 elements applicable). The default Hamburg mapping finds differently named properties, but values and data types still differ (e.g. `Kappe` vs `Ueberbau`, `IFCTEXT` vs `IFCLABEL`). See the [worked example](../website/src/content/docs/guides/example.md); a mapping does not resolve value or type differences.
 7. The LOIN search matches substrings, so "Schaft" also returns the "Landschaftsbau" LOINs. The GUI could rank or filter by the category path (`Ueberbau > Schaft`).
+19. **Portal IDs are not stable.** On 2026-11-24 the portal no longer knew
+    `be959b9d-daef-5315-9aba-f60b6ad54ccb` ("Ueberbau > Kappe"), although the catalogue answered
+    normally (4129 LOINs, 391 fitting the model) and a search for "Kappe" returned three LOINs,
+    among them "Tunnelrohbau > Kappe: LPH 1-9" as `789ef5e4-41e4-570e-a5a7-0c629fbe12ca`. The old
+    id is the example in [README.md](../README.md) (quick start and the AI-app section) and in
+    `.claude/skills/run-checkmate/SKILL.md`, so those three places now show a call that fails. The
+    tests are unaffected: they use the id as a fixture constant or parse it as an argument, and the
+    saved IDS in `src/test/resources/ids/portal/` is read from disk. Decide whether the examples
+    name a current id, or avoid ids entirely by searching (`--args="Kappe"`, `--suggest`), which
+    cannot go stale.
 
 ### Documentation
 

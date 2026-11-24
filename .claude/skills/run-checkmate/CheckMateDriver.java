@@ -43,6 +43,12 @@ public class CheckMateDriver {
 
   static final int DEFAULT_TIMEOUT_S = 180;
 
+  /** The model thinks, then a check runs, possibly several times - minutes, not seconds. */
+  static final int CHAT_TIMEOUT_S = 420;
+
+  /** What ElementUI.askChat shows while it waits; its disappearance means the answer arrived. */
+  static final String CHAT_PENDING = "CheckMate denkt nach ...";
+
   static volatile Throwable launchError;
   static Stage stage;
   static boolean interactive;
@@ -131,6 +137,7 @@ public class CheckMateDriver {
         case "wait" -> waitForReport(arg);
         case "report" -> block(fx(() -> reportArea().getText()));
         case "chat" -> block(fx(() -> chatArea().getText()));
+        case "ask" -> ask(arg);
         case "search" -> search(arg);
         case "ids" -> ids(arg);
         case "loins" -> loins(arg);
@@ -232,6 +239,39 @@ public class CheckMateDriver {
         () -> pattern.matcher(fx(() -> reportArea().getText())).find(),
         "report never matched /" + regex + "/");
     say("matched /" + regex + "/");
+  }
+
+  /**
+   * Put a question to the chat and wait for the answer, then print what the transcript gained. The
+   * GUI marks the wait with "CheckMate denkt nach ...", so that line disappearing is the signal.
+   * A model that thinks and then runs a check takes far longer than a button press, hence the
+   * separate timeout.
+   */
+  static void ask(String question) throws Exception {
+    if (question.isEmpty()) {
+      say("FAILED: ask needs a question");
+      return;
+    }
+    int before = fx(() -> chatArea().getLength());
+    fx(
+        () -> {
+          TextField field =
+              find(
+                  TextField.class,
+                  f -> "checkmate-chat-input".equals(f.getId()),
+                  "chat input (#checkmate-chat-input)");
+          if (field.isDisabled()) {
+            throw new IllegalStateException("chat is inactive - no ANTHROPIC_API_KEY configured");
+          }
+          field.setText(question);
+          field.fireEvent(new ActionEvent()); // same as pressing Enter
+          return null;
+        });
+    poll(
+        CHAT_TIMEOUT_S,
+        () -> !fx(() -> chatArea().getText()).contains(CHAT_PENDING),
+        "chat never answered within " + CHAT_TIMEOUT_S + "s");
+    block(fx(() -> chatArea().getText().substring(Math.min(before, chatArea().getLength()))));
   }
 
   static void search(String term) throws Exception {

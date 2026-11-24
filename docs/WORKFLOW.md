@@ -313,9 +313,11 @@ go through `CheckService`, and only the caller differs.
   enters a prompt - the panel keeps the full one. At most 6 tool calls per question. The call runs
   on the GUI's worker thread, so the window stays responsive, but there is no progress message
   while the model thinks.
-- **Not verified yet:** the request reaches the API (a deliberately invalid key comes back as
-  `401 invalid x-api-key`), but no question has been answered end to end - the tool loop and the
-  model's behaviour are untested (STATUS, GUI point 6).
+- **Verified (2026-11-24):** a question was answered end to end over OpenRouter with
+  `openrouter/free` - the model called `check_model`, the check ran, the summary table and the
+  report panel filled, and the answer named the cause of the "nicht prüfbar" correctly. It is not
+  dependable on free models: of three runs one degenerated into a repeating table until the token
+  limit. A paid model has not been compared (STATUS, GUI point 6).
 - **Main class:** [`CheckMateChat`](../bim-portal/Java_client/hackathon-template/src/main/java/com/bimportal/hackathon/chat/CheckMateChat.java)
   (conversation, tool definition, tool-use loop), on the official Anthropic Java SDK; the GUI side
   is `askChat` and `checkForChat` in `ElementUI`.
