@@ -292,7 +292,12 @@ go through `CheckService`, and only the caller differs.
   needs its vendor as a prefix (`anthropic/claude-sonnet-4`, `tencent/hy4-flash`). The tool, the
   schema and the loop stay the same, so the same question can be put to several models to see which
   ones call `check_model` correctly - the interesting experiment, since that is where small and free
-  models fail. The window names the model in the chat's first line. See `.env_example`.
+  models fail. `openrouter/free` is that gateway's free router: it picks a free model per request
+  and filters for the features the request needs, tool calling among them, but free models are
+  rate-limited (50 requests a day, and a question costs up to 6) and the lineup changes often. The
+  window names the configured model in the chat's first line, and an answer from a model other than
+  the one asked for ends with `[geantwortet hat: ...]`, because a router's answer would otherwise
+  not say who gave it. See `.env_example`.
 - **What it does:** the model has one tool, `check_model`, wired to the GUI's own check. An answer
   therefore fills the summary table, the report panel and the element tabs exactly as
   "Validate LOIN" does. Name the LOIN by its ID or its link; searching the catalogue is not a tool

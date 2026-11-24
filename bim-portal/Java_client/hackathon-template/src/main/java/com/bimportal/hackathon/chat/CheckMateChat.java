@@ -219,7 +219,7 @@ public final class CheckMateChat {
         block.toolUse().ifPresent(use -> results.add(run(use)));
       }
       if (results.isEmpty()) {
-        return text(answer);
+        return text(answer) + answeredBy(answer);
       }
       conversation.add(MessageParam.ofUserOfContentBlockParams(results));
     }
@@ -247,6 +247,18 @@ public final class CheckMateChat {
       String reason = failed.getMessage() == null ? failed.toString() : failed.getMessage();
       return ContentBlockParam.ofToolResult(result.content(reason).isError(true).build());
     }
+  }
+
+  /**
+   * Names the model that answered, when it is not the one asked for. A router such as OpenRouter's
+   * {@code openrouter/free} picks another free model per request, and the answer would otherwise
+   * not say which one produced it - which is the whole point when comparing models. A dated
+   * snapshot of the model asked for (claude-opus-5-5 answering as claude-opus-5-5-20260101) is not
+   * worth saying.
+   */
+  private static String answeredBy(Message answer) {
+    String answering = answer.model().asString();
+    return answering.startsWith(model()) ? "" : "\n\n[geantwortet hat: " + answering + "]";
   }
 
   /** The visible text of an answer, with the thinking blocks left out. */
