@@ -69,7 +69,9 @@ Included or optional:
 - `ANTHROPIC_API_KEY` in the environment or in the same `.env`, only for the chat in the GUI.
   Without it the chat panel stays inactive and says so, and everything else works unchanged.
   Unlike the MCP server, which runs inside an AI app the user already pays for, this key is billed
-  per request. See [`docs/WORKFLOW.md`](docs/WORKFLOW.md), section 2.8.
+  per request. `CHECKMATE_LLM_MODEL` chooses the model and `CHECKMATE_LLM_BASE_URL` an endpoint
+  other than Anthropic's own that speaks the same format, such as OpenRouter, which reaches the
+  models of many vendors with one key. See [`docs/WORKFLOW.md`](docs/WORKFLOW.md), section 2.8.
 - Sample models for more tests (about 5 MB, from public GitHub repositories):
   `./gradlew :hackathon-template:downloadTestModels`. Without them those tests are skipped with a
   message.

@@ -318,7 +318,9 @@ public class ElementUI extends VBox {
     chatArea.setMaxHeight(Double.MAX_VALUE);
     chatArea.setText(
         CheckMateChat.configured()
-            ? "CheckMate: Frag mich nach einer Prüfung. Nenne die LOIN mit ihrer ID oder ihrem"
+            ? "CheckMate ("
+                + CheckMateChat.model()
+                + "): Frag mich nach einer Prüfung. Nenne die LOIN mit ihrer ID oder ihrem"
                 + " Link - suchen kannst du sie links in der Liste.\n"
             : "Chat inaktiv: kein "
                 + CheckMateChat.API_KEY

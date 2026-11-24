@@ -35,7 +35,9 @@ against it. A bridge model is bundled inside the JAR, so there is no file to loa
 4. **`ANTHROPIC_API_KEY`, optional**, in the environment or in `.env`, only for the chat in the GUI
    (`com.bimportal.hackathon.chat`). Without it the chat stays inactive and says so; the GUI, the
    CLI and the MCP server are unaffected. Requests with this key are billed per token, unlike the
-   MCP server, which runs inside the user's own AI app.
+   MCP server, which runs inside the user's own AI app. `CHECKMATE_LLM_MODEL` and
+   `CHECKMATE_LLM_BASE_URL` choose the model and the endpoint, so a gateway such as OpenRouter can
+   answer with the models of other vendors; see `.env_example`.
 
 ### Run it
 

@@ -58,6 +58,12 @@ What is being worked on and what is still open. One line per item. Reference cod
      `ReportText`, which the MCP server uses too.
    - The tool answer is the short report, capped at 50,000 characters as in the MCP server, so no
      whole report enters a prompt; the panel keeps the full one.
+   - The model is configuration, not code: `CHECKMATE_LLM_MODEL` names it (default
+     `claude-opus-5-5`) and `CHECKMATE_LLM_BASE_URL` an endpoint other than Anthropic's own that
+     speaks the Messages format, e.g. OpenRouter, where one key reaches the models of many vendors
+     and travels as a bearer token. Tool, schema and loop are untouched by this, so the same
+     question can be put to several models - which of them call `check_model` correctly is a result
+     worth having, and the place where small and free models are expected to fail.
    - `ANTHROPIC_API_KEY` from the environment or `.env` (`*.env` is ignored in
      `bim-portal/.gitignore`), never in the repository. Without a key the chat stays inactive and
      the rest of the GUI works unchanged, so the app keeps running without credentials.

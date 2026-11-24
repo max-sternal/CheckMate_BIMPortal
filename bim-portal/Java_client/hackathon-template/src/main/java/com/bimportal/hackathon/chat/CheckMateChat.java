@@ -35,6 +35,10 @@ import java.util.function.Supplier;
  * in the environment nor in {@code .env}, and the rest of the GUI keeps working, as it does without
  * portal credentials.
  *
+ * <p>Which model answers is configuration, not code: {@link #MODEL_KEY} names it and {@link
+ * #BASE_URL_KEY} an endpoint other than Anthropic's own, so a gateway such as OpenRouter opens the
+ * models of other vendors to the same key, the same tool and the same loop.
+ *
  * <p>Every call blocks for as long as the model thinks and a check runs, which is seconds to
  * minutes. Call {@link #ask} from a background thread, never from the JavaFX application thread.
  */
@@ -55,10 +59,30 @@ public final class CheckMateChat {
     String check(List<String> ids, List<String> idsFiles, int examples);
   }
 
-  public static final String MODEL = "claude-opus-5-5";
+  /** Asked unless {@link #MODEL_KEY} names another. */
+  public static final String DEFAULT_MODEL = "claude-opus-5-5";
 
   /** Read from the environment or from {@code .env}; never from the repository. */
   public static final String API_KEY = "ANTHROPIC_API_KEY";
+
+  /**
+   * The model to ask: a plain name such as {@code claude-haiku-5-5} on Anthropic itself, or a
+   * qualified one such as {@code anthropic/claude-sonnet-4} or {@code tencent/hy4-flash} on a
+   * gateway, which needs the vendor as a prefix.
+   */
+  public static final String MODEL_KEY = "CHECKMATE_LLM_MODEL";
+
+  /**
+   * An endpoint other than Anthropic's own that speaks the Messages format, e.g. {@code
+   * https://openrouter.ai/api/v1} for OpenRouter, which serves models of many vendors behind one
+   * key. Set, the key travels as a bearer token, as such gateways expect; unset, CheckMate talks to
+   * Anthropic with {@code x-api-key}.
+   *
+   * <p>Only the endpoint and the model change - the tool, the schema and the loop stay as they are,
+   * so the same conversation can be run against several models to see which ones call {@code
+   * check_model} correctly.
+   */
+  public static final String BASE_URL_KEY = "CHECKMATE_LLM_BASE_URL";
 
   /**
    * Tool calls per question. A question needs one check, so this only stops a model that keeps
@@ -142,7 +166,24 @@ public final class CheckMateChat {
   }
 
   private static String key() {
-    String value = ConfigLoader.getProperty(API_KEY);
+    return setting(API_KEY);
+  }
+
+  /**
+   * The model this chat asks, for the window to name: {@link #MODEL_KEY} or {@link #DEFAULT_MODEL}.
+   */
+  public static String model() {
+    String value = setting(MODEL_KEY);
+    return value == null ? DEFAULT_MODEL : value;
+  }
+
+  /** The endpoint to ask, or null for Anthropic's own. */
+  private static String baseUrl() {
+    return setting(BASE_URL_KEY);
+  }
+
+  private static String setting(String name) {
+    String value = ConfigLoader.getProperty(name);
     return value == null || value.isBlank() ? null : value.trim();
   }
 
@@ -161,7 +202,7 @@ public final class CheckMateChat {
               .messages()
               .create(
                   MessageCreateParams.builder()
-                      .model(MODEL)
+                      .model(model())
                       .maxTokens(8_000L)
                       .system(systemPrompt())
                       .addTool(CHECK_MODEL)
@@ -249,7 +290,11 @@ public final class CheckMateChat {
         throw new IllegalStateException(
             "Kein " + API_KEY + " gesetzt - in der Umgebung oder in .env hinterlegen.");
       }
-      client = AnthropicOkHttpClient.builder().apiKey(key).build();
+      AnthropicOkHttpClient.Builder builder = AnthropicOkHttpClient.builder();
+      String baseUrl = baseUrl();
+      // A gateway authenticates with a bearer token, Anthropic itself with x-api-key.
+      client =
+          (baseUrl == null ? builder.apiKey(key) : builder.baseUrl(baseUrl).authToken(key)).build();
     }
     return client;
   }

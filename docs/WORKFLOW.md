@@ -285,14 +285,23 @@ go through `CheckService`, and only the caller differs.
   `bim-portal/Java_client/.env` (`*.env` is git-ignored) and start CheckMate again - the field is
   enabled once at startup. Without a key the panel says so and stays inactive; the rest of the GUI,
   the CLI and the MCP server do not care.
+- **Which model:** `CHECKMATE_LLM_MODEL` names it, default `claude-opus-5-5`. `CHECKMATE_LLM_BASE_URL`
+  points at an endpoint other than Anthropic's own that speaks the same Messages format - OpenRouter
+  (`https://openrouter.ai/api/v1`) serves models of many vendors behind one key, which then goes in
+  `ANTHROPIC_API_KEY` and travels as a bearer token instead of `x-api-key`. On a gateway the model
+  needs its vendor as a prefix (`anthropic/claude-sonnet-4`, `tencent/hy4-flash`). The tool, the
+  schema and the loop stay the same, so the same question can be put to several models to see which
+  ones call `check_model` correctly - the interesting experiment, since that is where small and free
+  models fail. The window names the model in the chat's first line. See `.env_example`.
 - **What it does:** the model has one tool, `check_model`, wired to the GUI's own check. An answer
   therefore fills the summary table, the report panel and the element tabs exactly as
   "Validate LOIN" does. Name the LOIN by its ID or its link; searching the catalogue is not a tool
   yet, so look it up in the list on the left.
 - **Cost:** every question is billed per token, because the request comes from CheckMate itself
   rather than from an AI app the user already pays for. A question with the short report costs a
-  few cents; `examples: 0` (the full report) more. The MCP route in 2.7 has no such cost. Some
-  subscription plans include API credits - check the Console.
+  few cents; `examples: 0` (the full report) more. A smaller model, or a cheap one through a
+  gateway, drops that by one to three orders of magnitude. The MCP route in 2.7 has no such cost.
+  Some subscription plans include API credits - check the Console.
 - **Limits:** the tool answer is capped at 50,000 characters, as in 2.7, so a whole report never
   enters a prompt - the panel keeps the full one. At most 6 tool calls per question. The call runs
   on the GUI's worker thread, so the window stays responsive, but there is no progress message
