@@ -89,16 +89,24 @@ What is being worked on and what is still open. One line per item. Reference cod
 
 6. The saved portal IDS "Ueberbau > Kappe" is "nicht prüfbar" on the bundled bridge model (0 of 303 elements applicable). The default Hamburg mapping finds differently named properties, but values and data types still differ (e.g. `Kappe` vs `Ueberbau`, `IFCTEXT` vs `IFCLABEL`). See the [worked example](../website/src/content/docs/guides/example.md); a mapping does not resolve value or type differences.
 7. The LOIN search matches substrings, so "Schaft" also returns the "Landschaftsbau" LOINs. The GUI could rank or filter by the category path (`Ueberbau > Schaft`).
-19. **Portal IDs are not stable.** On 2026-11-24 the portal no longer knew
-    `be959b9d-daef-5315-9aba-f60b6ad54ccb` ("Ueberbau > Kappe"), although the catalogue answered
-    normally (4129 LOINs, 391 fitting the model) and a search for "Kappe" returned three LOINs,
-    among them "Tunnelrohbau > Kappe: LPH 1-9" as `789ef5e4-41e4-570e-a5a7-0c629fbe12ca`. The old
-    id is the example in [README.md](../README.md) (quick start and the AI-app section) and in
-    `.claude/skills/run-checkmate/SKILL.md`, so those three places now show a call that fails. The
-    tests are unaffected: they use the id as a fixture constant or parse it as an argument, and the
-    saved IDS in `src/test/resources/ids/portal/` is read from disk. Decide whether the examples
-    name a current id, or avoid ids entirely by searching (`--args="Kappe"`, `--suggest`), which
-    cannot go stale.
+19. **Portal IDs are re-issued; the LOIN survives, the id does not.** On 2026-11-24
+    `be959b9d-daef-5315-9aba-f60b6ad54ccb` was unknown to the portal, on production
+    (`https://via.bund.de/bim`) and on education
+    (`https://via.bund.de/bmdv/bim-portal/edu/bim`) alike, while both answered normally and
+    identically: 4129 LOINs, 391 fitting the bundled model. The LOIN itself is still there - a
+    search for "Kappe" returns three, among them "Ueberbau > Kappe: LPH 8-9" as
+    `15514a36-ac78-5225-aa62-4901c00427bc` (Version 2.1), which is the one the old id named.
+    So it is the identifier that changed, not the content.
+
+    The old id is the example in [README.md](../README.md) (quick start and the AI-app section) and
+    in `.claude/skills/run-checkmate/SKILL.md`, so those three places now show a call that fails.
+    The tests are unaffected: they use the id as a fixture constant or parse it as an argument, and
+    the saved IDS in `src/test/resources/ids/portal/` is read from disk - which is why the suite
+    stays green while the documented call does not work.
+
+    Naming `15514a36-...` instead only postpones this. The examples would be durable as a search
+    (`--args="Kappe"`, `--suggest`), which cannot go stale; a worked example that must cite one
+    LOIN should say which day its id was current. Open decision.
 
 ### Documentation
 
