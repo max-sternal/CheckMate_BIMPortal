@@ -287,7 +287,9 @@ go through `CheckService`, and only the caller differs.
   the CLI and the MCP server do not care.
 - **Which model:** `CHECKMATE_LLM_MODEL` names it, default `claude-opus-5-5`. `CHECKMATE_LLM_BASE_URL`
   points at an endpoint other than Anthropic's own that speaks the same Messages format - OpenRouter
-  (`https://openrouter.ai/api/v1`) serves models of many vendors behind one key, which then goes in
+  (`https://openrouter.ai/api`, without a trailing `/v1` - the SDK appends `v1/messages` itself, so
+  a base URL ending in `/v1` asks for `.../v1/v1/messages` and returns 404) serves models of many
+  vendors behind one key, which then goes in
   `ANTHROPIC_API_KEY` and travels as a bearer token instead of `x-api-key`. On a gateway the model
   needs its vendor as a prefix (`anthropic/claude-sonnet-4`, `tencent/hy4-flash`). The tool, the
   schema and the loop stay the same, so the same question can be put to several models to see which

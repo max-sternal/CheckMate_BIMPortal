@@ -74,9 +74,13 @@ public final class CheckMateChat {
 
   /**
    * An endpoint other than Anthropic's own that speaks the Messages format, e.g. {@code
-   * https://openrouter.ai/api/v1} for OpenRouter, which serves models of many vendors behind one
-   * key. Set, the key travels as a bearer token, as such gateways expect; unset, CheckMate talks to
+   * https://openrouter.ai/api} for OpenRouter, which serves models of many vendors behind one key.
+   * Set, the key travels as a bearer token, as such gateways expect; unset, CheckMate talks to
    * Anthropic with {@code x-api-key}.
+   *
+   * <p>Name the host and the prefix only, without a trailing {@code /v1}: the SDK appends {@code
+   * v1/messages} itself, as it does to its own default {@code https://api.anthropic.com}. A base
+   * URL ending in {@code /v1} therefore asks for {@code .../v1/v1/messages} and comes back 404.
    *
    * <p>Only the endpoint and the model change - the tool, the schema and the loop stay as they are,
    * so the same conversation can be run against several models to see which ones call {@code
