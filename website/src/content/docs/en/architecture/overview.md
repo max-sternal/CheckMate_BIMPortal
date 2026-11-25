@@ -14,7 +14,7 @@ BIM Portal / local IDS file ----- IDS parser -------+       |             |
                                                         GUI / CLI / MCP
 ```
 
-No AI model is required for checking or reporting. The MCP server is an optional interface to the same functions.
+No AI model is required for checking or reporting. The MCP server is an optional interface to the same functions; the [chat in the interface](/CheckMate_BIMPortal/en/guides/chat/) on branch `0.3.3` is a further caller of the same checking core.
 
 ## Components
 
@@ -29,6 +29,7 @@ CheckMate code lives in the Gradle module `bim-portal/Java_client/hackathon-temp
 | `com.bimportal.hackathon.report` | Results and text/JSON reports. |
 | `com.bimportal.hackathon.cli` | Command line for checks and catalogue searches. |
 | `com.bimportal.hackathon.mcp` | MCP tools and server over `stdio`. |
+| `com.bimportal.hackathon.chat` | Conversation, tool definition and loop for the chat in the interface (`0.3.3`). |
 | `test.fx` | JavaFX interface. |
 
 The IFC reader requires neither APSTEX nor JavaFX. The CLI and MCP server can be used without the graphical interface. The module structure makes reader changes easier, but is not a ready-made plug-in interface.

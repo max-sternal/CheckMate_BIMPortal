@@ -38,7 +38,7 @@ cd bim-portal/Java_client
 
 Unter Windows statt `./gradlew` den Wrapper `.\gradlew.bat` verwenden und Dateipfade entsprechend anpassen. Ohne `--model` oder die Umgebungsvariable `CHECKMATE_IFC` wird das mitgelieferte Beispielmodell verwendet. Relative Dateipfade beziehen sich auf `hackathon-template/`. Die CLI unterstützt auch `--aia` für ein Portalprojekt und `--suggest` zur Katalogauswahl; Details stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md).
 
-Für nicht öffentliche Portal-Inhalte kann `bim-portal/Java_client/.env_example` nach `.env` kopiert und mit Zugangsdaten ergänzt werden. Zugangsdaten niemals ins Repository übernehmen.
+Für nicht öffentliche Portal-Inhalte kann `bim-portal/Java_client/.env_example` nach `.env` kopiert und mit Zugangsdaten ergänzt werden. Zugangsdaten niemals ins Repository übernehmen. In derselben Datei wird auf Branch `0.3.3` der [Chat in der Oberfläche](/CheckMate_BIMPortal/guides/chat/) eingerichtet; ohne Schlüssel bleibt er inaktiv und alles andere unverändert nutzbar.
 
 Den MCP-Server richtet die [MCP-Anleitung](/CheckMate_BIMPortal/mcp/clients/) ein.
 

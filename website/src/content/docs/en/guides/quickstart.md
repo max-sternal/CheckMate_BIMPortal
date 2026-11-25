@@ -38,7 +38,7 @@ cd bim-portal/Java_client
 
 On Windows, use `.\gradlew.bat` instead of `./gradlew` and adjust file paths. Without `--model` or the `CHECKMATE_IFC` environment variable, the bundled sample model is used. Relative file paths are resolved from `hackathon-template/`. The CLI also supports `--aia` for a portal project and `--suggest` for catalogue selection; see [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md).
 
-For non-public portal content, copy `bim-portal/Java_client/.env_example` to `.env` and add credentials. Never commit credentials.
+For non-public portal content, copy `bim-portal/Java_client/.env_example` to `.env` and add credentials. Never commit credentials. The same file configures the [chat in the interface](/CheckMate_BIMPortal/en/guides/chat/) on branch `0.3.3`; without a key it stays inactive and everything else works unchanged.
 
 The [MCP guide](/CheckMate_BIMPortal/en/mcp/clients/) explains how to set up the server.
 

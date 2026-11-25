@@ -9,10 +9,15 @@ CheckMate bietet eine JavaFX-Oberfläche, eine CLI und einen MCP-Server für die
 
 Die MCP-App-Berichtansicht ist implementiert und auf Protokollebene getestet; eine Sichtprüfung in Claude Desktop oder Antigravity steht noch aus. JSON-Mappings können geladen und gewechselt werden.
 
+## In Arbeit auf 0.3.3
+
+Der [Chat in der Oberfläche](/CheckMate_BIMPortal/guides/chat/) löst eine Prüfung über ein Sprachmodell aus, das CheckMate mit einem eigenen API-Schlüssel aufruft. Modell und Endpunkt sind konfigurierbar, sodass auch Modelle anderer Anbieter über ein Gateway genutzt werden können. Eine Frage wurde am 24.11.2026 vollständig beantwortet; ein kostenpflichtiges Modell wurde nicht vergleichend geprüft, und das Werkzeug `check_model` ist bislang das einzige im Chat.
+
 ## Offene Punkte
 
 - Weitere IDS-Facetten und IFC-Eigenschaften unterstützen; bestehende Grenzen stehen unter [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/).
 - MCP-App-Berichtansicht in geeigneten Clients praktisch prüfen und weitere Ansichten untersuchen.
+- Für den Chat eine Katalogsuche als zweites Werkzeug untersuchen, damit eine LOIN nicht über ihre ID benannt werden muss.
 - Für `0.3.3` die Unterstützung von LOIN-XML untersuchen. LOIN-XML ist nicht mit dem derzeit unterstützten IDS-Format gleichzusetzen. Als Ausgangspunkte dienen die [BIM-Portal-Importschnittstelle](https://github.com/bimdeutschland/BIM-Portal-Importschnittstellendokumentation) und [ISO/DIS 7817-3](https://www.iso.org/standard/89077.html); der Standard ist noch in Entwicklung.
 - Für `0.4` eine bessere Online-Nutzung mit Viewer und MCP-App-Integration untersuchen.
 - Schnittstellen und Dokumentation mit der weiteren Entwicklung pflegen.

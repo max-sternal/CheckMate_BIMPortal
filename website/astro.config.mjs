@@ -83,6 +83,11 @@ export default defineConfig({
 							translations: { en: 'Walk Through a Check' },
 							slug: 'guides/example',
 						},
+						{
+							label: 'Chat in der Oberfläche',
+							translations: { en: 'Chat in the Interface' },
+							slug: 'guides/chat',
+						},
 						]),
 					],
 				},

@@ -21,4 +21,6 @@ An initial MCP App report view provides structured output for `check_model` and 
 
 Tools return model information, properties and reports to the calling client. Depending on the client and model provider, this information may be further processed or sent externally. The server does not prevent such disclosure; assess confidentiality and data protection before use. Portal searches require network access.
 
+On the MCP path the client provides the language model; CheckMate itself talks to no model. On branch `0.3.3` the [chat in the interface](/CheckMate_BIMPortal/en/guides/chat/) can instead start a check through a model that CheckMate calls with its own key. Both paths use the same checking core; they differ in who provides and pays for the model, and in that the chat so far knows only `check_model`.
+
 Large responses may be truncated. See [IFC and IDS](/CheckMate_BIMPortal/en/architecture/ifc-ids-checking/) for unevaluated requirements and checking limitations. The [setup guide](/CheckMate_BIMPortal/en/mcp/clients/) explains how to start the server and provides a client example.

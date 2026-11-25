@@ -21,4 +21,6 @@ Für `check_model` gibt es eine erste MCP-App-Berichtansicht mit strukturierter 
 
 Die Werkzeuge liefern Modellinformationen, Merkmale und Prüfberichte an den aufrufenden Client. Je nach Client und Modellanbieter können diese Informationen weiterverarbeitet oder extern übertragen werden. Der Server selbst schützt nicht vor einer solchen Weitergabe; vor der Nutzung sind Datenschutz und Vertraulichkeit zu prüfen. Für Portalabfragen ist Netzwerkzugriff erforderlich.
 
+Beim Weg über MCP stellt der Client das Sprachmodell; CheckMate selbst spricht mit keinem Modell. Auf Branch `0.3.3` kann alternativ der [Chat in der Oberfläche](/CheckMate_BIMPortal/guides/chat/) eine Prüfung über ein Modell auslösen, das CheckMate mit einem eigenen Schlüssel aufruft. Beide Wege nutzen denselben Prüfkern; sie unterscheiden sich darin, wer das Modell stellt und bezahlt, und darin, dass der Chat bislang nur `check_model` kennt.
+
 Die Antworten können bei großer Ausgabe gekürzt werden. Nicht ausgewertete Anforderungen und die Grenzen der Prüfung stehen unter [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/). Die [Einrichtung](/CheckMate_BIMPortal/mcp/clients/) beschreibt den Start des Servers und ein Client-Beispiel.
