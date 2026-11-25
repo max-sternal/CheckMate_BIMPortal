@@ -32,9 +32,9 @@ CHECKMATE_LLM_BASE_URL=https://openrouter.ai/api
 CHECKMATE_LLM_MODEL=openrouter/free
 ```
 
-Die Basis-URL enthält **kein abschließendes `/v1`**: das SDK ergänzt `v1/messages` selbst, ein auf `/v1` endender Wert fragt also `.../v1/v1/messages` ab und führt zu einem Fehler 404. Über ein Gateway benötigt der Modellname den Anbieter als Präfix, etwa `anthropic/claude-sonnet-4`.
+Über ein Gateway benötigt der Modellname den Anbieter als Präfix, etwa `anthropic/claude-sonnet-4`.
 
-`openrouter/free` ist der kostenlose Router dieses Anbieters. Er wählt pro Anfrage ein freies Modell und filtert nach den benötigten Fähigkeiten, darunter Werkzeugaufrufe. Freie Modelle sind begrenzt — etwa 50 Anfragen pro Tag, wobei eine Frage bis zu sechs davon verbraucht — und das Angebot wechselt häufig.
+`openrouter/free` ist der kostenlose Router dieses Anbieters. Er wählt pro Anfrage ein freies Modell und filtert nach den benötigten Fähigkeiten, darunter Werkzeugaufrufe. Freie Modelle sind begrenzt, und das Angebot wechselt häufig.
 
 Die erste Zeile im Chat nennt das konfigurierte Modell. Hat ein anderes Modell geantwortet, etwa weil ein Router es ausgewählt hat, endet die Antwort mit `[geantwortet hat: ...]`.
 
@@ -42,7 +42,7 @@ Die erste Zeile im Chat nennt das konfigurierte Modell. Hat ein anderes Modell g
 
 Dem Modell steht ein einziges Werkzeug zur Verfügung: `check_model`, verbunden mit derselben Prüfung, die die Schaltfläche „Validate LOIN“ auslöst. Eine Antwort füllt daher die Ergebnistabelle, den Berichtsbereich und die Elementreiter genauso wie ein Prüflauf über die Oberfläche.
 
-Die LOIN wird über ihre ID oder ihren Portal-Link benannt. Eine Katalogsuche ist noch kein Werkzeug des Chats; die gewünschte LOIN lässt sich in der Liste links im Fenster nachsehen.
+Die LOIN wird über ihre ID oder ihren Portal-Link benannt. Eine Frage nach einem Bauteilnamen — etwa „prüfe alle Kappen“ — funktioniert noch nicht: dem Chat fehlt das Werkzeug, um den Katalog zu durchsuchen. Die gewünschte LOIN lässt sich in der Liste links im Fenster nachsehen und ihre ID von dort übernehmen.
 
 ## Kosten
 
@@ -54,10 +54,12 @@ Jede Frage wird nach Token abgerechnet, da die Anfrage von CheckMate selbst ausg
 - Höchstens sechs Werkzeugaufrufe pro Frage.
 - Der Aufruf läuft im Hintergrund, das Fenster bleibt bedienbar. Während das Modell arbeitet, gibt es keine Fortschrittsmeldung.
 - Frage, Modell- und LOIN-Angaben sowie der gekürzte Bericht werden an den gewählten Anbieter übertragen, bei einem Gateway zusätzlich über dessen Betreiber. Vertraulichkeit und Datenschutz sind vor der Nutzung zu prüfen.
-- Ob ein Modell das Werkzeug korrekt aufruft, hängt vom Modell ab. Bei freien Modellen ist das nicht verlässlich: von drei Prüfläufen am 24.11.2026 lief einer in eine sich wiederholende Tabelle, bis die Token-Grenze erreicht war.
+- Ob ein Modell das Werkzeug korrekt aufruft, hängt vom Modell ab. Bei freien Modellen ist das nicht verlässlich: von drei Prüfläufen lief einer in eine sich wiederholende Tabelle, bis die Token-Grenze erreicht war.
 
 ## Stand
 
-Am 24.11.2026 wurde eine Frage über OpenRouter mit `openrouter/free` vollständig beantwortet: das Modell rief `check_model` auf, die Prüfung lief, Ergebnistabelle und Berichtsbereich füllten sich, und die Antwort benannte die Ursache des Ergebnisses „nicht prüfbar“ zutreffend. Ein kostenpflichtiges Modell wurde nicht vergleichend geprüft.
+Eine Frage nach einer LOIN wird vollständig beantwortet, auch mit einem freien Modell über OpenRouter: das Modell ruft `check_model` auf, die Prüfung läuft, Ergebnistabelle und Berichtsbereich füllen sich, und die Antwort benennt die Ursache des Ergebnisses „nicht prüfbar“ zutreffend.
+
+Noch nicht möglich ist eine Frage ohne ID, etwa nach einem Bauteilnamen, und ein kostenpflichtiges Modell ist nicht vergleichend geprüft.
 
 Code-nahe Einzelheiten stehen auf Branch `0.3.3` in `docs/WORKFLOW.md` (Abschnitt 2.8) und `docs/STATUS.md`; die Konfiguration ist in `bim-portal/Java_client/.env_example` beschrieben.

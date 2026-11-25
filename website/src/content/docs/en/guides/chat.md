@@ -32,9 +32,9 @@ CHECKMATE_LLM_BASE_URL=https://openrouter.ai/api
 CHECKMATE_LLM_MODEL=openrouter/free
 ```
 
-The base URL carries **no trailing `/v1`**: the SDK appends `v1/messages` itself, so a value ending in `/v1` requests `.../v1/v1/messages` and returns a 404. Through a gateway the model name needs its vendor as a prefix, such as `anthropic/claude-sonnet-4`.
+Through a gateway the model name needs its vendor as a prefix, such as `anthropic/claude-sonnet-4`.
 
-`openrouter/free` is that provider's free router. It picks a free model per request and filters for the capabilities the request needs, tool calling among them. Free models are rate-limited — around 50 requests a day, and a single question can use up to six — and the lineup changes often.
+`openrouter/free` is that provider's free router. It picks a free model per request and filters for the capabilities the request needs, tool calling among them. Free models are rate-limited, and the lineup changes often.
 
 The first line in the chat names the configured model. If a different model answered, for instance because a router selected it, the answer ends with `[geantwortet hat: ...]`.
 
@@ -42,7 +42,7 @@ The first line in the chat names the configured model. If a different model answ
 
 The model has a single tool available: `check_model`, wired to the same check that the "Validate LOIN" button runs. An answer therefore fills the summary table, the report panel and the element tabs exactly as a check started from the interface does.
 
-The LOIN is named by its ID or its portal link. Searching the catalogue is not a chat tool yet; the LOIN can be looked up in the list on the left of the window.
+The LOIN is named by its ID or its portal link. A question that names a component instead — "check all the Kappen", say — does not work yet: the chat has no tool for searching the catalogue. The LOIN can be looked up in the list on the left of the window and its ID taken from there.
 
 ## Cost
 
@@ -54,10 +54,12 @@ Every question is billed per token, because the request originates from CheckMat
 - At most six tool calls per question.
 - The call runs in the background and the window stays responsive. While the model works, there is no progress message.
 - The question, the model and LOIN details and the shortened report are transmitted to the chosen provider, and with a gateway additionally through its operator. Assess confidentiality and data protection before use.
-- Whether a model calls the tool correctly depends on the model. With free models this is not dependable: of three runs on 24 November 2026, one degenerated into a repeating table until the token limit was reached.
+- Whether a model calls the tool correctly depends on the model. With free models this is not dependable: of three runs, one degenerated into a repeating table until the token limit was reached.
 
 ## Current state
 
-On 24 November 2026 a question was answered end to end over OpenRouter using `openrouter/free`: the model called `check_model`, the check ran, the summary table and report panel filled, and the answer named the cause of the "nicht prüfbar" result correctly. A paid model has not been compared.
+A question about a LOIN is answered end to end, even with a free model through OpenRouter: the model calls `check_model`, the check runs, the summary table and report panel fill, and the answer names the cause of the "nicht prüfbar" result correctly.
+
+Not yet possible is a question without an ID, such as one naming a component, and a paid model has not been compared.
 
 Code-level details are on branch `0.3.3` in `docs/WORKFLOW.md` (section 2.8) and `docs/STATUS.md`; the configuration is described in `bim-portal/Java_client/.env_example`.

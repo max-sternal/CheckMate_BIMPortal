@@ -11,7 +11,7 @@ Die MCP-App-Berichtansicht ist implementiert und auf Protokollebene getestet; ei
 
 ## In Arbeit auf 0.3.3
 
-Der [Chat in der Oberfläche](/CheckMate_BIMPortal/guides/chat/) löst eine Prüfung über ein Sprachmodell aus, das CheckMate mit einem eigenen API-Schlüssel aufruft. Modell und Endpunkt sind konfigurierbar, sodass auch Modelle anderer Anbieter über ein Gateway genutzt werden können. Eine Frage wurde am 24.11.2026 vollständig beantwortet; ein kostenpflichtiges Modell wurde nicht vergleichend geprüft, und das Werkzeug `check_model` ist bislang das einzige im Chat.
+Der [Chat in der Oberfläche](/CheckMate_BIMPortal/guides/chat/) löst eine Prüfung über ein Sprachmodell aus, das CheckMate mit einem eigenen API-Schlüssel aufruft. Modell und Endpunkt sind konfigurierbar, sodass auch Modelle anderer Anbieter über ein Gateway genutzt werden können. Eine Frage nach einer LOIN wird vollständig beantwortet. `check_model` ist bislang das einzige Werkzeug im Chat; eine Frage ohne ID, etwa nach einem Bauteilnamen, ist daher noch nicht möglich, und ein kostenpflichtiges Modell ist nicht vergleichend geprüft.
 
 ## Offene Punkte
 

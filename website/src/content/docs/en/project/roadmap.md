@@ -11,7 +11,7 @@ The MCP App report view is implemented and tested at protocol level; visual test
 
 ## In progress on 0.3.3
 
-The [chat in the interface](/CheckMate_BIMPortal/en/guides/chat/) starts a check through a language model that CheckMate calls with its own API key. The model and endpoint are configurable, so models from other vendors can be used through a gateway. A question was answered end to end on 24 November 2026; a paid model has not been compared, and `check_model` is so far the chat's only tool.
+The [chat in the interface](/CheckMate_BIMPortal/en/guides/chat/) starts a check through a language model that CheckMate calls with its own API key. The model and endpoint are configurable, so models from other vendors can be used through a gateway. A question about a LOIN is answered end to end. `check_model` is so far the chat's only tool, so a question without an ID — one naming a component, for instance — is not yet possible, and a paid model has not been compared.
 
 ## Open points
 
