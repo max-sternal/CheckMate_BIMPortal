@@ -83,11 +83,6 @@ export default defineConfig({
 							translations: { en: 'Walk Through a Check' },
 							slug: 'guides/example',
 						},
-						{
-							label: 'Chat in der Oberfläche',
-							translations: { en: 'Chat in the Interface' },
-							slug: 'guides/chat',
-						},
 						]),
 					],
 				},
@@ -108,8 +103,8 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'MCP-Schnittstelle',
-					translations: { en: 'MCP Interface' },
+					label: 'KI-Anbindung',
+					translations: { en: 'AI Integration' },
 					items: [
 						{
 							label: 'MCP-Server',
@@ -121,6 +116,13 @@ export default defineConfig({
 							translations: { en: 'Set Up a Client' },
 							slug: 'mcp/clients',
 						},
+						...(is031 ? [] : [
+						{
+							label: 'Chat in der Oberfläche',
+							translations: { en: 'Chat in the Interface' },
+							slug: 'guides/chat',
+						},
+						]),
 					],
 				},
 				{

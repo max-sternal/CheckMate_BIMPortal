@@ -3,7 +3,9 @@ title: MCP-Schnittstelle
 description: Der CheckMate-MCP-Server und seine Werkzeuge in Version 0.3.2.
 ---
 
-Über das [Model Context Protocol](https://modelcontextprotocol.io/) kann eine kompatible Anwendung CheckMate als Werkzeug nutzen. Der Server in `0.3.2` läuft lokal über `stdio`. Die Prüfung erfolgt im CheckMate-Kern; ein angeschlossenes Sprachmodell kann Ergebnisse aufbereiten, entscheidet aber nicht über die Regeln.
+CheckMate lässt sich auf zwei Wegen mit einem Sprachmodell verbinden. Über das [Model Context Protocol](https://modelcontextprotocol.io/) nutzt eine KI-Anwendung CheckMate als Werkzeug; das Modell stellt und bezahlt dann der Client. Der [Chat in der Oberfläche](/CheckMate_BIMPortal/guides/chat/) auf Branch `0.3.3` geht den umgekehrten Weg: CheckMate ruft selbst ein Modell mit eigenem Schlüssel auf, abgerechnet nach Token. Beide Wege nutzen denselben Prüfkern; der Chat kennt bislang nur `check_model`, MCP die unten aufgeführten Werkzeuge.
+
+Diese Seite beschreibt den MCP-Weg. Der Server in `0.3.2` läuft lokal über `stdio`. Die Prüfung erfolgt im CheckMate-Kern; ein angeschlossenes Sprachmodell kann Ergebnisse aufbereiten, entscheidet aber nicht über die Regeln.
 
 | Werkzeug | Funktion |
 |---|---|
@@ -20,7 +22,5 @@ description: Der CheckMate-MCP-Server und seine Werkzeuge in Version 0.3.2.
 Für `check_model` gibt es eine erste MCP-App-Berichtansicht mit strukturierter Ausgabe und einem Werkzeug zum Nachladen weiterer Befunde. Die Ansicht ist auf Protokollebene getestet, aber noch nicht in Claude Desktop oder Antigravity visuell geprüft. Clients ohne passende Unterstützung erhalten weiterhin eine Textantwort.
 
 Die Werkzeuge liefern Modellinformationen, Merkmale und Prüfberichte an den aufrufenden Client. Je nach Client und Modellanbieter können diese Informationen weiterverarbeitet oder extern übertragen werden. Der Server selbst schützt nicht vor einer solchen Weitergabe; vor der Nutzung sind Datenschutz und Vertraulichkeit zu prüfen. Für Portalabfragen ist Netzwerkzugriff erforderlich.
-
-Beim Weg über MCP stellt der Client das Sprachmodell; CheckMate selbst spricht mit keinem Modell. Auf Branch `0.3.3` kann alternativ der [Chat in der Oberfläche](/CheckMate_BIMPortal/guides/chat/) eine Prüfung über ein Modell auslösen, das CheckMate mit einem eigenen Schlüssel aufruft. Beide Wege nutzen denselben Prüfkern; sie unterscheiden sich darin, wer das Modell stellt und bezahlt, und darin, dass der Chat bislang nur `check_model` kennt.
 
 Die Antworten können bei großer Ausgabe gekürzt werden. Nicht ausgewertete Anforderungen und die Grenzen der Prüfung stehen unter [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/). Die [Einrichtung](/CheckMate_BIMPortal/mcp/clients/) beschreibt den Start des Servers und ein Client-Beispiel.
