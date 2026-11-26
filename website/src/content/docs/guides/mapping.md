@@ -15,7 +15,7 @@ Das mitgelieferte BIM.Hamburg-Brückenmodell verwendet diese Zuordnung:
 | `Klassifizierung/Objektklasse` | `Pset_Objektinformation/_IDEbene2` |
 | `Klassifizierung/Objekttyp` | `Pset_Objektinformation/_IDEbene3` |
 
-Die Datei [`resources/mapping/bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.4/resources/mapping/bim-hamburg.json) ist standardmäßig aktiv. Zuerst wird immer der in der Anforderung genannte Name gesucht; erst danach kommen die Mapping-Adressen über den `MappedDataAccessor` zum Einsatz. Verwendete Aliase erscheinen im Bericht transparent als `(als Pset_Objektinformation/...)`.
+Die Datei [`resources/mapping/bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.4.1-beta/resources/mapping/bim-hamburg.json) ist standardmäßig aktiv. Zuerst wird immer der in der Anforderung genannte Name gesucht; erst danach kommen die Mapping-Adressen über den `MappedDataAccessor` zum Einsatz. Verwendete Aliase erscheinen im Bericht transparent als `(als Pset_Objektinformation/...)`. Modelle, die bereits die exakten BIM-Portal-PropertySets tragen – wie `mini-hochbau-bundesbau.ifc` und `mini-infrastruktur-bruecke.ifc` –, bestehen die Prüfung auch mit `--mapping none`.
 
 Ein Mapping ist **keine allgemeine IDS-Regel**. Es muss fachlich zum jeweiligen Projekt und Modell passen. Es gleicht Namen zu, korrigiert aber keine Werte oder Datentypen.
 

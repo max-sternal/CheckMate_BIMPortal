@@ -3,9 +3,7 @@
     "checkmate": {
       "command": "node",
       "args": [
-        "--import",
-        "tsx",
-        "packages/mcp/src/index.ts"
+        "packages/mcp/bin/checkmate-mcp.mjs"
       ],
       "env": {
         "CHECKMATE_MAPPING": "default"

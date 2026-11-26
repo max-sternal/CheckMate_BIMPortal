@@ -9,7 +9,7 @@ slug: v0.3.2/guides/example
 
 Was passiert, wenn ein Brückenmodell andere Merkmalsnamen als eine Anforderung verwendet? Das lässt sich mit dem mitgelieferten IFC2X3-Modell **BIM.Hamburg TBW1** und der gespeicherten Portal-IDS **„Ueberbau > Kappe“** zeigen.
 
-Die IDS-Datei liegt unter `hackathon-template/src/test/resources/ids/portal/ueberbau-kappe-lph8-9.ids`. Sie wurde aus dem BIM-Portal exportiert; Herkunft und Version stehen im [Fixture-Verzeichnis](https://github.com/max-sternal/CheckMate_BIMPortal/v0.3.2/blob/0.3.2/bim-portal/Java_client/hackathon-template/src/test/resources/ids/portal/README.md). Die Prüfung verwendet diese lokale Datei und benötigt keinen Portalzugriff.
+Die IDS-Datei liegt unter `hackathon-template/src/test/resources/ids/portal/ueberbau-kappe-lph8-9.ids`. Sie wurde aus dem BIM-Portal exportiert; Herkunft und Version stehen im [Fixture-Verzeichnis](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/bim-portal/Java_client/hackathon-template/src/test/resources/ids/portal/README.md). Die Prüfung verwendet diese lokale Datei und benötigt keinen Portalzugriff.
 
 ## 1. Modell und Anforderungen vergleichen
 

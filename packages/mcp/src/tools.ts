@@ -17,6 +17,7 @@ import {
   LoinDescription,
   ModelFit,
   PropertyMapping,
+  ReportJson,
   ReportText,
   type CheckSource,
   type ElementMesh3D,
@@ -321,7 +322,7 @@ export class CheckMateTools {
     } else {
       lines.push(...this.lastReport.header(), '');
       for (const run of this.lastReport.runs) {
-        lines.push(...ReportText.brief(run, examples));
+        lines.push(...ReportText.brief(run, examples, this.lastReport.model.rawSchema));
       }
       lines.push(ReportText.verdictLine(this.lastReport));
     }
@@ -573,5 +574,17 @@ export class CheckMateTools {
       }`,
     ];
     return lines.join('\n');
+  }
+
+  async currentModelJson(): Promise<string> {
+    const data = await this.modelData();
+    return JSON.stringify(data, null, 2);
+  }
+
+  lastReportJson(): string {
+    if (!this.lastReport) {
+      return JSON.stringify({ checked: false, message: 'Noch keine Prüfung ausgeführt.' }, null, 2);
+    }
+    return ReportJson.stringify(this.lastReport);
   }
 }

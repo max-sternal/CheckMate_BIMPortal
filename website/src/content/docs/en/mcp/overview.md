@@ -1,31 +1,43 @@
 ---
-title: MCP server & 3D MCP Apps
-description: The CheckMate MCP server, its 15 tools and interactive 3D MCP App views in version 0.4.
+title: MCP Server & 3D MCP Apps
+description: The clean CheckMate MCP server (0.4.1-beta) with 10 tools, 3 interactive 3D MCP Apps, JSON resources, and guided prompts.
 ---
 
-The [Model Context Protocol](https://modelcontextprotocol.io/) allows compatible AI applications (such as Claude Desktop, Claude Code or Antigravity) to use CheckMate as a tool. The server (`@checkmate/mcp`) runs locally over `stdio`. Deterministic rule evaluation takes place inside `@checkmate/core`; the language model invokes the tools and explains the findings.
+Through the [Model Context Protocol](https://modelcontextprotocol.io/), AI clients such as **Antigravity**, **Claude Desktop**, and **Claude Code** can use CheckMate as a local tool. The server (`@checkmate/mcp`) runs locally over `stdio`. Rule evaluation happens deterministically inside `@checkmate/core`; the language model invokes the tools and explains the German reports.
 
-## 10 model tools (for AI & user)
+## Clean, Simple Structure (`packages/mcp/`)
 
-| Tool | Purpose |
-|---|---|
-| `load_model` | Load an IFC file (`.ifc`, `.ifczip`) or HTTP(S)/GitHub link (`ui://checkmate/model`) |
-| `describe_model` | Describe the current model, IFC schema, element count and top IFC entities (`ui://checkmate/model`) |
-| `list_elements` | Filter elements as `GlobalId \| Entity \| Name \| PredefinedType` by entity or name |
-| `find_loins` | Search, filter and rank BIM Portal LOINs and AIA projects by `ModelFit` (`ui://checkmate/loins`) |
-| `describe_requirements` | Use `LoinDescription` to show what a LOIN selects (`Wählt aus`), requires (`Verlangt`) and how many model elements match (`Im Modell`) |
-| `check_model` | Check the model against portal IDs, local IDS files or `.rules.json` (`ui://checkmate/report`) |
-| `element_report` | Output check findings and all IFC properties for a specific element (by GlobalId or name) |
-| `load_mapping` | Show or switch the active JSON mapping (`default`, `none` or file path) |
-| `export_bcf` | Export failed checks from the last run as a BCF 2.1 archive (`.bcfzip`) |
-| `server_status` | Show the current model, active mapping and last check verdict |
+To keep the server easy to read and extend, `@checkmate/mcp` is split into three focused modules:
+- `bin/checkmate-mcp.mjs`: Standalone Node.js launcher (protects `stdout` for JSON-RPC and runs without extra CLI flags).
+- `src/catalog.ts`: Declarative definitions of all tools, 3D views, JSON resources, and prompts.
+- `src/tools.ts` & `src/index.ts`: Session state (`CheckMateTools`) and concise MCP request handlers.
 
-## 3 interactive 3D MCP App views & 5 app-only tools
+## 10 Model Tools (for AI & Users)
 
-Hosts supporting the MCP Apps extension (`io.modelcontextprotocol/ui`) render interactive HTML/WebGL views directly inside the chat:
+| Tool | Purpose | MCP App View |
+|---|---|---|
+| `load_model` | Load an IFC file (`.ifc`, `.ifczip`) or HTTP(S)/GitHub link | `ui://checkmate/model` |
+| `describe_model` | Describe the active model, IFC schema, element count, and top entities | `ui://checkmate/model` |
+| `list_elements` | Filter elements as `GlobalId \| Entity \| Name \| PredefinedType` | — |
+| `find_loins` | Search, filter, and rank BIM Portal LOINs and AIA projects by `ModelFit` | `ui://checkmate/loins` |
+| `describe_requirements` | Use `LoinDescription` to inspect what a LOIN selects (`Wählt aus`), requires (`Verlangt`), and matches | — |
+| `check_model` | Check the model against portal IDs, local `.ids`/`.zip`, or `.rules.json` | `ui://checkmate/report` |
+| `element_report` | Show check findings and all IFC properties for an element (by GlobalId or name) | — |
+| `load_mapping` | Show or switch the active JSON mapping (`default`, `none`, or file path) | — |
+| `export_bcf` | Export failed findings from the last run as a BCF 2.1 archive (`.bcfzip`) | — |
+| `server_status` | Show active model, active mapping, and last check verdict | — |
 
-- `ui://checkmate/report`: 3D check report with red/green element coloring, near-miss diagnosis and element focus.
+## 3 Interactive 3D MCP App Views (`io.modelcontextprotocol/ui`)
+
+Hosts supporting the MCP Apps extension (such as **Antigravity** and **Claude Desktop**) render interactive HTML/WebGL views directly inside the conversation:
+
+- `ui://checkmate/report`: Interactive 3D check report with red/green element highlighting, near-miss diagnosis, and element focus.
 - `ui://checkmate/model`: 3D model explorer with clickable entity histogram and element table.
-- `ui://checkmate/loins`: Interactive BIM Portal catalogue with discipline, phase and purpose filters.
+- `ui://checkmate/loins`: Interactive BIM Portal catalogue with discipline, phase, and purpose filters.
 
-To paginate data and stream 3D meshes inside these views, the server registers 5 app-only tools (`visibility: ["app"]`): `app_report_page`, `app_element_page`, `app_set_filter`, `app_check_selected` and `app_element_mesh`. Clients without MCP App support continue to receive the full German text response.
+To paginate findings and stream 3D triangle meshes (`@ifc-lite/geometry`) inside these views, the server registers 5 internal app-only tools (`visibility: ["app"]`): `app_report_page`, `app_element_page`, `app_set_filter`, `app_check_selected`, and `app_element_mesh`. Text-only MCP clients continue to receive the complete German text report.
+
+## JSON Resources & Guided Prompts
+
+- **JSON resources**: `checkmate://model/current` (metadata of the active IFC model) and `checkmate://report/last.json` (complete JSON report of the last check).
+- **Guided prompts**: `check-loin` (optional `discipline`, `phase`) for a guided BIM Portal search-and-check workflow, and `explain-element` (`element`) for a clear explanation of a single building element.

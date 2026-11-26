@@ -1,25 +1,25 @@
 ---
-title: Versions & branches
-description: From the hackathon prototype through the Java 0.3.x line to the TypeScript/IFClite 0.4 edition.
+title: Versions & Branches
+description: From the hackathon prototype to the current stable release 0.3.3-stable (Latest) and the TypeScript/IFClite beta 0.4.1-beta.
 ---
 
-| Version / Branch | State and focus |
-|---|---|
-| `0.1` | Result of the 24-hour hackathon, including the prototype and presentation. |
-| `0.2` | Initial fixes to the portal client and a working checking workflow. |
-| `0.3` | A larger revision of the checking core, reports and interfaces as the foundation of the `0.3` line. |
-| `0.3.1` | Java version with GUI, CLI and MCP server; IFC loading uses APSTEX, as at the hackathon. |
-| `0.3.2` | Pure Java edition (Java 21 / Java 25 LTS, Gradle 9.1): custom Java IFC reader without APSTEX, interchangeable JSON mappings (`bim-hamburg.json`) and initial MCP App report view. ([View 0.3.2 docs](/CheckMate_BIMPortal/en/v0.3.2/)) |
-| `0.3.3` | Planned continuation of the Java line: investigate and add support for current LOIN-XML (ISO/DIS 7817-3). |
-| `0.4` (`0.4-alpha`) | TypeScript & IFClite edition (`@ifc-lite/*`): 3D browser workbench (`@checkmate/web`), MCP server with 15 tools and interactive 3D MCP Apps (`@checkmate/mcp`), CLI (`@checkmate/cli`), `.rules.json` rule sets and BCF 2.1 export (`.bcfzip`). |
+| Version / Release | Branch | Scope and Focus |
+|---|---|---|
+| `v0.1.0` | `0.1` / `main` | Result of the 24-hour hackathon (September 2025) with initial prototype and pitch. ([Docs](/CheckMate_BIMPortal/en/v0.1.0/)) |
+| `v0.2.0` | `0.2` | First portal client fixes and an end-to-end runnable checking workflow. ([Docs](/CheckMate_BIMPortal/en/v0.2.0/)) |
+| `v0.3.1` | `0.3.1` | Reworked Java checking core with JavaFX GUI, CLI, and MCP server (using APSTEX). ([Docs](/CheckMate_BIMPortal/en/v0.3.1/)) |
+| `v0.3.2` | `0.3.2` | Pure Java 25 edition without APSTEX: custom STEP IFC reader, JSON mapping (`bim-hamburg.json`), property catalogue client, IDS value restrictions, 3 MCP App views, and Antigravity plugin. ([Docs](/CheckMate_BIMPortal/en/v0.3.2/)) |
+| **`v0.3.3-stable` (`Latest`)** | `0.3.3-stable` / `0.3.3` | **Current stable main release (Java 25 LTS):** extends `0.3.2` with configurable in-GUI AI chat (`CheckMateChat`), hardened build/dependency setup, and curated BIM Portal IFC test models. ([Latest Docs](/CheckMate_BIMPortal/en/)) |
+| `v0.4-alpha` (`Alpha`) | `0.4` (tag `v0.4-alpha`) | Initial TypeScript & IFClite milestone (`@ifc-lite/*`): 3D browser workbench, 3D MCP Apps, CLI, `.rules.json`, and BCF 2.1 export. ([Docs](/CheckMate_BIMPortal/en/v0.4-alpha/)) |
+| **`v0.4.1-beta` (`Beta`)** | `0.4.1-beta` / `0.4` | **Beta documented here (TypeScript + IFClite):** streamlined MCP server (`checkmate-mcp.mjs`, JSON resources, prompts, Antigravity plugin), direct CLI installation (`checkmate`), schema & live portal fixes, and two compact 3D IFC4 reference models for building and infrastructure (`exit code 0`). |
 
-## Two active tracks: `0.3.x` (Java) and `0.4` (TypeScript + IFClite)
+## Two Complementary Editions: `0.3.3-stable` (Java 25) and `0.4.1-beta` (TypeScript + IFClite)
 
-CheckMate is maintained along two complementary tracks:
+CheckMate is maintained in two consistent, complementary editions:
 
-- **Java track (`0.3.1`, `0.3.2`, `0.3.3`)**: Built on the Java ecosystem (Gradle, JavaFX desktop GUI, MCP Java SDK), serving as the reference for the pure-Java checking core and upcoming LOIN-XML work in `0.3.3`.
-- **TypeScript / IFClite track (`0.4`)**: Preserves the exact CheckMate workflow (`ModelFit`, `LoinDescription`, `PropertyMapping`, near-miss diagnosis, German reports and exit codes) while using **IFClite (`@ifc-lite/*`)** WebAssembly/TypeScript packages for 3D visualization in the browser and inside MCP-capable AI clients.
+- **`0.3.3-stable` (`Latest`, Java 25 LTS):** The stable reference implementation with a classic JavaFX desktop GUI (including optional API-key AI chat), headless CLI, and Java MCP server — completely free of proprietary third-party libraries.
+- **`0.4.1-beta` (`Beta`, TypeScript + IFClite):** Brings the exact same domain workflow (`ModelFit`, `LoinDescription`, `PropertyMapping`, near-miss diagnosis, German reports, and exit codes `0..4`) to Node.js 22+ and WebAssembly (`@ifc-lite/*`) for interactive 3D checking in the browser and inline 3D MCP Apps in Antigravity and Claude Desktop.
 
-Use the version selector in the top navigation bar to switch between the current documentation (`0.4`) and archived snapshots (`v0.3.2`, `v0.3.1`, `v0.2.0`, `v0.1.0`).
+Use the version selector at the top of the navigation bar to switch between **`Latest (0.3.3-stable)`**, **`v0.4.1-beta`**, **`v0.4-alpha`**, and archived releases (`v0.3.2`, `v0.3.1`, `v0.2.0`, `v0.1.0`).
 
-[View repository branches](https://github.com/max-sternal/CheckMate_BIMPortal/branches) · [View releases & pre-releases](https://github.com/max-sternal/CheckMate_BIMPortal/releases)
+[View branches on GitHub](https://github.com/max-sternal/CheckMate_BIMPortal/branches) · [View releases & pre-releases](https://github.com/max-sternal/CheckMate_BIMPortal/releases)

@@ -35,7 +35,9 @@ website/.astro/
 
 
 **/node_modules/
+build/
 packages/web/public/*.ifc
 packages/web/public/fixtures/
 packages/web/dist/
+!resources/fixtures/ids/portal/*.zip
 

@@ -38,7 +38,7 @@ cd bim-portal/Java_client
   --args="--model /pfad/zum/modell.ifc --loin <LOIN-ID> --json build/report.json"
 ```
 
-Unter Windows statt `./gradlew` den Wrapper `.\gradlew.bat` verwenden und Dateipfade entsprechend anpassen. Ohne `--model` oder die Umgebungsvariable `CHECKMATE_IFC` wird das mitgelieferte Beispielmodell verwendet. Relative Dateipfade beziehen sich auf `hackathon-template/`. Die CLI unterstützt auch `--aia` für ein Portalprojekt und `--suggest` zur Katalogauswahl; Details stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/v0.3.2/blob/0.3.2/docs/WORKFLOW.md).
+Unter Windows statt `./gradlew` den Wrapper `.\gradlew.bat` verwenden und Dateipfade entsprechend anpassen. Ohne `--model` oder die Umgebungsvariable `CHECKMATE_IFC` wird das mitgelieferte Beispielmodell verwendet. Relative Dateipfade beziehen sich auf `hackathon-template/`. Die CLI unterstützt auch `--aia` für ein Portalprojekt und `--suggest` zur Katalogauswahl; Details stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md).
 
 Für nicht öffentliche Portal-Inhalte kann `bim-portal/Java_client/.env_example` nach `.env` kopiert und mit Zugangsdaten ergänzt werden. Zugangsdaten niemals ins Repository übernehmen.
 

@@ -510,7 +510,6 @@ function diagnoseZeroApplicability(
     };
   }
 
-  const translator = createTranslationService('de');
   const facetMatches: FacetMatch[] = [];
   const perElementMatched = new Map<number, number>();
   const hints: string[] = [];
@@ -521,7 +520,7 @@ function diagnoseZeroApplicability(
     const spellingHits: string[] = [];
 
     for (const el of model.elements) {
-      const res = checkFacet(facet, el.expressId, accessor, translator);
+      const res = checkFacet(facet, el.expressId, accessor);
       if (res.passed) {
         matchedCount++;
         perElementMatched.set(el.expressId, (perElementMatched.get(el.expressId) ?? 0) + 1);
@@ -649,12 +648,27 @@ function extractLoinGuid(identifier?: string): string | null {
   return extractPortalId(identifier ?? null);
 }
 
+function normalizeIfcSchema(raw: string): string {
+  const up = raw.trim().toUpperCase();
+  if (up.startsWith('IFC4X3') || up.startsWith('IFC4.3')) return 'IFC4X3';
+  if (up.startsWith('IFC2X3')) return 'IFC2X3';
+  if (up.startsWith('IFC4')) return 'IFC4';
+  return up;
+}
+
 function specIfcVersions(spec: IDSSpecification): string[] {
   const anySpec = spec as unknown as {
     ifcVersions?: string[];
     ifcVersion?: string[];
   };
   return anySpec.ifcVersions ?? anySpec.ifcVersion ?? [];
+}
+
+function specMatchesSchema(spec: IDSSpecification, modelSchema: string): boolean {
+  const vers = specIfcVersions(spec);
+  if (vers.length === 0) return true;
+  const target = normalizeIfcSchema(modelSchema);
+  return vers.some((v) => normalizeIfcSchema(v) === target);
 }
 
 /**
@@ -673,8 +687,13 @@ export function mergeAndDeduplicateIdsDocuments(
   const seenLoinSchema = new Set<string>();
   const specifications: IDSSpecification[] = [];
 
+  type SpecWithMilestone = IDSSpecification & { milestone?: string };
   for (const { doc } of docs) {
-    for (const spec of doc.specifications) {
+    for (const rawSpec of doc.specifications as SpecWithMilestone[]) {
+      const spec: SpecWithMilestone =
+        !rawSpec.milestone && doc.info.milestone
+          ? { ...rawSpec, milestone: doc.info.milestone }
+          : rawSpec;
       const guid = extractLoinGuid(spec.identifier);
       if (!guid) {
         specifications.push(spec);
@@ -698,15 +717,16 @@ export function mergeAndDeduplicateIdsDocuments(
   }
 
   const primary = docs[0]?.doc;
+  const isSingleOrCombined = docs.length <= 1 || Boolean(docs[0]?.entry.isCombinedAia);
   return {
     info: {
-      title: primary?.info.title || sourceLabel,
+      title: (isSingleOrCombined ? primary?.info.title : undefined) || sourceLabel,
       version: primary?.info.version,
       description: primary?.info.description,
       author: primary?.info.author,
       date: primary?.info.date,
       purpose: primary?.info.purpose,
-      milestone: primary?.info.milestone,
+      milestone: isSingleOrCombined ? primary?.info.milestone : undefined,
     },
     specifications,
   };
@@ -800,13 +820,9 @@ export class CheckService {
     const translator = createTranslationService('de');
 
     // Filter specifications applicable to the model's IFC schema version
-    const matchingSpecs = document.specifications.filter((s) => {
-      const vers = specIfcVersions(s);
-      return (
-        vers.length === 0 ||
-        vers.some((v) => v.toUpperCase().startsWith(model.schema.toUpperCase()))
-      );
-    });
+    const matchingSpecs = document.specifications.filter((s) =>
+      specMatchesSchema(s, model.schema)
+    );
 
     const filteredDoc: IDSDocument = {
       ...document,
@@ -830,7 +846,8 @@ export class CheckService {
       const spec = sr.specification;
       const specVers = specIfcVersions(spec);
       const versions = specVers.length > 0 ? specVers.join(', ') : model.rawSchema;
-      const phaseInfo = spec.milestone || document.info.milestone || '';
+      const specMilestone = (spec as IDSSpecification & { milestone?: string }).milestone;
+      const phaseInfo = specMilestone || document.info.milestone || '';
       const specLabel = `${spec.name} (${versions}${phaseInfo ? `, ${phaseInfo}` : ''})`;
 
       const findings: Finding[] = [];
@@ -964,8 +981,7 @@ export class CheckService {
   ): Promise<CheckRun> {
     const evaluatorModel: EvaluatorModel = {
       id: model.name,
-      name: model.name,
-      dataStore: model.store,
+      store: model.store,
     };
     const report = await runRuleSet({
       ruleSet,
@@ -980,8 +996,11 @@ export class CheckService {
         const elId = er.globalId ?? el?.id ?? `#${er.expressId}`;
         const elementLabel = `${er.entityName || er.entityType} (${elId})`;
         for (const rr of er.requirementResults) {
-          const status: FindingStatus = rr.passed ? 'FULFILLED' : 'WRONG_VALUE';
-          const detail = rr.passed
+          const rawRr = rr as unknown as { status?: string; passed?: boolean };
+          const passed =
+            rawRr.status !== undefined ? rawRr.status !== 'fail' : Boolean(rawRr.passed);
+          const status: FindingStatus = passed ? 'FULFILLED' : 'WRONG_VALUE';
+          const detail = passed
             ? rr.actualValue ?? 'erfüllt'
             : rr.failureReason ?? 'Regel nicht erfüllt';
           findings.push(
@@ -1091,8 +1110,7 @@ export class CheckService {
   convertRuleSetToIds(ruleSet: RuleSetFile, model: LoadedModel) {
     const evaluatorModel: EvaluatorModel = {
       id: model.name,
-      name: model.name,
-      dataStore: model.store,
+      store: model.store,
     };
     return ruleSetToIds(ruleSet, {
       ifcVersions: [model.schema],
@@ -1119,9 +1137,9 @@ export class CheckService {
         {
           author: options.author ?? 'checkmate@bimportal.de',
           projectName: options.projectName ?? `CheckMate ${report.model.name}`,
-          bcfVersion: options.bcfVersion ?? '2.1',
-          grouping: options.grouping ?? 'per-specification',
-          includeSnapshots: false,
+          version: options.version ?? '2.1',
+          topicGrouping: options.topicGrouping ?? 'per-specification',
+          ...options,
         }
       );
       const blob = await writeBCF(bcfProject);
@@ -1218,13 +1236,9 @@ export class LoinDescription {
     service: CheckService
   ): Promise<string[]> {
     const lines: string[] = [];
-    const matchingSpecs = document.specifications.filter((s) => {
-      const vers = specIfcVersions(s);
-      return (
-        vers.length === 0 ||
-        vers.some((v) => v.toUpperCase().startsWith(model.schema.toUpperCase()))
-      );
-    });
+    const matchingSpecs = document.specifications.filter((s) =>
+      specMatchesSchema(s, model.schema)
+    );
 
     if (matchingSpecs.length === 0) {
       const available = Array.from(
@@ -1274,13 +1288,17 @@ export class LoinDescription {
   }
 
   static selects(spec: IDSSpecification): string {
-    const facets = spec.applicability.facets;
+    const facets = spec.applicability?.facets ?? [];
     if (facets.length === 0) return 'alle Elemente';
     return facets.map(describeFacet).join(', ');
   }
 
   static asks(spec: IDSSpecification): string {
-    const reqs = spec.requirements.requirements;
+    const rawReqs = spec.requirements as unknown;
+    const reqs: Array<{ facet: Parameters<typeof describeFacet>[0] }> = Array.isArray(rawReqs)
+      ? rawReqs
+      : ((rawReqs as { requirements?: Array<{ facet: Parameters<typeof describeFacet>[0] }> })
+          ?.requirements ?? []);
     const entityReq = reqs.find((r) => r.facet.type === 'entity');
     const propReqs = reqs.filter((r) => r.facet.type !== 'entity');
 

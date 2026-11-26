@@ -1,6 +1,6 @@
 ---
-title: Examples & mapping
-description: Properties of the Hamburg bridge model and project-specific JSON mappings in CheckMate 0.4 and 0.3.2.
+title: Examples & Mapping
+description: Properties of the Hamburg bridge model and project-specific JSON mappings in CheckMate 0.4.1-beta.
 ---
 
 ## Why a mapping?
@@ -15,7 +15,7 @@ The bundled BIM.Hamburg bridge model uses this mapping:
 | `Klassifizierung/Objektklasse` | `Pset_Objektinformation/_IDEbene2` |
 | `Klassifizierung/Objekttyp` | `Pset_Objektinformation/_IDEbene3` |
 
-The file [`resources/mapping/bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.4/resources/mapping/bim-hamburg.json) is active by default. CheckMate always checks the requested IDS address first; only if it is absent does `MappedDataAccessor` resolve aliases. Every alias hit is explicitly recorded in the report as `(als Pset_Objektinformation/...)`.
+The file [`resources/mapping/bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.4.1-beta/resources/mapping/bim-hamburg.json) is active by default. CheckMate always checks the requested IDS address first; only if it is absent does `MappedDataAccessor` resolve aliases. Every alias hit is explicitly recorded in the report as `(als Pset_Objektinformation/...)`. Models that already carry exact BIM Portal PropertySets — such as `mini-hochbau-bundesbau.ifc` and `mini-infrastruktur-bruecke.ifc` — pass with `--mapping none`.
 
 A mapping is **not a general IDS rule**. It must fit the project and model context. It maps names, but does not override values or data types.
 

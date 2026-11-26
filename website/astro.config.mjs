@@ -1,14 +1,39 @@
 // @ts-check
+import { existsSync } from 'node:fs';
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightVersions from 'starlight-versions';
 
-const publishedVersion = process.env.CHECKMATE_DOCS_LATEST ?? 'v0.4-alpha';
+const publishedVersion = process.env.CHECKMATE_DOCS_LATEST ?? 'v0.4.1-beta';
 const is031 = publishedVersion === 'v0.3.1';
 const is032 = publishedVersion === 'v0.3.2';
-const currentBranch = is031 ? '0.3.1' : is032 ? '0.3.2' : '0.4';
-const currentVersionLabel = is031 ? '0.3.1' : is032 ? '0.3.2' : '0.4';
-const hasV04AlphaArchive = is031 || is032;
+const is033 = publishedVersion === 'v0.3.3-stable' || publishedVersion === '0.3.3-stable' || publishedVersion === '0.3.3';
+
+const hasVersionDir = (slug) => existsSync(new URL(`./src/content/docs/${slug}`, import.meta.url));
+
+const currentBranch = is031
+	? '0.3.1'
+	: is032
+		? '0.3.2'
+		: is033
+			? '0.3.3-stable'
+			: '0.4.1-beta';
+
+const currentVersionLabel = is031
+	? '0.3.1'
+	: is032
+		? '0.3.2'
+		: is033
+			? '0.3.3-stable'
+			: '0.4.1-beta';
+
+const currentBadgeLabel = is033
+	? 'Latest (0.3.3-stable)'
+	: is032
+		? 'Latest (v0.3.2)'
+		: is031
+			? 'Latest (v0.3.1)'
+			: 'v0.4.1-beta';
 
 // https://astro.build/config
 export default defineConfig({
@@ -19,14 +44,19 @@ export default defineConfig({
 			plugins: [
 				starlightVersions({
 					current: {
-						label: is031 ? 'Latest (v0.3.1)' : is032 ? 'Latest (v0.3.2)' : 'v0.4-alpha',
+						label: currentBadgeLabel,
 						redirect: 'root',
 					},
 					versions: [
-						...(hasV04AlphaArchive
-							? [{ slug: 'v0.4-alpha', label: 'v0.4-alpha (Pre-Release)', redirect: 'root' }]
+						...(hasVersionDir('v0.4.1-beta')
+							? [{ slug: 'v0.4.1-beta', label: 'v0.4.1-beta (Beta)', redirect: 'root' }]
 							: []),
-						{ slug: 'v0.3.2', label: 'v0.3.2', redirect: 'root' },
+						...(hasVersionDir('v0.4-alpha')
+							? [{ slug: 'v0.4-alpha', label: 'v0.4-alpha (Alpha)', redirect: 'root' }]
+							: []),
+						...(hasVersionDir('v0.3.2')
+							? [{ slug: 'v0.3.2', label: 'v0.3.2', redirect: 'root' }]
+							: []),
 						{ slug: 'v0.3.1', label: 'v0.3.1', redirect: 'root' },
 						{ slug: 'v0.2.0', label: 'v0.2.0', redirect: 'root' },
 						{ slug: 'v0.1.0', label: 'v0.1.0', redirect: 'root' },
@@ -35,7 +65,7 @@ export default defineConfig({
 			],
 			title: 'CheckMate',
 			description:
-				'CheckMate prüft IFC-Modelle anhand von IDS-Anforderungen aus dem BIM-Portal oder lokalen Dateien – in 3D, per CLI und über MCP.',
+				'CheckMate prüft IFC-Modelle anhand von IDS-Anforderungen aus dem BIM-Portal oder lokalen Dateien – als Java-25-Release (0.3.3-stable) und in 3D mit IFClite (0.4.1-beta).',
 			logo: {
 				src: './src/assets/checkmate-logo.png',
 				alt: 'CheckMate Logo',
@@ -115,12 +145,14 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'MCP-Schnittstelle',
-					translations: { en: 'MCP Interface' },
+					label: is033 ? 'KI-Anbindung' : 'MCP-Schnittstelle',
+					translations: { en: is033 ? 'AI Integration' : 'MCP Interface' },
 					items: [
 						{
-							label: is031 ? 'MCP-Server' : 'MCP-Server & 3D MCP Apps',
-							translations: { en: is031 ? 'MCP Server' : 'MCP Server & 3D MCP Apps' },
+							label: is031 || is033 ? 'MCP-Server' : 'MCP-Server & 3D MCP Apps',
+							translations: {
+								en: is031 || is033 ? 'MCP Server' : 'MCP Server & 3D MCP Apps',
+							},
 							slug: 'mcp/overview',
 						},
 						{
@@ -128,6 +160,15 @@ export default defineConfig({
 							translations: { en: 'Set Up a Client' },
 							slug: 'mcp/clients',
 						},
+						...(is033
+							? [
+									{
+										label: 'Chat in der Oberfläche',
+										translations: { en: 'Chat in the Interface' },
+										slug: 'guides/chat',
+									},
+								]
+							: []),
 					],
 				},
 				{

@@ -35,4 +35,4 @@ Ein positives Ergebnis bestätigt nur die ausgewerteten Anforderungen für das g
 
 Tests enthalten eigene IFC-Fixtures und exportierte Portal-Anforderungen; ausgewählte Ergebnisse werden mit [IfcOpenShell / ifctester](https://docs.ifcopenshell.org/ifctester.html) verglichen. Weitere Modelle können mit `:hackathon-template:downloadTestModels` geladen werden.
 
-Einstiegspunkte sind `IdsParser`, `IdsValidator`, `IfcModelElements` und `CheckService`. Details und Testvoraussetzungen stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/v0.3.2/blob/0.3.2/docs/WORKFLOW.md) und im [Schnellstart](/CheckMate_BIMPortal/v0.3.2/guides/quickstart/).
+Einstiegspunkte sind `IdsParser`, `IdsValidator`, `IfcModelElements` und `CheckService`. Details und Testvoraussetzungen stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md) und im [Schnellstart](/CheckMate_BIMPortal/v0.3.2/guides/quickstart/).

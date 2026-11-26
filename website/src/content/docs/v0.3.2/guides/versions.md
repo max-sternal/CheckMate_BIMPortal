@@ -17,4 +17,4 @@ slug: v0.3.2/guides/versions
 
 `0.3` bezeichnet hier die Entwicklungslinie, nicht zwingend einen eigenen Branch. `0.3.3` und `0.4` beschreiben Ziele; die Umsetzung steht noch nicht fest. Für Installation und offene Punkte siehe [Schnellstart](/CheckMate_BIMPortal/v0.3.2/guides/quickstart/) und [Projektstatus](/CheckMate_BIMPortal/v0.3.2/project/roadmap/).
 
-[Branches im Repository ansehen](https://github.com/max-sternal/CheckMate_BIMPortal/v0.3.2/branches)
+[Branches im Repository ansehen](https://github.com/max-sternal/CheckMate_BIMPortal/branches)

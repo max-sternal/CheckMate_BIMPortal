@@ -2,7 +2,7 @@ name: Deploy Versioned Documentation
 
 on:
   push:
-    branches: ["0.3.2", "0.4"]
+    branches: ["0.3.3-stable", "0.3.3", "0.4.1-beta", "0.4"]
     paths:
       - "website/**"
       - ".github/workflows/versioned-docs.yml"
@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  CHECKMATE_DOCS_LATEST: v0.3.1
+  CHECKMATE_DOCS_LATEST: v0.3.3-stable
 
 jobs:
   build:
@@ -42,9 +42,15 @@ jobs:
 
       - name: Prepare the latest release and archived versions
         run: |
-          mkdir -p "$RUNNER_TEMP/checkmate-release"
+          mkdir -p "$RUNNER_TEMP/checkmate-release" "$RUNNER_TEMP/checkmate-v0.4.1-beta" "$RUNNER_TEMP/checkmate-v0.4-alpha"
           git archive "$CHECKMATE_DOCS_LATEST" website | tar -x -C "$RUNNER_TEMP/checkmate-release"
-          node website/scripts/prepare-published-site.mjs "$RUNNER_TEMP/checkmate-release/website" "$RUNNER_TEMP/checkmate-site"
+          git archive v0.4.1-beta website | tar -x -C "$RUNNER_TEMP/checkmate-v0.4.1-beta"
+          git archive v0.4-alpha website | tar -x -C "$RUNNER_TEMP/checkmate-v0.4-alpha"
+          node website/scripts/prepare-published-site.mjs \
+            "$RUNNER_TEMP/checkmate-release/website" \
+            "$RUNNER_TEMP/checkmate-site" \
+            "v0.4.1-beta=$RUNNER_TEMP/checkmate-v0.4.1-beta/website" \
+            "v0.4-alpha=$RUNNER_TEMP/checkmate-v0.4-alpha/website"
 
       - name: Install dependencies and build
         working-directory: ${{ runner.temp }}/checkmate-site

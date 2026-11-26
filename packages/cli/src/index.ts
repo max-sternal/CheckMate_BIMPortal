@@ -19,6 +19,7 @@ import {
   type CheckSource,
 } from '@checkmate/core';
 
+export const VERSION = '0.4.1-beta';
 const EXAMPLES = 8;
 const DEFAULT_SEARCH = 'Kappe';
 
@@ -27,8 +28,16 @@ export const USAGE =
   ' [--aia <AIA-Projekt-ID oder Link>] [--ids <IDS-Datei oder ZIP>] [--rules <Rules-JSON-Datei>]' +
   ' [--mapping <JSON-Datei|none|default>] [--suggest]' +
   ' [--discipline <Fachmodell>] [--phase <Leistungsphase>] [--purpose <Anwendungsfall>]' +
-  ' [--json <Datei>] [--bcf <Datei>] [--full] [Suchbegriff ...]\n' +
+  ' [--json <Datei>] [--bcf <Datei>] [--full] [--help] [--version] [Suchbegriff ...]\n' +
   '--loin, --aia, --ids und --rules dürfen mehrfach stehen.';
+
+export const HELP_TEXT = `${USAGE}
+
+Beispiele:
+  checkmate --model resources/models/mini-hochbau-bundesbau.ifc --ids resources/fixtures/ids/portal/mini-hochbau-bundesbau.zip --mapping none
+  checkmate --model resources/models/mini-infrastruktur-bruecke.ifc --ids resources/fixtures/ids/portal/mini-infrastruktur-bruecke.zip --mapping none
+  checkmate --ids resources/fixtures/ids/portal/ueberbau-kappe-lph8-9.ids --mapping default
+  checkmate --suggest "Kappe" --discipline "Ingenieurbau"`;
 
 export interface CliArguments {
   model: string | null;
@@ -42,6 +51,8 @@ export interface CliArguments {
   json: string | null;
   bcf: string | null;
   full: boolean;
+  help: boolean;
+  version: boolean;
 }
 
 export function parseCliArguments(args: readonly string[]): CliArguments {
@@ -53,6 +64,8 @@ export function parseCliArguments(args: readonly string[]): CliArguments {
   const words: string[] = [];
   let suggest = false;
   let full = false;
+  let help = false;
+  let version = false;
   let discipline: string | null = null;
   let phase: string | null = null;
   let purpose: string | null = null;
@@ -69,6 +82,14 @@ export function parseCliArguments(args: readonly string[]): CliArguments {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     switch (arg) {
+      case '--help':
+      case '-h':
+        help = true;
+        break;
+      case '--version':
+      case '-v':
+        version = true;
+        break;
       case '--suggest':
         suggest = true;
         break;
@@ -126,7 +147,7 @@ export function parseCliArguments(args: readonly string[]): CliArguments {
     }
   } else if (suggest) {
     search = '';
-  } else if (portalIds.length === 0 && idsFiles.length === 0 && rulesFiles.length === 0) {
+  } else if (!help && !version && portalIds.length === 0 && idsFiles.length === 0 && rulesFiles.length === 0) {
     search = DEFAULT_SEARCH;
   }
 
@@ -146,6 +167,8 @@ export function parseCliArguments(args: readonly string[]): CliArguments {
     json,
     bcf,
     full,
+    help,
+    version,
   };
 }
 
@@ -162,6 +185,17 @@ export async function runCli(
     err((e as Error).message);
     err(USAGE);
     return EXIT_USAGE;
+  }
+
+  if (parsed.help) {
+    out(`CheckMate ${VERSION}`);
+    out(HELP_TEXT);
+    return 0;
+  }
+
+  if (parsed.version) {
+    out(`CheckMate ${VERSION}`);
+    return 0;
   }
 
   let mapping: PropertyMapping;
@@ -234,7 +268,7 @@ export async function runCli(
     for (const line of report.header()) out(line);
     out('');
     for (const run of report.runs) {
-      for (const line of ReportText.brief(run, EXAMPLES)) out(line);
+      for (const line of ReportText.brief(run, EXAMPLES, report.model.rawSchema)) out(line);
     }
     out(ReportText.verdictLine(report));
   }
@@ -255,7 +289,8 @@ const isMain =
   typeof process !== 'undefined' &&
   process.argv[1] &&
   (process.argv[1].endsWith('cli/src/index.ts') ||
-    process.argv[1].endsWith('checkmate'));
+    process.argv[1].endsWith('checkmate') ||
+    process.argv[1].endsWith('checkmate.mjs'));
 
 if (isMain) {
   runCli(process.argv.slice(2)).then(

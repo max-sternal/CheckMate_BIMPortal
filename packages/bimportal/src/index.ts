@@ -2,6 +2,11 @@ import { unzipSync } from 'fflate';
 
 export const DEFAULT_BIM_PORTAL_BASE_URL = 'https://via.bund.de/bim';
 
+export interface LoinPurposePublicDto {
+  name?: string;
+  alternativeIdentifier?: string;
+}
+
 export interface SimpleLoinPublicDto {
   id?: string;
   guid: string;
@@ -13,7 +18,7 @@ export interface SimpleLoinPublicDto {
   domainSpecificModelTypes?: string[];
   constructionTypes?: string[];
   projectPhases?: string[];
-  purposes?: string[];
+  purposes?: Array<string | LoinPurposePublicDto | null | undefined>;
 }
 
 export interface SimpleAiaProjectPublicDto {
@@ -118,6 +123,23 @@ function cleanStrings(values?: (string | null | undefined)[] | null): string[] {
     .filter((v) => v.length > 0);
 }
 
+function cleanPurposes(
+  values?: Array<string | LoinPurposePublicDto | null | undefined> | null
+): string[] {
+  if (!values) return [];
+  const out: string[] = [];
+  for (const v of values) {
+    if (typeof v === 'string') {
+      const t = v.trim();
+      if (t) out.push(t);
+    } else if (v && typeof v === 'object') {
+      const t = (v.name ?? v.alternativeIdentifier ?? '').trim();
+      if (t) out.push(t);
+    }
+  }
+  return out;
+}
+
 export function toCatalogueEntry(dto: SimpleLoinPublicDto): CatalogueEntry {
   return {
     guid: dto.guid.toLowerCase(),
@@ -128,7 +150,7 @@ export function toCatalogueEntry(dto: SimpleLoinPublicDto): CatalogueEntry {
     disciplines: cleanStrings(dto.domainSpecificModelTypes),
     constructionTypes: cleanStrings(dto.constructionTypes),
     phases: cleanStrings(dto.projectPhases),
-    purposes: cleanStrings(dto.purposes),
+    purposes: cleanPurposes(dto.purposes),
   };
 }
 

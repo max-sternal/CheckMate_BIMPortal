@@ -450,7 +450,7 @@
 <body>
 <header>
   <div class="brand">
-    <span>♟️ CheckMate 0.4</span>
+    <span>♟️ CheckMate 0.4.1-beta</span>
     <span class="pill">IFClite 3D · BIM-Portal · MCP Parity</span>
     <span class="status-pill" id="headerStatusPill">Modell: bruecke-tbw1-mit-merkmalen.ifc (303 Objekte) · Mapping: BIM.Hamburg Brücken</span>
   </div>
@@ -458,9 +458,10 @@
     <label class="btn" title="Lokale .ifc oder .ifczip Datei öffnen">📂 IFC Datei <input type="file" id="ifcFile" accept=".ifc,.ifczip"></label>
     <label class="btn" title="Lokale .ids oder AIA-Projekt .zip Datei prüfen">📋 IDS / AIA-ZIP <input type="file" id="idsFile" accept=".ids,.xml,.zip"></label>
     <label class="btn" title="Lokale @ifc-lite/rules .rules.json Datei prüfen">⚙️ .rules.json <input type="file" id="rulesFile" accept=".json"></label>
-    <button id="presetKappeFailBtn" class="warn" title="Prüft Kappen auf Pset_Bauteilinformation/Feldnummer (6 Abweichungen in Rot)">⚡ Demo: Kappen-Fehler (6 Rot)</button>
-    <button id="presetPortalKappeBtn" class="primary" title="Prüft echte BIM-Portal LOIN Ueberbau > Kappe LPH 8-9 mit Mapping vs. ohne Mapping">🏛️ BIM-Portal LOIN: Kappe LPH 8-9</button>
-    <button id="presetPortalSchaftBtn" title="Prüft echte BIM-Portal LOIN Ueberbau > Schaft LPH 1-9 (Diagnose &amp; Fast-Treffer)">🔍 BIM-Portal LOIN: Schaft (Diagnose)</button>
+    <button id="presetMiniHochbauBtn" class="success" title="Lädt das kompakte IFC4-Hochbaumodell und prüft 5 BIM-Portal-LOINs (AIA Bundesbauten, Exit-Code 0)">🏢 Mini-Hochbau (5 LOINs)</button>
+    <button id="presetMiniInfraBtn" class="success" title="Lädt die kompakte IFC4-Einfeldbrücke und prüft 6 BIM-Portal-LOINs (Ingenieurbau, Exit-Code 0)">🌉 Mini-Brücke (6 LOINs)</button>
+    <button id="presetKappeFailBtn" class="warn" title="Lädt BIM.Hamburg TBW1 und prüft Kappen auf Pset_Bauteilinformation/Feldnummer (6 Abweichungen in Rot)">⚡ TBW1: Kappen-Fehler</button>
+    <button id="presetPortalKappeBtn" class="primary" title="Prüft echte BIM-Portal LOIN Ueberbau > Kappe LPH 8-9 auf TBW1 (Fast-Treffer Diagnose)">🏛️ TBW1: Portal Kappe</button>
   </div>
 </header>
 
@@ -522,6 +523,8 @@
         <div class="row">
           <select id="bundledFixtureSelect" title="Mitgelieferte BIM-Portal &amp; lokale IDS-Vorlagen">
             <option value="demo-kappe-fail">Vorlage: BIM.Hamburg Brücke — Kappen Feldnummer (6 Fehler + 286 Erfüllt)</option>
+            <option value="fixtures/mini-hochbau-bundesbau.zip">BIM-Portal LOINs (5x): Mini-Hochbau (AIA Bundesbauten LPH 3)</option>
+            <option value="fixtures/mini-infrastruktur-bruecke.zip">BIM-Portal LOINs (6x): Mini-Infrastruktur (Einfeldbrücke Ingenieurbau)</option>
             <option value="fixtures/ueberbau-kappe-lph8-9.ids">BIM-Portal IDS: Ueberbau &gt; Kappe LPH 8-9 (braucht Mapping für Klassifizierung/Objekttyp)</option>
             <option value="fixtures/ueberbau-schaft-lph1-9.ids">BIM-Portal IDS: Ueberbau &gt; Schaft LPH 1-9 (zeigt Fast-Treffer &amp; IFCTEXT/IFCLABEL Diagnose)</option>
             <option value="fixtures/mehrere-spezifikationen.ids">Lokale IDS: Mehrere Spezifikationen (Übersichtstabelle)</option>

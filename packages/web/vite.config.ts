@@ -5,12 +5,17 @@ import { defineConfig } from 'vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicDir = resolve(__dirname, 'public');
-const demoIfcSrc = resolve(__dirname, '../../resources/models/bruecke-tbw1-mit-merkmalen.ifc');
-const demoIfcDest = resolve(publicDir, 'bruecke-tbw1-mit-merkmalen.ifc');
-
-if (existsSync(demoIfcSrc) && !existsSync(demoIfcDest)) {
-  mkdirSync(publicDir, { recursive: true });
-  copyFileSync(demoIfcSrc, demoIfcDest);
+const modelsSrcDir = resolve(__dirname, '../../resources/models');
+mkdirSync(publicDir, { recursive: true });
+if (existsSync(modelsSrcDir)) {
+  for (const file of readdirSync(modelsSrcDir)) {
+    if (file.endsWith('.ifc')) {
+      const dest = resolve(publicDir, file);
+      if (!existsSync(dest)) {
+        copyFileSync(resolve(modelsSrcDir, file), dest);
+      }
+    }
+  }
 }
 
 // Copy bundled portal & local IDS fixtures into public/fixtures/ so the web workbench can

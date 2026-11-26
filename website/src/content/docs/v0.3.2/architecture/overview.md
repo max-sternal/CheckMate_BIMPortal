@@ -41,4 +41,4 @@ Die Module `bim-portal-enhanced` und `openapi-generated` bilden den Java-Zugang 
 
 IFC und IDS sind offene Austauschformate; das Portal ist eine Anforderungsquelle neben lokalen IDS-Dateien. Die Formate ermöglichen die Nutzung verschiedener Werkzeuge, garantieren aber keine identischen Prüfergebnisse oder vollständige Interoperabilität. Die derzeit unterstützten Facetten und Abweichungen sind unter [IFC und IDS](/CheckMate_BIMPortal/v0.3.2/architecture/ifc-ids-checking/) beschrieben.
 
-Die aktuellen Klassen und offenen Entscheidungen stehen im [Repository](https://github.com/max-sternal/CheckMate_BIMPortal/v0.3.2/tree/0.3.2) und in [`docs/STATUS.md`](https://github.com/max-sternal/CheckMate_BIMPortal/v0.3.2/blob/0.3.2/docs/STATUS.md).
+Die aktuellen Klassen und offenen Entscheidungen stehen im [Repository](https://github.com/max-sternal/CheckMate_BIMPortal/tree/0.3.2) und in [`docs/STATUS.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/STATUS.md).

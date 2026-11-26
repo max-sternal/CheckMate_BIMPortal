@@ -3,10 +3,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const publisher = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const [releaseSourceArg, outputArg] = process.argv.slice(2);
+const [releaseSourceArg, outputArg, ...extraArchives] = process.argv.slice(2);
 
 if (!releaseSourceArg || !outputArg) {
-	throw new Error('Usage: node prepare-published-site.mjs <release website> <new output directory>');
+	throw new Error(
+		'Usage: node prepare-published-site.mjs <release website> <new output directory> [<slug>=<websiteDir> ...]'
+	);
 }
 const releaseSource = path.resolve(releaseSourceArg);
 const output = path.resolve(outputArg);
@@ -44,33 +46,33 @@ for (const relativePath of [
 	}
 }
 
-// If CHECKMATE_DOCS_LATEST is v0.3.1 or v0.3.2, also materialize the publisher's root 0.4 docs
-// into /v0.4-alpha/ and /en/v0.4-alpha/ so the v0.4-alpha pre-release documentation is live!
-const publishedVersion = process.env.CHECKMATE_DOCS_LATEST ?? 'v0.4-alpha';
-if (publishedVersion === 'v0.3.1' || publishedVersion === 'v0.3.2') {
-	const logoSrc = path.join(publisher, 'src/assets/checkmate-logo.png');
-	const logoDestDir = path.join(output, 'src/assets/v0.4-alpha');
-	mkdirSync(logoDestDir, { recursive: true });
-	cpSync(logoSrc, path.join(logoDestDir, 'checkmate-logo.png'));
+const ARCHIVE_PAGES = [
+	'index.mdx',
+	'guides/vision.md',
+	'guides/versions.md',
+	'guides/quickstart.md',
+	'guides/mapping.md',
+	'guides/example.md',
+	'guides/chat.md',
+	'architecture/overview.md',
+	'architecture/ifc-ids-checking.md',
+	'mcp/overview.md',
+	'mcp/clients.md',
+	'project/contributors.md',
+	'project/roadmap.md',
+];
 
-	const pages = [
-		'index.mdx',
-		'guides/vision.md',
-		'guides/versions.md',
-		'guides/quickstart.md',
-		'guides/mapping.md',
-		'guides/example.md',
-		'architecture/overview.md',
-		'architecture/ifc-ids-checking.md',
-		'mcp/overview.md',
-		'mcp/clients.md',
-		'project/contributors.md',
-		'project/roadmap.md',
-	];
+function materializeVersion(slug, srcWebsiteDir) {
+	const logoSrc = path.join(srcWebsiteDir, 'src/assets/checkmate-logo.png');
+	if (existsSync(logoSrc)) {
+		const logoDestDir = path.join(output, 'src/assets', slug);
+		mkdirSync(logoDestDir, { recursive: true });
+		cpSync(logoSrc, path.join(logoDestDir, 'checkmate-logo.png'));
+	}
 
-	const archive04 = (srcPrefix, destPrefix, slugPrefix, isEn) => {
-		for (const rel of pages) {
-			const srcFile = path.join(publisher, 'src/content/docs', srcPrefix, rel);
+	const copyLocale = (srcPrefix, destPrefix, slugPrefix, isEn) => {
+		for (const rel of ARCHIVE_PAGES) {
+			const srcFile = path.join(srcWebsiteDir, 'src/content/docs', srcPrefix, rel);
 			if (!existsSync(srcFile)) continue;
 			const destFile = path.join(output, 'src/content/docs', destPrefix, rel);
 			mkdirSync(path.dirname(destFile), { recursive: true });
@@ -80,27 +82,32 @@ if (publishedVersion === 'v0.3.1' || publishedVersion === 'v0.3.2') {
 			const targetSlug = bareSlug === 'index' ? slugPrefix : `${slugPrefix}/${bareSlug}`;
 
 			content = content.replace(/^---\n([\s\S]*?)\n---/, (_, fm) => {
-				return `---\neditUrl: false\n${fm}\nslug: ${targetSlug}\n---`;
+				const cleaned = fm
+					.split('\n')
+					.filter((line) => !line.startsWith('editUrl:') && !line.startsWith('slug:'))
+					.join('\n');
+				return `---\neditUrl: false\n${cleaned}\nslug: ${targetSlug}\n---`;
 			});
 
 			if (rel === 'index.mdx') {
 				content = content.replace(
 					/file:\s*\.\.\/(?:\.\.\/)*assets\/checkmate-logo\.png/,
 					isEn
-						? 'file: ../../../../assets/v0.4-alpha/checkmate-logo.png'
-						: 'file: ../../../assets/v0.4-alpha/checkmate-logo.png'
+						? `file: ../../../../assets/${slug}/checkmate-logo.png`
+						: `file: ../../../assets/${slug}/checkmate-logo.png`
 				);
 			}
 
+			// Safely rewrite internal site links without corrupting https://github.com/max-sternal/CheckMate_BIMPortal/...
 			if (isEn) {
 				content = content.replace(
-					/\/CheckMate_BIMPortal\/en\/(?!v0\.)/g,
-					'/CheckMate_BIMPortal/en/v0.4-alpha/'
+					/(?<!github\.com\/max-sternal)\/CheckMate_BIMPortal\/en\/(?!v0\.)/g,
+					`/CheckMate_BIMPortal/en/${slug}/`
 				);
 			} else {
 				content = content.replace(
-					/\/CheckMate_BIMPortal\/(?!en\/|v0\.)/g,
-					'/CheckMate_BIMPortal/v0.4-alpha/'
+					/(?<!github\.com\/max-sternal)\/CheckMate_BIMPortal\/(?!en\/|v0\.)/g,
+					`/CheckMate_BIMPortal/${slug}/`
 				);
 			}
 
@@ -108,6 +115,16 @@ if (publishedVersion === 'v0.3.1' || publishedVersion === 'v0.3.2') {
 		}
 	};
 
-	archive04('', 'v0.4-alpha', 'v0.4-alpha', false);
-	archive04('en', 'en/v0.4-alpha', 'en/v0.4-alpha', true);
+	copyLocale('', slug, slug, false);
+	copyLocale('en', `en/${slug}`, `en/${slug}`, true);
+}
+
+for (const spec of extraArchives) {
+	const eq = spec.indexOf('=');
+	if (eq <= 0) continue;
+	const slug = spec.slice(0, eq).trim();
+	const dir = path.resolve(spec.slice(eq + 1).trim());
+	if (existsSync(path.join(dir, 'src', 'content', 'docs'))) {
+		materializeVersion(slug, dir);
+	}
 }

@@ -1283,23 +1283,44 @@ document.getElementById('quickElementInput')?.addEventListener('keydown', (e) =>
   }
 });
 
-// Header Preset Buttons
-document.getElementById('presetKappeFailBtn')?.addEventListener('click', () => {
+async function loadBundledModelAndFixture(modelFile: string, fixtureVal: string): Promise<void> {
   switchTab('tab-report');
-  (document.getElementById('bundledFixtureSelect') as HTMLSelectElement).value = 'demo-kappe-fail';
-  void runSelectedFixture();
+  if (!currentModel || currentModel.name !== modelFile) {
+    const res = await fetch(`./${modelFile}`);
+    if (res.ok) {
+      const buf = new Uint8Array(await res.arrayBuffer());
+      currentModel = await LoadedModel.fromBytes(buf, modelFile);
+      updateHeaderStatus();
+      renderCatalogueList();
+      renderModelExplorerTab();
+      await extractModelGeometryToWebGL(currentModel);
+    }
+  }
+  (document.getElementById('bundledFixtureSelect') as HTMLSelectElement).value = fixtureVal;
+  await runSelectedFixture();
+}
+
+// Header Preset Buttons
+document.getElementById('presetMiniHochbauBtn')?.addEventListener('click', () => {
+  void loadBundledModelAndFixture(
+    'mini-hochbau-bundesbau.ifc',
+    'fixtures/mini-hochbau-bundesbau.zip'
+  );
+});
+document.getElementById('presetMiniInfraBtn')?.addEventListener('click', () => {
+  void loadBundledModelAndFixture(
+    'mini-infrastruktur-bruecke.ifc',
+    'fixtures/mini-infrastruktur-bruecke.zip'
+  );
+});
+document.getElementById('presetKappeFailBtn')?.addEventListener('click', () => {
+  void loadBundledModelAndFixture('bruecke-tbw1-mit-merkmalen.ifc', 'demo-kappe-fail');
 });
 document.getElementById('presetPortalKappeBtn')?.addEventListener('click', () => {
-  switchTab('tab-report');
-  (document.getElementById('bundledFixtureSelect') as HTMLSelectElement).value =
-    'fixtures/ueberbau-kappe-lph8-9.ids';
-  void runSelectedFixture();
-});
-document.getElementById('presetPortalSchaftBtn')?.addEventListener('click', () => {
-  switchTab('tab-report');
-  (document.getElementById('bundledFixtureSelect') as HTMLSelectElement).value =
-    'fixtures/ueberbau-schaft-lph1-9.ids';
-  void runSelectedFixture();
+  void loadBundledModelAndFixture(
+    'bruecke-tbw1-mit-merkmalen.ifc',
+    'fixtures/ueberbau-kappe-lph8-9.ids'
+  );
 });
 
 async function runSelectedFixture(): Promise<void> {

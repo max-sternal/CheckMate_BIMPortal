@@ -17,7 +17,7 @@ Das mitgelieferte BIM.Hamburg-Brückenmodell verwendet diese Zuordnung:
 | `Klassifizierung/Objektklasse` | `Pset_Objektinformation/_IDEbene2` |
 | `Klassifizierung/Objekttyp` | `Pset_Objektinformation/_IDEbene3` |
 
-Die Datei [`bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/v0.3.2/blob/0.3.2/bim-portal/Java_client/hackathon-template/src/main/resources/mapping/bim-hamburg.json) ist in `0.3.2` standardmäßig aktiv. Zuerst wird immer der in der Anforderung genannte Name gesucht; erst danach kommen die Mapping-Adressen zum Einsatz. Verwendete Aliase erscheinen im Bericht als `als Pset_Objektinformation/...`.
+Die Datei [`bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/bim-portal/Java_client/hackathon-template/src/main/resources/mapping/bim-hamburg.json) ist in `0.3.2` standardmäßig aktiv. Zuerst wird immer der in der Anforderung genannte Name gesucht; erst danach kommen die Mapping-Adressen zum Einsatz. Verwendete Aliase erscheinen im Bericht als `als Pset_Objektinformation/...`.
 
 Ein Mapping ist **keine allgemeine IDS-Regel**. Es muss fachlich zum jeweiligen Projekt und Modell passen. Es gleicht Namen zu, aber korrigiert keine Werte oder Datentypen. Eine gefundene Adresse bedeutet daher nicht automatisch, dass eine Anforderung erfüllt ist.
 

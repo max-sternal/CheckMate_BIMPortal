@@ -36,6 +36,6 @@ In Claude Desktop unter **Settings → Developer → Edit Config** einen Eintrag
 
 Sind bereits Server eingetragen, nur den `checkmate`-Eintrag in das vorhandene `mcpServers`-Objekt aufnehmen. Claude Desktop vollständig beenden und neu starten. Optional kann `CHECKMATE_IFC` in `env` ein Modell vorgeben.
 
-Claude Code kann den Server mit `claude mcp add checkmate -- cmd /c "C:\pfad\zu\checkmate-mcp.bat"` registrieren; `claude mcp list` zeigt die Konfiguration. Weitere Hinweise stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/v0.3.2/blob/0.3.2/docs/WORKFLOW.md).
+Claude Code kann den Server mit `claude mcp add checkmate -- cmd /c "C:\pfad\zu\checkmate-mcp.bat"` registrieren; `claude mcp list` zeigt die Konfiguration. Weitere Hinweise stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md).
 
 Andere Clients können grundsätzlich verwendet werden, wenn sie lokale MCP-Server über `stdio` unterstützen. Einrichtung, Berechtigungen und Datenverarbeitung hängen vom jeweiligen Client und Anbieter ab; die Kompatibilität ist im Einzelfall zu prüfen.

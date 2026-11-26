@@ -1,22 +1,22 @@
 ---
-title: Project status
-description: Current state and open points for CheckMate 0.4 and the Java 0.3.2 / 0.3.3 track.
+title: Project Status
+description: Current status of CheckMate 0.4.1-beta (TypeScript + IFClite) and 0.3.3-stable (Latest, Java 25).
 ---
 
-## State of `0.4` (`0.4-alpha`)
+## State of `0.4.1-beta` (TypeScript + IFClite)
 
-CheckMate `0.4` combines the complete domain checking workflow of `0.3.2` with **TypeScript and IFClite (`@ifc-lite/*`)**:
+CheckMate `0.4.1-beta` polishes the TypeScript and IFClite (`@ifc-lite/*`) stack introduced in `0.4-alpha` into a clean, ready-to-use beta edition:
 
-- **3D browser workbench (`@checkmate/web`)**: 4-tab workbench featuring a WebGL 3D viewer, element inspector (`element_report`), live BIM Portal catalogue search with `ModelFit` ranking, `LoinDescription` preview, summary table, near-miss diagnosis (`nicht prüfbar`), live JSON mapping editor, `.rules.json` conversion and BCF 2.1 download (`.bcfzip`).
-- **MCP server & 3D MCP Apps (`@checkmate/mcp`)**: 10 model tools, 5 app-only tools and 3 interactive 3D HTML views (`ui://checkmate/report`, `ui://checkmate/model`, `ui://checkmate/loins`).
-- **CLI (`@checkmate/cli`)**: Matches the flags, German reports and exit codes (`0..4`) of `0.3.2`, adding `--rules` and `--bcf`.
+- **3D browser workbench (`@checkmate/web`)**: 4-tab workbench with WebGL 3D viewer, 1-click presets for building (`🏢 Mini-Hochbau`), infrastructure (`🌉 Mini-Brücke`), and BIM.Hamburg (`TBW1`), element inspector (`element_report`), live BIM Portal catalogue search with `ModelFit` ranking, `LoinDescription` preview, near-miss diagnosis, live JSON mapping editor, `.rules.json` conversion, and BCF 2.1 download (`.bcfzip`).
+- **Streamlined MCP server & 3D MCP Apps (`@checkmate/mcp`)**: Clean declarative server structure (`catalog.ts` / `tools.ts` / `index.ts`) with a standalone launcher (`checkmate-mcp.mjs`), 10 model tools, 5 app-only tools, 3 interactive 3D HTML views (`ui://checkmate/*`), 2 JSON resources (`checkmate://model/current`, `checkmate://report/last.json`), 2 guided prompts (`check-loin`, `explain-element`), and an Antigravity plugin builder (`pnpm mcp:antigravity-plugin`).
+- **Command-line interface (`@checkmate/cli`)**: Runnable via `pnpm cli` or globally linked via `pnpm --filter @checkmate/cli link --global` as `checkmate`, with `--help`, `--version`, `--rules`, `--bcf`, and exit codes `0..4`.
+- **BIM Portal IFC4 reference models**: Two compact, human-readable 3D IFC4 models for building construction (`mini-hochbau-bundesbau.ifc`, 5 LOINs) and infrastructure (`mini-infrastruktur-bruecke.ifc`, 6 LOINs), alongside 6 extended `_mod_full`/`_mod_partial` test models documented in [`docs/README.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.4.1-beta/docs/README.md).
 
-## State of the Java track (`0.3.2` & `0.3.3`)
+## State of `0.3.3-stable` (`Latest`, Java 25 LTS)
 
-- **`0.3.2`**: Runs on Java 21 through Java 25 LTS with Gradle 9.1.0, reads IFC2X3, IFC4 and IFC4X3 without APSTEX, and supports interchangeable JSON mappings (`bim-hamburg.json`) plus the initial MCP App report view. ([View archived 0.3.2 documentation](/CheckMate_BIMPortal/en/v0.3.2/))
-- **`0.3.3` (Planned)**: Investigation and support for current LOIN-XML (see the [BIM Portal import interface](https://github.com/bimdeutschland/BIM-Portal-Importschnittstellendokumentation) and [ISO/DIS 7817-3](https://www.iso.org/standard/89077.html)).
+- **`0.3.3-stable`** is the current stable main release of the Java edition ([view Latest documentation](/CheckMate_BIMPortal/en/)): running on JDK 25 LTS and Gradle 9.1.0 without APSTEX, it provides the JavaFX GUI, CLI, Java MCP server (11 tools, 3 MCP App views, Antigravity plugin), and a configurable in-GUI AI chat (`CheckMateChat`).
 
-## Open points
+## Outlook
 
-- Field testing of the 3D browser workbench (`0.4-alpha`) and 3D MCP Apps across diverse discipline models and AIA projects.
-- LOIN-XML investigation on `0.3.3` and cross-pollination between `0.3.x` and `0.4`.
+- Practical evaluation of both editions (`0.3.3-stable` and `0.4.1-beta`) across additional discipline models, object catalogues, and AIA projects.
+- Tracking ongoing LOIN-XML standardisation ([BIM Portal import interface](https://github.com/bimdeutschland/BIM-Portal-Importschnittstellendokumentation), [ISO/DIS 7817-3](https://www.iso.org/standard/89077.html)).

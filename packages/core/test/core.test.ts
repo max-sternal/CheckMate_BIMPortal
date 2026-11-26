@@ -5,6 +5,7 @@ import {
   CheckService,
   createPropertyKey,
   LoadedModel,
+  LoinDescription,
   ModelFit,
   PropertyMapping,
   ReportText,
@@ -114,5 +115,41 @@ describe('@checkmate/core (IFClite + CheckMate engine)', () => {
 
     const bcfBytes = await service.exportBcf(report);
     expect(bcfBytes.byteLength).toBeGreaterThan(100);
+  });
+
+  it('validates the compact Hochbau IFC4 model against all 5 AIA Bundesbauten LOINs (Exit-Code 0 + 3D meshes)', async () => {
+    const model = await LoadedModel.read(resolve(RESOURCES, 'models/mini-hochbau-bundesbau.ifc'));
+    expect(model.rawSchema).toBe('IFC4');
+    const meshes = await model.extractElementMeshes();
+    expect(meshes.totalElementsWithGeometry).toBe(4);
+
+    const service = new CheckService(undefined, PropertyMapping.resolve('none'));
+    const zipPath = resolve(RESOURCES, 'fixtures/ids/portal/mini-hochbau-bundesbau.zip');
+    const report = await service.check([{ kind: 'idsFile', path: zipPath }], model);
+
+    expect(report.exitCode()).toBe(0);
+    expect(report.results()).toHaveLength(5);
+    expect(report.results().every((r) => r.verdict === 'PASSED')).toBe(true);
+
+    const { name, document } = await service.loadIdsDocument({ kind: 'idsFile', path: zipPath });
+    const desc = await LoinDescription.describeDocument(name, document, model, service);
+    expect(desc.join('\n')).toContain('5 Spezifikationen für IFC4');
+  });
+
+  it('validates the compact Infrastruktur IFC4 bridge model against all 6 Ingenieurbau LOINs (Exit-Code 0 + 3D meshes)', async () => {
+    const model = await LoadedModel.read(
+      resolve(RESOURCES, 'models/mini-infrastruktur-bruecke.ifc')
+    );
+    expect(model.rawSchema).toBe('IFC4');
+    const meshes = await model.extractElementMeshes();
+    expect(meshes.totalElementsWithGeometry).toBe(7);
+
+    const service = new CheckService(undefined, PropertyMapping.resolve('none'));
+    const zipPath = resolve(RESOURCES, 'fixtures/ids/portal/mini-infrastruktur-bruecke.zip');
+    const report = await service.check([{ kind: 'idsFile', path: zipPath }], model);
+
+    expect(report.exitCode()).toBe(0);
+    expect(report.results()).toHaveLength(6);
+    expect(report.results().every((r) => r.verdict === 'PASSED')).toBe(true);
   });
 });

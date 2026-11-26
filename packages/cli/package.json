@@ -1,10 +1,10 @@
 {
   "name": "@checkmate/cli",
-  "version": "0.4.0",
+  "version": "0.4.1-beta",
   "type": "module",
   "main": "./src/index.ts",
   "bin": {
-    "checkmate": "./src/index.ts"
+    "checkmate": "./bin/checkmate.mjs"
   },
   "scripts": {
     "build": "tsc --noEmit"

@@ -19,4 +19,4 @@ Die MCP-App-Berichtansicht ist implementiert und auf Protokollebene getestet; ei
 - Für `0.4` eine bessere Online-Nutzung mit Viewer und MCP-App-Integration untersuchen.
 - Schnittstellen und Dokumentation mit der weiteren Entwicklung pflegen.
 
-Entwicklungszweige und Ideen sind keine Zusage eines bestimmten Funktionsumfangs oder Termins. Code-nahe Einzelheiten stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/v0.3.2/blob/0.3.2/docs/WORKFLOW.md) und [`docs/STATUS.md`](https://github.com/max-sternal/CheckMate_BIMPortal/v0.3.2/blob/0.3.2/docs/STATUS.md).
+Entwicklungszweige und Ideen sind keine Zusage eines bestimmten Funktionsumfangs oder Termins. Code-nahe Einzelheiten stehen in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md) und [`docs/STATUS.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/STATUS.md).
