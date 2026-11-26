@@ -2,7 +2,7 @@ name: Deploy Versioned Documentation
 
 on:
   push:
-    branches: ["0.3.2"]
+    branches: ["0.3.2", "0.3.3"]
     paths:
       - "website/**"
       - ".github/workflows/versioned-docs.yml"
@@ -18,7 +18,10 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  CHECKMATE_DOCS_LATEST: v0.3.1
+  # The ref whose website becomes "Latest". A branch works as well as a tag: while 0.3.3 is in
+  # development this publishes it, so the chat chapter is online. On a merge into 0.3.2 or main,
+  # put the released tag back here.
+  CHECKMATE_DOCS_LATEST: 0.3.3
 
 jobs:
   build:
