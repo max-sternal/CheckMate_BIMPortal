@@ -1,0 +1,49 @@
+---
+editUrl: false
+title: CheckMate
+description: CheckMate helps planners and reviewers compare IFC models with information requirements.
+template: splash
+hero:
+  tagline: Speed up bureaucracy instead of dismantling it – less overload, more clarity in BIM checking.
+  image:
+    file: ../../../../assets/v0.3.2/checkmate-logo.png
+    alt: CheckMate Logo
+  actions:
+    - text: Quick start
+      link: /CheckMate_BIMPortal/en/v0.3.2/guides/quickstart/
+      icon: right-arrow
+    - text: Context and sources
+      link: /CheckMate_BIMPortal/en/v0.3.2/guides/vision/
+      variant: secondary
+    - text: Contributors
+      link: /CheckMate_BIMPortal/en/v0.3.2/project/contributors/
+      variant: minimal
+slug: en/v0.3.2
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why CheckMate?
+
+Models, properties and information requirements should help people plan and review projects – not **checkmate** planners and reviewers. CheckMate is a partner in the checking process: it brings requirements and IFC models together and makes results easier to understand.
+
+The idea: **speed up bureaucracy without weakening standards.** Clear, machine-readable requirements and digital tools help people focus on professional judgement.
+
+CheckMate originated at the [2025 BIM Portal Hackathon](https://www.bimdeutschland.de/veranstaltungen/hackathon-2025). This independent project processes requirements from the [German federal BIM Portal](https://www.bimdeutschland.de/bim-portal) or local IDS files.
+
+<CardGrid>
+  <Card title="Open exchange formats" icon="open-book">
+    IFC describes the model; buildingSMART IDS describes machine-readable requirements. Local IDS files can also be used independently of the BIM Portal.
+  </Card>
+  <Card title="One check, multiple interfaces" icon="laptop">
+    The JavaFX interface, command line and MCP server share the same rule-based checking core.
+  </Card>
+  <Card title="People and AI working together" icon="approve-check-circle">
+    An AI application can use MCP to run checks and explain results. CheckMate performs the check; professional decisions remain with people.
+  </Card>
+  <Card title="Open and transparent" icon="puzzle">
+    CheckMate is open source under Apache 2.0. Version 0.3.2 reads IFC without the proprietary APSTEX IFC Toolbox.
+  </Card>
+</CardGrid>
+
+Not every IDS requirement is evaluated. [IFC and IDS](/CheckMate_BIMPortal/en/v0.3.2/architecture/ifc-ids-checking/) explains the checking scope and its limits; the [architecture overview](/CheckMate_BIMPortal/en/v0.3.2/architecture/overview/) describes the components and dependencies.

@@ -1,18 +1,25 @@
 ---
-title: Versions & branches
-description: From the hackathon prototype to CheckMate's development goals.
+title: Versions & Branches
+description: From the hackathon prototype to the current stable release 0.3.3-stable (Latest) and the TypeScript/IFClite beta 0.4.1-beta.
 ---
 
-| Version | State and idea |
-|---|---|
-| `0.1` | Result of the 24-hour hackathon, including the prototype and presentation. |
-| `0.2` | Initial fixes to the portal client and a working checking workflow. |
-| `0.3` | A larger revision of the checking core, reports and interfaces as the foundation of the `0.3` line. |
-| `0.3.1` | Java version with GUI, CLI and MCP server; IFC loading uses APSTEX, as at the hackathon. |
-| `0.3.2` | Development state documented here: Java IFC reader without APSTEX, interchangeable JSON mappings and an initial MCP App report view. |
-| `0.3.3` | In progress: [chat in the interface](/CheckMate_BIMPortal/en/guides/chat/) with a configurable model and endpoint. Further goal: investigate and add support for current LOIN-XML. |
-| `0.4` | Goal: better online use with a viewer and closer integration with AI clients through MCP Apps. |
+| Version / Release | Branch | Scope and Focus |
+|---|---|---|
+| `v0.1.0` | `0.1` / `main` | Result of the 24-hour hackathon (September 2025) with initial prototype and pitch. ([Docs](/CheckMate_BIMPortal/en/v0.1.0/)) |
+| `v0.2.0` | `0.2` | First portal client fixes and an end-to-end runnable checking workflow. ([Docs](/CheckMate_BIMPortal/en/v0.2.0/)) |
+| `v0.3.1` | `0.3.1` | Reworked Java checking core with JavaFX GUI, CLI, and MCP server (using APSTEX). ([Docs](/CheckMate_BIMPortal/en/v0.3.1/)) |
+| `v0.3.2` | `0.3.2` | Pure Java 25 edition without APSTEX: custom STEP IFC reader, JSON mapping (`bim-hamburg.json`), property catalogue client, IDS value restrictions, 3 MCP App views, and Antigravity plugin. ([Docs](/CheckMate_BIMPortal/en/v0.3.2/)) |
+| **`v0.3.3-stable` (`Latest`)** | `0.3.3-stable` / `0.3.3` | **Current stable main release documented here (Java 25 LTS):** extends `0.3.2` with configurable in-GUI AI chat (`CheckMateChat`), hardened build/dependency setup, and curated BIM Portal IFC test models. ([Latest Docs](/CheckMate_BIMPortal/en/)) |
+| `v0.4-alpha` (`Alpha`) | `0.4` (tag `v0.4-alpha`) | Initial TypeScript & IFClite milestone (`@ifc-lite/*`): 3D browser workbench, 3D MCP Apps, CLI, `.rules.json`, and BCF 2.1 export. ([Docs](/CheckMate_BIMPortal/en/v0.4-alpha/)) |
+| **`v0.4.1-beta` (`Beta`)** | `0.4.1-beta` / `0.4` | **Beta Version (TypeScript + IFClite):** streamlined MCP server, direct CLI installation, schema & live portal fixes, and two compact 3D IFC4 reference models. ([Beta Docs](/CheckMate_BIMPortal/en/v0.4.1-beta/)) |
 
-`0.3` describes the development line, not necessarily a branch of its own. `0.3.3` is a development branch in progress, `0.4` describes goals; the remaining scope is not yet fixed. For setup and open issues, see the [quick start](/CheckMate_BIMPortal/en/guides/quickstart/) and [project status](/CheckMate_BIMPortal/en/project/roadmap/).
+## Two Complementary Editions: `0.3.3-stable` (Java 25) and `0.4.1-beta` (TypeScript + IFClite)
 
-[View repository branches](https://github.com/max-sternal/CheckMate_BIMPortal/branches)
+CheckMate is maintained in two consistent, complementary editions:
+
+- **`0.3.3-stable` (`Latest`, Java 25 LTS):** The stable reference implementation with a classic JavaFX desktop GUI (including optional API-key AI chat), headless CLI, and Java MCP server — completely free of proprietary third-party libraries.
+- **`0.4.1-beta` (`Beta`, TypeScript + IFClite):** Brings the exact same domain workflow (`ModelFit`, `LoinDescription`, `PropertyMapping`, near-miss diagnosis, German reports, and exit codes `0..4`) to Node.js 22+ and WebAssembly (`@ifc-lite/*`) for interactive 3D checking in the browser and inline 3D MCP Apps in Antigravity and Claude Desktop.
+
+Use the version selector at the top of the navigation bar to switch between **`Latest (0.3.3-stable)`**, **`v0.4.1-beta`**, **`v0.4-alpha`**, and archived releases (`v0.3.2`, `v0.3.1`, `v0.2.0`, `v0.1.0`).
+
+[View branches on GitHub](https://github.com/max-sternal/CheckMate_BIMPortal/branches) · [View releases & pre-releases](https://github.com/max-sternal/CheckMate_BIMPortal/releases)

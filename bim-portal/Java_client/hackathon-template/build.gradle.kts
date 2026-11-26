@@ -261,7 +261,7 @@ tasks.register("installAntigravityPlugin") {
             """
             {
               "name": "checkmate-bimportal",
-              "version": "0.3.2",
+              "version": "0.3.3-stable",
               "description": "CheckMate BIM Portal — IFC/IDS model checker, LOIN & Merkmale lookup, and MCP Apps views",
               "logo": "$logoPath"
             }

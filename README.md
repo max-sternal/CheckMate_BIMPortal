@@ -22,6 +22,7 @@ for the versioned deployment.
 | `bim-portal/Java_client/hackathon-template/` | CheckMate (Gradle module `hackathon-template`) |
 | `…/src/main/java/com/bimportal/hackathon/ids/` | the core: requirements from the portal or IDS files (`PortalRequirements`, `IdsParser`, `IdsArchive`), the check (`IdsValidator`, `Values`, `DataTypes`, `PropertyKey`), the result (`CheckResult`) |
 | `…/src/main/java/com/bimportal/hackathon/ifc/` | pure-Java STEP IFC reader with schema tables for IFC2X3, IFC4 and IFC4X3 (`StepParser`, `IfcSchema`, `IfcModelElements`, `IfcResources`, `ModelLinks`, `LoadedModel`) |
+| `…/src/main/java/com/bimportal/hackathon/properties/` | BIM Portal Merkmale & Merkmalsgruppen client (`PortalProperties`) |
 | `…/src/main/java/com/bimportal/hackathon/catalogue/` | choosing LOINs from the portal's catalogue: filters, ranking by fit (`ModelFit`), the description on click |
 | `…/src/main/java/com/bimportal/hackathon/check/` | the check as every front end runs it: requirement sources, downloading each once, checking, searching (`CheckService`, `Source`) |
 | `…/src/main/java/com/bimportal/hackathon/report/` | the result of a run: verdict, exit code, text and JSON (`CheckReport`, `ReportText`, `ReportJson`) |
@@ -30,6 +31,7 @@ for the versioned deployment.
 | `…/src/main/java/com/bimportal/hackathon/chat/` | the chat in the GUI (`CheckMateChat`): conversation, tool definition and tool-use loop, on the official Anthropic Java SDK |
 | `…/src/main/java/test/fx/` | JavaFX GUI only (`App`, `ElementUI`, `RequirementSource`). The package name is a leftover (STATUS #13). |
 | `…/src/test/` | tests, with real portal downloads and own IFC case files |
+| `docs/README.md` & `docs/mini-*.ifc` | Curated compact IFC test models for building (`mini-hochbau-bundesbau.ifc`) and infrastructure (`mini-infrastruktur-bruecke.ifc`) |
 | `bim-portal/Java_client/bim-portal-enhanced/` | client for the BIM Portal's API (from the hackathon template) |
 | `bim-portal/Java_client/openapi-generated/` | generated API client, don't edit |
 | `docs/WORKFLOW.md` | how CheckMate works step by step, a checklist, and decisions |

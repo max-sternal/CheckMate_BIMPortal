@@ -1,25 +1,21 @@
 ---
 title: Project status
-description: Current state and open points for CheckMate 0.3.2.
+description: Current state and open points for CheckMate 0.3.3-stable and outlook on 0.4.1-beta.
 ---
 
-## Version 0.3.2
+## State of `0.3.3-stable` (Latest)
 
-CheckMate provides a JavaFX interface, CLI and MCP server for checking IFC models against supported IDS requirements. Requirements can come from the BIM Portal or local IDS files. The Java reader handles IFC2X3, IFC4 and IFC4X3 without APSTEX.
+CheckMate `0.3.3-stable` provides a JavaFX interface with built-in configurable AI chat (`CheckMateChat`), a robust CLI, and an MCP server featuring 11 tools, 3 MCP App views, 2 JSON resources, and 2 prompts for checking IFC models against supported IDS requirements. Requirements can come from the BIM Portal or local IDS files. The Java reader handles IFC2X3, IFC4 and IFC4X3 without APSTEX. Curated BIM Portal test models for building and infrastructure are documented in `docs/README.md` (`docs/mini-hochbau-bundesbau.ifc`, `docs/mini-infrastruktur-bruecke.ifc`).
 
-The MCP App report view is implemented and tested at protocol level; visual testing in Claude Desktop or Antigravity remains open. JSON mappings can be loaded and switched.
+## Active Development on `0.4.1-beta` (Beta)
 
-## In progress on 0.3.3
+Active development takes place on the TypeScript and IFClite track `0.4.1-beta` ([Beta Docs](/CheckMate_BIMPortal/en/v0.4.1-beta/)), offering a 3D browser viewer, BCF export, and a streamlined Node.js edition (`checkmate-mcp.mjs`) with native Antigravity support.
 
-The [chat in the interface](/CheckMate_BIMPortal/en/guides/chat/) starts a check through a language model that CheckMate calls with its own API key. The model and endpoint are configurable, so models from other vendors can be used through a gateway. A question about a LOIN is answered end to end. `check_model` is so far the chat's only tool, so a question without an ID — one naming a component, for instance — is not yet possible, and a paid model has not been compared.
-
-## Open points
+## Open Points & Outlook
 
 - Support further IDS facets and IFC properties; current limits are described in [IFC and IDS](/CheckMate_BIMPortal/en/architecture/ifc-ids-checking/).
-- Test the MCP App report view in compatible clients and investigate further views.
-- Investigate a catalogue search as a second chat tool, so a LOIN need not be named by its ID.
-- Investigate LOIN-XML support for `0.3.3`. LOIN-XML is distinct from the currently supported IDS format. Starting points are the [BIM Portal import interface](https://github.com/bimdeutschland/BIM-Portal-Importschnittstellendokumentation) and [ISO/DIS 7817-3](https://www.iso.org/standard/89077.html); the standard is still under development.
-- Investigate better online use with a viewer and MCP App integration for `0.4`.
+- Evaluate MCP App views in additional clients.
+- Seamless advancement of the TypeScript/IFClite architecture (`0.4.1-beta`).
 - Maintain interfaces and documentation as development continues.
 
-Development branches and ideas are not commitments to particular features or dates. Code-level details are in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md) and [`docs/STATUS.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/STATUS.md).
+Development branches and ideas are not commitments to particular features or dates. Code-level details are in [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.3-stable/docs/WORKFLOW.md) and [`docs/STATUS.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.3-stable/docs/STATUS.md).

@@ -1,11 +1,11 @@
 ---
 title: Set up an MCP client
-description: Set up CheckMate as a local MCP server for compatible clients.
+description: Set up CheckMate as a local MCP server for compatible clients (0.3.3-stable).
 ---
 
 ## Install the server
 
-The [0.3.2 prerequisites](/CheckMate_BIMPortal/en/guides/quickstart/) also apply to the MCP server: JDK 21 is sufficient; JavaFX and APSTEX are not needed.
+The [0.3.3-stable prerequisites](/CheckMate_BIMPortal/en/guides/quickstart/) also apply to the MCP server: **JDK 25** is required.
 
 ```bash
 cd bim-portal/Java_client
@@ -14,9 +14,27 @@ cd bim-portal/Java_client
 
 On Windows, use `.\gradlew.bat`. The launcher is created at `hackathon-template/build/install/checkmate-mcp/bin/checkmate-mcp`, or `checkmate-mcp.bat` on Windows. Run `installMcp` again after code changes.
 
-## Example: Claude Desktop on Windows
+## Supported Clients
 
-In Claude Desktop, open **Settings → Developer → Edit Config** and add an entry to `claude_desktop_config.json`. Replace the paths with local absolute paths:
+### 1. Antigravity
+
+Antigravity natively supports CheckMate via a dedicated plugin:
+```bash
+./gradlew :hackathon-template:installAntigravityPlugin
+agy plugin validate --strict
+agy plugin install checkmate
+```
+
+### 2. MCP Inspector
+
+For development and testing, you can launch the MCP Inspector:
+```bash
+npx @modelcontextprotocol/inspector bim-portal/Java_client/hackathon-template/build/install/checkmate-mcp/bin/checkmate-mcp
+```
+
+### 3. Claude Desktop and Claude Code
+
+In Claude Desktop, open **Settings → Developer → Edit Config** and add an entry to `claude_desktop_config.json`:
 
 ```json
 {
@@ -25,15 +43,13 @@ In Claude Desktop, open **Settings → Developer → Edit Config** and add an en
       "command": "cmd",
       "args": ["/c", "C:\\path\\to\\checkmate-mcp.bat"],
       "env": {
-        "JAVA_HOME": "C:\\path\\to\\jdk-21"
+        "JAVA_HOME": "C:\\path\\to\\jdk-25"
       }
     }
   }
 }
 ```
 
-If servers are already configured, add only the `checkmate` entry to the existing `mcpServers` object. Quit Claude Desktop completely and restart it. Optionally, use `CHECKMATE_IFC` in `env` to select a model.
+Claude Code can register the server with `claude mcp add checkmate -- cmd /c "C:\path\to\checkmate-mcp.bat"`; `claude mcp list` shows the configuration. See [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.3-stable/docs/WORKFLOW.md) for more details.
 
-Claude Code can register the server with `claude mcp add checkmate -- cmd /c "C:\path\to\checkmate-mcp.bat"`; `claude mcp list` shows the configuration. See [`docs/WORKFLOW.md`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/docs/WORKFLOW.md) for more details.
-
-Other clients may be used if they support local MCP servers over `stdio`. Setup, permissions and data handling depend on the client and provider; compatibility must be checked for each setup.
+Other clients may be used if they support local MCP servers over `stdio`.

@@ -99,7 +99,7 @@ public final class CheckMateMcpServer {
           "find_loins", LOINS_VIEW,
           "describe_model", MODEL_VIEW);
 
-  private static final String VERSION = "0.3.2";
+  private static final String VERSION = "0.3.3-stable";
 
   /** Tools that change nothing, neither the session nor anything outside it. */
   private static final Set<String> READ_ONLY =

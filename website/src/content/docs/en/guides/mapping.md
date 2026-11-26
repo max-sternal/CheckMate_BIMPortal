@@ -15,7 +15,7 @@ The bundled BIM.Hamburg bridge model uses this mapping:
 | `Klassifizierung/Objektklasse` | `Pset_Objektinformation/_IDEbene2` |
 | `Klassifizierung/Objekttyp` | `Pset_Objektinformation/_IDEbene3` |
 
-[`bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/bim-portal/Java_client/hackathon-template/src/main/resources/mapping/bim-hamburg.json) is active by default in `0.3.2`. The requested name is always checked first, followed by mapping addresses. The report identifies aliases used as `als Pset_Objektinformation/...`.
+[`bim-hamburg.json`](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.3-stable/bim-portal/Java_client/hackathon-template/src/main/resources/mapping/bim-hamburg.json) is active by default in `0.3.3-stable`. The requested name is always checked first, followed by mapping addresses. The report identifies aliases used as `als Pset_Objektinformation/...`.
 
 A mapping is **not a general IDS rule**. It must be appropriate for the project and model. It maps names but does not correct values or data types. Finding an address therefore does not automatically mean a requirement is satisfied.
 

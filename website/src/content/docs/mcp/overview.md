@@ -1,11 +1,13 @@
 ---
 title: MCP-Schnittstelle
-description: Der CheckMate-MCP-Server und seine Werkzeuge in Version 0.3.2.
+description: Der CheckMate-MCP-Server und seine Werkzeuge in Version 0.3.3-stable.
 ---
 
-CheckMate lässt sich auf zwei Wegen mit einem Sprachmodell verbinden. Über das [Model Context Protocol](https://modelcontextprotocol.io/) nutzt eine KI-Anwendung CheckMate als Werkzeug; das Modell stellt und bezahlt dann der Client. Der [Chat in der Oberfläche](/CheckMate_BIMPortal/guides/chat/) auf Branch `0.3.3` geht den umgekehrten Weg: CheckMate ruft selbst ein Modell mit eigenem Schlüssel auf, abgerechnet nach Token. Beide Wege nutzen denselben Prüfkern; der Chat kennt bislang nur `check_model`, MCP die unten aufgeführten Werkzeuge.
+CheckMate lässt sich auf zwei Wegen mit einem Sprachmodell verbinden. Über das [Model Context Protocol](https://modelcontextprotocol.io/) nutzt eine KI-Anwendung CheckMate als Werkzeug. Der [Chat in der Oberfläche](/CheckMate_BIMPortal/guides/chat/) geht den umgekehrten Weg: CheckMate ruft selbst ein Modell mit eigenem Schlüssel auf. Beide Wege nutzen denselben Prüfkern.
 
-Diese Seite beschreibt den MCP-Weg. Der Server in `0.3.2` läuft lokal über `stdio`. Die Prüfung erfolgt im CheckMate-Kern; ein angeschlossenes Sprachmodell kann Ergebnisse aufbereiten, entscheidet aber nicht über die Regeln.
+Diese Seite beschreibt den MCP-Weg. Der Server in `0.3.3-stable` läuft lokal über `stdio`.
+
+## Modell-gestützte Werkzeuge (11 Tools)
 
 | Werkzeug | Funktion |
 |---|---|
@@ -14,13 +16,31 @@ Diese Seite beschreibt den MCP-Weg. Der Server in `0.3.2` läuft lokal über `st
 | `list_elements` | Elemente nach Typ oder Name auflisten |
 | `find_loins` | LOINs und AIA-Projekte im Portal suchen |
 | `describe_requirements` | Anforderungen einer LOIN oder eines AIA-Projekts beschreiben |
+| `find_properties` | Merkmale und Merkmalsgruppen im BIM-Portal durchsuchen |
+| `describe_property` | Details und Wertebereiche eines BIM-Portal-Merkmals anzeigen |
 | `check_model` | Modell gegen Portal- oder lokale IDS-Anforderungen prüfen |
 | `element_report` | Ergebnisse und Merkmale eines Elements anzeigen |
-| `load_mapping` | Aktives Mapping anzeigen oder wechseln; ein Wechsel verwirft den letzten Prüfbericht |
+| `load_mapping` | Aktives Mapping anzeigen oder wechseln |
 | `server_status` | Aktuelles Modell, Mapping und letztes Prüfergebnis anzeigen |
 
-Für `check_model` gibt es eine erste MCP-App-Berichtansicht mit strukturierter Ausgabe und einem Werkzeug zum Nachladen weiterer Befunde. Die Ansicht ist auf Protokollebene getestet, aber noch nicht in Claude Desktop oder Antigravity visuell geprüft. Clients ohne passende Unterstützung erhalten weiterhin eine Textantwort.
+## App-Only Werkzeuge
 
-Die Werkzeuge liefern Modellinformationen, Merkmale und Prüfberichte an den aufrufenden Client. Je nach Client und Modellanbieter können diese Informationen weiterverarbeitet oder extern übertragen werden. Der Server selbst schützt nicht vor einer solchen Weitergabe; vor der Nutzung sind Datenschutz und Vertraulichkeit zu prüfen. Für Portalabfragen ist Netzwerkzugriff erforderlich.
+- `app_report_page`: Liefert strukturierte Berichtsdaten für interaktive Oberflächen.
 
-Die Antworten können bei großer Ausgabe gekürzt werden. Nicht ausgewertete Anforderungen und die Grenzen der Prüfung stehen unter [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/). Die [Einrichtung](/CheckMate_BIMPortal/mcp/clients/) beschreibt den Start des Servers und ein Client-Beispiel.
+## MCP App Views (3 Ansichten)
+
+1. `ui://checkmate/report`: Interaktiver Prüfbericht mit Filter- und Detailansichten.
+2. `ui://checkmate/loins`: Gefilterte LOIN- und AIA-Katalogübersicht.
+3. `ui://checkmate/model`: IFC-Modellstruktur und Elemente-Browser.
+
+## JSON-Ressourcen (2 Ressourcen)
+
+- `checkmate://model/current`: Aktuelle Modellmetadaten und IFC-Typen als JSON.
+- `checkmate://report/last.json`: Vollständiger letzter Prüfbericht im JSON-Format.
+
+## MCP Prompts (2 Prompts)
+
+- `check-loin`: Geführter Workflow zur Prüfung eines Modells gegen eine Portal-LOIN.
+- `explain-element`: Hilfestellung zur Interpretation von Elementmerkmalen und Fehlern.
+
+Die Werkzeuge und Ansichten unterstützen Entwickler und KI-Clients bei der automatisierten BIM-Prüfung. Details stehen unter [IFC und IDS](/CheckMate_BIMPortal/architecture/ifc-ids-checking/) und in der [Client-Anleitung](/CheckMate_BIMPortal/mcp/clients/).

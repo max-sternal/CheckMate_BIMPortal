@@ -7,7 +7,7 @@ description: An example check of the Hamburg bridge model against a saved portal
 
 What happens when a bridge model uses different property names from a requirement? The bundled IFC2X3 model **BIM.Hamburg TBW1** and the saved portal IDS **“Ueberbau > Kappe”** provide an example.
 
-The IDS file is at `hackathon-template/src/test/resources/ids/portal/ueberbau-kappe-lph8-9.ids`. It was exported from the BIM Portal; its origin and version are documented in the [fixture directory](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.2/bim-portal/Java_client/hackathon-template/src/test/resources/ids/portal/README.md). This check uses the local file and does not require portal access.
+The IDS file is at `hackathon-template/src/test/resources/ids/portal/ueberbau-kappe-lph8-9.ids`. It was exported from the BIM Portal; its origin and version are documented in the [fixture directory](https://github.com/max-sternal/CheckMate_BIMPortal/blob/0.3.3-stable/bim-portal/Java_client/hackathon-template/src/test/resources/ids/portal/README.md). This check uses the local file and does not require portal access.
 
 ## 1. Compare model and requirements
 
