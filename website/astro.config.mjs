@@ -50,7 +50,7 @@ export default defineConfig({
 			],
 			editLink: {
 				baseUrl:
-					`https://github.com/max-sternal/CheckMate_BIMPortal/edit/${is031 ? '0.3.1' : '0.3.2'}/website/`,
+					`https://github.com/max-sternal/CheckMate_BIMPortal/edit/${is031 ? '0.3.1' : '0.3.3'}/website/`,
 			},
 			sidebar: [
 				{
